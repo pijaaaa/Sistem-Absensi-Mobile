@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             ModulePermissionSeeder::class,
             RolePermissionSeeder::class,
             MenuSeeder::class,
+            ScheduleSeeder::class,
             LocationSeeder::class,
             UserSeeder::class,
         ]);
