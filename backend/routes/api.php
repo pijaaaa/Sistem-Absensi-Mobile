@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\FaceController;
+use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\MeController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,4 +47,17 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:attendance_approval.approve');
     Route::post('/attendance-approval/{attendance}/reject', [AttendanceApprovalController::class, 'reject'])
         ->middleware('permission:attendance_approval.approve');
+
+    Route::post('/leave-requests', [LeaveRequestController::class, 'store'])
+        ->middleware('permission:leave_requests.create');
+    Route::get('/leave-requests', [LeaveRequestController::class, 'index'])
+        ->middleware('permission:leave_requests.view');
+    Route::get('/leave-balance', [LeaveRequestController::class, 'balance'])
+        ->middleware('permission:leave_requests.view');
+    Route::get('/leave-approval', [LeaveRequestController::class, 'inbox'])
+        ->middleware('permission:leave_requests.approve');
+    Route::post('/leave-approval/{leave}/approve', [LeaveRequestController::class, 'approve'])
+        ->middleware('permission:leave_requests.approve');
+    Route::post('/leave-approval/{leave}/reject', [LeaveRequestController::class, 'reject'])
+        ->middleware('permission:leave_requests.approve');
 });

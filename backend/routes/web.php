@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\EmployeeController;
 use App\Http\Controllers\Web\HolidayController;
 use App\Http\Controllers\Web\LatenessRuleController;
 use App\Http\Controllers\Web\LeaveBalanceController;
+use App\Http\Controllers\Web\LeaveRequestController;
 use App\Http\Controllers\Web\LocationController;
 use App\Http\Controllers\Web\MenuController;
 use App\Http\Controllers\Web\ScheduleController;
@@ -74,6 +75,11 @@ Route::middleware(['auth', 'superadmin'])->group(function () {
 
     // Audit log
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit_logs.view')->name('audit-logs.index');
+
+    // Pengajuan (approval manager)
+    Route::get('/leave-requests', [LeaveRequestController::class, 'index'])->middleware('permission:leave_requests.view')->name('leave-requests.index');
+    Route::post('/leave-requests/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->middleware('permission:leave_requests.approve')->name('leave-requests.approve');
+    Route::post('/leave-requests/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->middleware('permission:leave_requests.approve')->name('leave-requests.reject');
 
     // Device
     Route::get('/devices', [DeviceController::class, 'index'])->middleware('permission:devices.view')->name('devices.index');

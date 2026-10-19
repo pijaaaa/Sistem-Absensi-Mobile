@@ -61,7 +61,7 @@ class AdminCrudTest extends TestCase
             '/employees', '/employees/create',
             '/locations', '/locations/create',
             '/schedule', '/lateness', '/holidays', '/leave-quota',
-            '/settings', '/audit-logs', '/access', '/menus', '/devices',
+            '/settings', '/audit-logs', '/access', '/menus', '/devices', '/leave-requests',
         ] as $path) {
             $this->get($path)->assertOk();
         }
