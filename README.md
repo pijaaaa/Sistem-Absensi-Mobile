@@ -111,4 +111,4 @@ php artisan schedule:work
 
 ## Milestone
 
-Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. Kelompok 1 berjalan: B0–B9 selesai (skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah, absensi online + device binding, offline sync, cuti/sakit/izin/dinas, notifikasi & job terjadwal).
+Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. Kelompok 1 berjalan: B0–B10 selesai (skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah, absensi online + device binding, offline sync, cuti/sakit/izin/dinas, notifikasi & job terjadwal, laporan/dashboard/ekspor/review).

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Web\AccessController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DepartmentController;
 use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\EmployeeController;
@@ -12,6 +13,8 @@ use App\Http\Controllers\Web\LeaveBalanceController;
 use App\Http\Controllers\Web\LeaveRequestController;
 use App\Http\Controllers\Web\LocationController;
 use App\Http\Controllers\Web\MenuController;
+use App\Http\Controllers\Web\ReportController;
+use App\Http\Controllers\Web\ReviewController;
 use App\Http\Controllers\Web\ScheduleController;
 use App\Http\Controllers\Web\SettingController;
 use Illuminate\Support\Facades\Route;
@@ -26,7 +29,16 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'superadmin'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::view('/dashboard', 'dashboard')->middleware('permission:dashboard.view')->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permission:dashboard.view')->name('dashboard');
+
+    // Laporan & dashboard
+    Route::get('/reports', [ReportController::class, 'index'])->middleware('permission:attendance_reports.view')->name('reports.index');
+    Route::get('/reports/export', [ReportController::class, 'export'])->middleware('permission:attendance_reports.export')->name('reports.export');
+
+    // Review flag
+    Route::get('/review', [ReviewController::class, 'index'])->middleware('permission:review.view')->name('review.index');
+    Route::get('/review/photo/{faceCapture}', [ReviewController::class, 'photo'])->middleware('permission:review.view')->name('review.photo');
+    Route::post('/review/{attendance}', [ReviewController::class, 'mark'])->middleware('permission:review.update')->name('review.mark');
 
     // Department
     Route::get('/departments', [DepartmentController::class, 'index'])->middleware('permission:departments.view')->name('departments.index');
