@@ -1,0 +1,32 @@
+/vendor
+/node_modules
+/.env
+/.idea
+/.vscode
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+Dockerfile
+docker-compose.yml
+Dockerfile.dev
+.env.backup
+.phpunit.result.cache
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Backend
+backend/vendor
+backend/node_modules
+backend/public/build
+backend/.env
+
+# Face-service
+face-service/venv
+face-service/.env
+
+# Mobile (nanti)
+mobile/.dart_tool
+mobile/build
+mobile/.vscode
+mobile/.env
