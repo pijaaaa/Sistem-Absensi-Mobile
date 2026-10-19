@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\MeController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -8,4 +10,10 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+
+    Route::get('/me/menus', [MeController::class, 'menus']);
+    Route::get('/me/permissions', [MeController::class, 'permissions']);
+
+    Route::get('/departments', [DepartmentController::class, 'index'])
+        ->middleware('permission:departments.view');
 });

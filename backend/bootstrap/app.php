@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureSuperadmin;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'superadmin' => EnsureSuperadmin::class,
+            'permission' => EnsurePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) use ($apiError): void {

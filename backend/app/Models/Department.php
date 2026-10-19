@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -18,5 +19,18 @@ class Department extends Model
     public function manager(): HasOne
     {
         return $this->hasOne(Employee::class)->whereHas('user', fn ($q) => $q->where('role', 'manager_department'));
+    }
+
+    /**
+     * Aturan data di atas izin: superadmin lihat semua,
+     * role lain hanya department miliknya sendiri.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isSuperadmin()) {
+            return $query;
+        }
+
+        return $query->whereKey($user->employee?->department_id);
     }
 }
