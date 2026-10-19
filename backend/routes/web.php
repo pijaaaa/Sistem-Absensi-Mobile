@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\AccessController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DepartmentController;
+use App\Http\Controllers\Web\DeviceController;
 use App\Http\Controllers\Web\EmployeeController;
 use App\Http\Controllers\Web\HolidayController;
 use App\Http\Controllers\Web\LatenessRuleController;
@@ -73,6 +74,10 @@ Route::middleware(['auth', 'superadmin'])->group(function () {
 
     // Audit log
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit_logs.view')->name('audit-logs.index');
+
+    // Device
+    Route::get('/devices', [DeviceController::class, 'index'])->middleware('permission:devices.view')->name('devices.index');
+    Route::delete('/devices/{device}', [DeviceController::class, 'destroy'])->middleware('permission:devices.update')->name('devices.destroy');
 
     // Manajemen akses & menu
     Route::get('/access', [AccessController::class, 'index'])->middleware('permission:access.view')->name('access.index');

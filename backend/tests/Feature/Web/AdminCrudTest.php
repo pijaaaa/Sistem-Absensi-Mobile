@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Models\Department;
+use App\Models\Device;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\Setting;
@@ -60,10 +61,29 @@ class AdminCrudTest extends TestCase
             '/employees', '/employees/create',
             '/locations', '/locations/create',
             '/schedule', '/lateness', '/holidays', '/leave-quota',
-            '/settings', '/audit-logs', '/access', '/menus',
+            '/settings', '/audit-logs', '/access', '/menus', '/devices',
         ] as $path) {
             $this->get($path)->assertOk();
         }
+    }
+
+    public function test_superadmin_can_reset_device(): void
+    {
+        $this->superadmin();
+        $department = Department::create(['name' => 'Teknologi']);
+        $location = WorkLocation::create(['name' => 'Kantor', 'mode' => 'off']);
+        $user = $this->makeUser('karyawan', ['email' => 'dev@example.com']);
+        $employee = Employee::create([
+            'user_id' => $user->id, 'nip' => 'DEV-1', 'name' => 'D',
+            'department_id' => $department->id, 'work_location_id' => $location->id, 'is_active' => true,
+        ]);
+        $device = Device::create([
+            'employee_id' => $employee->id, 'device_uid' => 'uid-1', 'type' => 'primary', 'status' => 'active',
+        ]);
+
+        $this->delete('/devices/'.$device->id)->assertRedirect();
+        $this->assertDatabaseMissing('devices', ['id' => $device->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'device.reset']);
     }
 
     public function test_employee_creates_user_and_employee(): void

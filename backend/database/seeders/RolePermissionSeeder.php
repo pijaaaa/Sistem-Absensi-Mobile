@@ -21,9 +21,10 @@ class RolePermissionSeeder extends Seeder
     ];
 
     private const EXTRA = [
-        'karyawan' => ['leave_requests.view', 'leave_requests.create'],
+        'karyawan' => ['leave_requests.view', 'leave_requests.create', 'attendance.create'],
         'manager_department' => [
             'leave_requests.view', 'leave_requests.create', 'leave_requests.approve',
+            'attendance.create',
             'attendance_approval.view', 'attendance_approval.approve',
         ],
     ];

@@ -7,6 +7,7 @@ use App\Http\Requests\Api\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\DeviceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -36,11 +37,23 @@ class AuthController extends Controller
 
         $token = $user->createToken($request->validated('device_name') ?? 'mobile')->plainTextToken;
 
+        $device = null;
+
+        if ($user->employee && $request->filled('device_uid')) {
+            $bound = app(DeviceService::class)->bindOnLogin(
+                $user->employee,
+                $request->validated('device_uid'),
+                $request->validated('device_name'),
+            );
+            $device = $bound ? ['id' => $bound->id, 'type' => $bound->type] : null;
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil.',
             'data' => [
                 'token' => $token,
+                'device' => $device,
                 'user' => new UserResource($this->loadUser($user)),
             ],
         ]);

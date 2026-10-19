@@ -69,6 +69,8 @@ return Application::configure(basePath: dirname(__DIR__))
             $message = match ($e->errorCode) {
                 'no_face' => 'Wajah tidak terdeteksi.',
                 'multiple_faces' => 'Terdeteksi lebih dari satu wajah.',
+                'face_mismatch' => 'Wajah tidak cocok dengan data terdaftar.',
+                'no_template' => 'Wajah belum terdaftar.',
                 default => $e->getMessage(),
             };
 

@@ -88,4 +88,4 @@ Harus mengembalikan `{"status":"ok","service":"face-service"}`.
 
 ## Milestone
 
-Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. Kelompok 1 berjalan: B0–B5 selesai (skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah).
+Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. Kelompok 1 berjalan: B0–B6 selesai (skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah, absensi online + device binding).
