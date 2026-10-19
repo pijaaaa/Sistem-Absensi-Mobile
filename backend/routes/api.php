@@ -13,7 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SummaryController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -35,13 +35,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/devices/register-backup', [DeviceController::class, 'registerBackup']);
 
     Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn'])
-        ->middleware('permission:attendance.create');
+        ->middleware(['permission:attendance.create', 'throttle:30,1']);
     Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut'])
-        ->middleware('permission:attendance.create');
+        ->middleware(['permission:attendance.create', 'throttle:30,1']);
 
     Route::get('/time', [AttendanceSyncController::class, 'serverTime']);
     Route::post('/attendance/sync', [AttendanceSyncController::class, 'sync'])
-        ->middleware('permission:attendance.create');
+        ->middleware(['permission:attendance.create', 'throttle:30,1']);
 
     Route::get('/attendance-approval', [AttendanceApprovalController::class, 'index'])
         ->middleware('permission:attendance_approval.view');

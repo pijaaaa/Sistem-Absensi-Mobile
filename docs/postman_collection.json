@@ -1,0 +1,254 @@
+{
+  "info": {
+    "name": "Sistem Absensi API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Kontrak API mobile. Set {{baseUrl}} dan {{token}}."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000/api" },
+    { "key": "token", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"budi@example.com\",\n  \"password\": \"password\",\n  \"device_uid\": \"device-abc\",\n  \"device_name\": \"HP Budi\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/me", "host": ["{{baseUrl}}"], "path": ["me"] } }
+        },
+        {
+          "name": "My Menus",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/me/menus", "host": ["{{baseUrl}}"], "path": ["me", "menus"] } }
+        },
+        {
+          "name": "My Permissions",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/me/permissions", "host": ["{{baseUrl}}"], "path": ["me", "permissions"] } }
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] } }
+        }
+      ]
+    },
+    {
+      "name": "Face",
+      "item": [
+        {
+          "name": "Enroll (photo)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/face/enroll", "host": ["{{baseUrl}}"], "path": ["face", "enroll"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "photos[]", "type": "file", "src": [] }]
+            }
+          }
+        },
+        {
+          "name": "Template",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/face/template", "host": ["{{baseUrl}}"], "path": ["face", "template"] } }
+        },
+        {
+          "name": "Verify",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/face/verify", "host": ["{{baseUrl}}"], "path": ["face", "verify"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "photo", "type": "file", "src": [] }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Device",
+      "item": [
+        {
+          "name": "List",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/devices", "host": ["{{baseUrl}}"], "path": ["devices"] } }
+        },
+        {
+          "name": "Register Backup",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/devices/register-backup", "host": ["{{baseUrl}}"], "path": ["devices", "register-backup"] },
+            "body": { "mode": "raw", "raw": "{\n  \"device_uid\": \"device-backup\",\n  \"name\": \"HP Lama\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Server Time",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/time", "host": ["{{baseUrl}}"], "path": ["time"] } }
+        },
+        {
+          "name": "Check In",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/attendance/check-in", "host": ["{{baseUrl}}"], "path": ["attendance", "check-in"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "lat", "value": "-6.2", "type": "text" },
+                { "key": "lng", "value": "106.8", "type": "text" },
+                { "key": "device_uid", "value": "device-abc", "type": "text" },
+                { "key": "face_score_local", "value": "0.95", "type": "text" },
+                { "key": "photo", "type": "file", "src": [] }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check Out",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/attendance/check-out", "host": ["{{baseUrl}}"], "path": ["attendance", "check-out"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "lat", "value": "-6.2", "type": "text" },
+                { "key": "lng", "value": "106.8", "type": "text" },
+                { "key": "device_uid", "value": "device-abc", "type": "text" },
+                { "key": "photo", "type": "file", "src": [] }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sync Offline",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/attendance/sync", "host": ["{{baseUrl}}"], "path": ["attendance", "sync"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"anchor\": { \"server_time\": \"2026-10-19T08:00:00+07:00\", \"elapsed_realtime\": 1000, \"boot_count\": 5 },\n  \"boot_count\": 5,\n  \"items\": [\n    { \"client_uuid\": \"11111111-1111-1111-1111-111111111111\", \"type\": \"in\", \"lat\": -6.2, \"lng\": 106.8, \"elapsed_realtime\": 601000, \"device_uid\": \"device-abc\", \"face_score_local\": 0.9, \"photo\": \"\" }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/attendance/summary?year=2026&month=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["attendance", "summary"],
+              "query": [{ "key": "year", "value": "2026" }, { "key": "month", "value": "10" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Approval",
+      "item": [
+        {
+          "name": "Attendance Inbox",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/attendance-approval", "host": ["{{baseUrl}}"], "path": ["attendance-approval"] } }
+        },
+        {
+          "name": "Attendance Approve",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/attendance-approval/1/approve", "host": ["{{baseUrl}}"], "path": ["attendance-approval", "1", "approve"] } }
+        },
+        {
+          "name": "Attendance Reject",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/attendance-approval/1/reject", "host": ["{{baseUrl}}"], "path": ["attendance-approval", "1", "reject"] } }
+        },
+        {
+          "name": "Leave Inbox",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/leave-approval", "host": ["{{baseUrl}}"], "path": ["leave-approval"] } }
+        },
+        {
+          "name": "Leave Approve",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/leave-approval/1/approve", "host": ["{{baseUrl}}"], "path": ["leave-approval", "1", "approve"] } }
+        },
+        {
+          "name": "Leave Reject",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/leave-approval/1/reject", "host": ["{{baseUrl}}"], "path": ["leave-approval", "1", "reject"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Dokumen tidak lengkap\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leave",
+      "item": [
+        {
+          "name": "Submit",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/leave-requests", "host": ["{{baseUrl}}"], "path": ["leave-requests"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "type", "value": "cuti", "type": "text" },
+                { "key": "start_date", "value": "2026-10-23", "type": "text" },
+                { "key": "end_date", "value": "2026-10-26", "type": "text" },
+                { "key": "reason", "value": "Keperluan keluarga", "type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "History",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/leave-requests", "host": ["{{baseUrl}}"], "path": ["leave-requests"] } }
+        },
+        {
+          "name": "Balance",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/leave-balance", "host": ["{{baseUrl}}"], "path": ["leave-balance"] } }
+        }
+      ]
+    },
+    {
+      "name": "Stats & Notifications",
+      "item": [
+        {
+          "name": "Team Stats",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/team-stats", "host": ["{{baseUrl}}"], "path": ["team-stats"] } }
+        },
+        {
+          "name": "Register Push Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/push-tokens", "host": ["{{baseUrl}}"], "path": ["push-tokens"] },
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"fcm-token\",\n  \"platform\": \"android\"\n}" }
+          }
+        },
+        {
+          "name": "Notifications",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/notifications", "host": ["{{baseUrl}}"], "path": ["notifications"] } }
+        },
+        {
+          "name": "Read All",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["notifications", "read-all"] } }
+        }
+      ]
+    }
+  ]
+}

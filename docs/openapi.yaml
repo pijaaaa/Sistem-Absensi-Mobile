@@ -1,0 +1,427 @@
+openapi: 3.0.3
+info:
+  title: Sistem Absensi API
+  version: 1.0.0
+  description: |
+    Kontrak API mobile (Kelompok 1). Auth memakai Bearer token Sanctum.
+    Semua respons memakai envelope: sukses `{success:true,message,data}`,
+    error `{success:false,message,errors}`.
+servers:
+  - url: http://localhost:8000/api
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Face
+  - name: Device
+  - name: Attendance
+  - name: Leave
+  - name: Stats
+  - name: Notification
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login (email atau NIP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login: { type: string, example: budi@example.com }
+                password: { type: string, example: password }
+                device_uid: { type: string }
+                device_name: { type: string }
+      responses:
+        '200':
+          description: Token + user + device
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  data:
+                    type: object
+                    properties:
+                      token: { type: string }
+                      device:
+                        nullable: true
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          type: { type: string, enum: [primary, backup] }
+                      user: { type: object }
+        '422': { $ref: '#/components/responses/Validation' }
+        '429': { $ref: '#/components/responses/TooMany' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      responses:
+        '200': { description: OK }
+  /me:
+    get:
+      tags: [Auth]
+      summary: Profil user login
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /me/menus:
+    get:
+      tags: [Auth]
+      summary: Menu mobile sesuai role
+      responses:
+        '200': { description: OK }
+  /me/permissions:
+    get:
+      tags: [Auth]
+      summary: Daftar izin role
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      is_superadmin: { type: boolean }
+                      keys:
+                        type: array
+                        items: { type: string, example: leave_requests.create }
+  /face/enroll:
+    post:
+      tags: [Face]
+      summary: Daftarkan wajah (foto/embedding)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photos:
+                  type: array
+                  items: { type: string, format: binary }
+                embeddings:
+                  type: array
+                  items: { type: array, items: { type: number } }
+                model_version: { type: string }
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/Validation' }
+  /face/template:
+    get:
+      tags: [Face]
+      summary: Unduh template sendiri
+      responses:
+        '200': { description: OK }
+  /face/verify:
+    post:
+      tags: [Face]
+      summary: Verifikasi wajah
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo: { type: string, format: binary }
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/Validation' }
+  /devices:
+    get:
+      tags: [Device]
+      summary: Daftar device sendiri
+      responses:
+        '200': { description: OK }
+  /devices/register-backup:
+    post:
+      tags: [Device]
+      summary: Daftarkan device cadangan (maks 1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_uid]
+              properties:
+                device_uid: { type: string }
+                name: { type: string }
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/Validation' }
+  /time:
+    get:
+      tags: [Attendance]
+      summary: Waktu server untuk anchor offline
+      responses:
+        '200': { description: OK }
+  /attendance/check-in:
+    post:
+      tags: [Attendance]
+      summary: Absen masuk
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [lat, lng, device_uid, photo]
+              properties:
+                lat: { type: number }
+                lng: { type: number }
+                device_uid: { type: string }
+                photo: { type: string, format: binary }
+                face_score_local: { type: number }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Validation' }
+  /attendance/check-out:
+    post:
+      tags: [Attendance]
+      summary: Absen pulang
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [lat, lng, device_uid, photo]
+              properties:
+                lat: { type: number }
+                lng: { type: number }
+                device_uid: { type: string }
+                photo: { type: string, format: binary }
+                face_score_local: { type: number }
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/Validation' }
+  /attendance/sync:
+    post:
+      tags: [Attendance]
+      summary: Sinkron absen offline (batch, idempoten)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [anchor, boot_count, items]
+              properties:
+                anchor:
+                  type: object
+                  required: [server_time, elapsed_realtime, boot_count]
+                  properties:
+                    server_time: { type: string, format: date-time }
+                    elapsed_realtime: { type: integer }
+                    boot_count: { type: integer }
+                boot_count: { type: integer }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [client_uuid, type, lat, lng, elapsed_realtime, device_uid]
+                    properties:
+                      client_uuid: { type: string, format: uuid }
+                      type: { type: string, enum: [in, out] }
+                      lat: { type: number }
+                      lng: { type: number }
+                      elapsed_realtime: { type: integer }
+                      device_uid: { type: string }
+                      face_score_local: { type: number }
+                      photo: { type: string, description: base64 }
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/Validation' }
+  /attendance/summary:
+    get:
+      tags: [Attendance]
+      summary: Ringkasan absensi sendiri (bulanan + kalender)
+      parameters:
+        - { in: query, name: year, schema: { type: integer } }
+        - { in: query, name: month, schema: { type: integer, minimum: 1, maximum: 12 } }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /attendance-approval:
+    get:
+      tags: [Attendance]
+      summary: Inbox approval kehadiran (manager)
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /attendance-approval/{id}/approve:
+    post:
+      tags: [Attendance]
+      summary: Setujui kehadiran device cadangan
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /attendance-approval/{id}/reject:
+    post:
+      tags: [Attendance]
+      summary: Tolak kehadiran device cadangan
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /leave-requests:
+    post:
+      tags: [Leave]
+      summary: Ajukan cuti/sakit/izin/dinas
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [type, start_date, end_date]
+              properties:
+                type: { type: string, enum: [cuti, sakit, izin, dinas] }
+                start_date: { type: string, format: date }
+                end_date: { type: string, format: date }
+                reason: { type: string }
+                attachment: { type: string, format: binary }
+      responses:
+        '201': { description: Dibuat }
+        '422': { $ref: '#/components/responses/Validation' }
+    get:
+      tags: [Leave]
+      summary: Riwayat pengajuan sendiri
+      responses:
+        '200': { description: OK }
+  /leave-balance:
+    get:
+      tags: [Leave]
+      summary: Saldo cuti sendiri
+      responses:
+        '200': { description: OK }
+  /leave-approval:
+    get:
+      tags: [Leave]
+      summary: Inbox approval manager
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /leave-approval/{id}/approve:
+    post:
+      tags: [Leave]
+      summary: Setujui pengajuan
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /leave-approval/{id}/reject:
+    post:
+      tags: [Leave]
+      summary: Tolak pengajuan (reason wajib)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/Validation' }
+  /team-stats:
+    get:
+      tags: [Stats]
+      summary: Statistik tim hari ini (manager)
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /push-tokens:
+    post:
+      tags: [Notification]
+      summary: Simpan token FCM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+                platform: { type: string, enum: [android] }
+      responses:
+        '200': { description: OK }
+  /notifications:
+    get:
+      tags: [Notification]
+      summary: Daftar notifikasi
+      responses:
+        '200': { description: OK }
+  /notifications/read-all:
+    post:
+      tags: [Notification]
+      summary: Tandai semua dibaca
+      responses:
+        '200': { description: OK }
+  /notifications/{id}/read:
+    post:
+      tags: [Notification]
+      summary: Tandai satu dibaca
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    Unauthorized:
+      description: Tidak terautentikasi
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Izin tidak cukup
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Validation:
+      description: Validasi gagal
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooMany:
+      description: Rate limit
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string }
+        errors: { type: object, additionalProperties: true }

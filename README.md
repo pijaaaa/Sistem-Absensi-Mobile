@@ -109,6 +109,15 @@ php artisan schedule:work
 - `app:mark-absentees` (harian 00:05) — tandai alfa hari kerja lewat tanpa absen/izin.
 - `app:purge-expired-face-captures` (harian 01:00) — hapus foto crop > 30 hari (file + baris); template wajah tidak disentuh.
 
+## Dokumentasi API (kontrak mobile)
+
+- `docs/API.md` — daftar endpoint, izin, struktur error, dan menu mobile (feature_key).
+- `docs/openapi.yaml` — spesifikasi OpenAPI 3.
+- `docs/postman_collection.json` — koleksi Postman (set `baseUrl` & `token`).
+- `docs/BACKUP.md` — checklist backup, job terjadwal, dan keamanan.
+
 ## Milestone
 
-Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. Kelompok 1 berjalan: B0–B10 selesai (skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah, absensi online + device binding, offline sync, cuti/sakit/izin/dinas, notifikasi & job terjadwal, laporan/dashboard/ekspor/review).
+Lihat ROADMAP.md. **Kelompok 1 (B0–B11) selesai**: skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah, absensi online + device binding, offline sync, cuti/sakit/izin/dinas, notifikasi & job terjadwal, laporan/dashboard/ekspor/review, hardening & dokumentasi.
+
+Selanjutnya **Kelompok 2** (aplikasi Flutter, F0–F8) memakai kontrak di `docs/`.
