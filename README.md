@@ -42,14 +42,32 @@ Akses web admin: http://localhost:8000 (login superadmin, endpoint ditambahkan d
 ```bat
 cd face-service
 python -m venv venv
-venv\Scripts\pip install -r requirements.txt   (fastapi uvicorn opencv-python-headless numpy python-multipart python-dotenv)
+venv\Scripts\pip install -r requirements.txt
 venv\Scripts\activate
 copy .env.example .env   (atau edit FACE_SERVICE_SECRET)
+python download_models.py      (unduh model ONNX YuNet + SFace dari OpenCV Zoo, sekali saja)
 uvicorn main:app --host 127.0.0.1 --port 8001
 ```
 
-- Endpoint kesehatan: `GET http://127.0.0.1:8001/health`  
-  Header `x-face-secret: <FACE_SERVICE_SECRET>` wajib.
+- Model ONNX disimpan di `face-service/models/` dan **tidak** di-commit (lihat `.gitignore`).
+- Endpoint: `GET /health`, `POST /embed`, `POST /verify`. Semua butuh header `x-face-secret`.
+- `/embed`: kirim `multipart/form-data` field `image` -> `{model_version, embedding[128], dimension}`.
+  Gambar tanpa wajah -> `422 {"detail":"no_face"}`; lebih dari satu wajah -> `422 {"detail":"multiple_faces"}`.
+- `/verify`: field `image` + form `embedding` (JSON array) -> `{model_version, score, threshold, match}`.
+
+#### Menyiapkan foto uji
+
+Letakkan foto berisi **satu wajah** per file (JPG/PNG), wajah menghadap ke depan. Contoh cepat
+memakai gambar uji OpenCV:
+
+```bat
+curl -sL -o lena.jpg https://raw.githubusercontent.com/opencv/opencv/master/samples/data/lena.jpg
+curl -sL -o messi5.jpg https://raw.githubusercontent.com/opencv/opencv/master/samples/data/messi5.jpg
+venv\Scripts\python test_face.py lena.jpg messi5.jpg
+```
+
+Output contoh: `lena vs lena -> MATCH (1.0000)`, `lena vs messi5 -> NO MATCH (0.1270)`.
+Untuk menguji `/embed` dan `/verify` lewat HTTP, lihat `curl` pada bagian di atas.
 
 ### 3. Laravel ↔ Face-service
 
@@ -70,4 +88,4 @@ Harus mengembalikan `{"status":"ok","service":"face-service"}`.
 
 ## Milestone
 
-Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. B0 (setup skeleton) adalah titik saat ini.
+Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. Kelompok 1 berjalan: B0–B5 selesai (skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah).

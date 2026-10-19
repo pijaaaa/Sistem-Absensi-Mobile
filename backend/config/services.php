@@ -38,6 +38,7 @@ return [
     'face' => [
         'url' => env('FACE_SERVICE_URL', 'http://127.0.0.1:8001'),
         'secret' => env('FACE_SERVICE_SECRET'),
+        'model_version' => env('FACE_MODEL_VERSION', 'sface-2021dec+yunet-2023mar'),
     ],
 
 ];

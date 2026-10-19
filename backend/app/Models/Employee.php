@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
 {
@@ -29,5 +30,10 @@ class Employee extends Model
     public function workLocation(): BelongsTo
     {
         return $this->belongsTo(WorkLocation::class);
+    }
+
+    public function faceTemplates(): HasMany
+    {
+        return $this->hasMany(FaceTemplate::class);
     }
 }

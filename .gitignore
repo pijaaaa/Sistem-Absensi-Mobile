@@ -26,6 +26,7 @@ backend/.env
 # Face-service
 face-service/venv
 face-service/.env
+face-service/models/*.onnx
 
 # Mobile (nanti)
 mobile/.dart_tool

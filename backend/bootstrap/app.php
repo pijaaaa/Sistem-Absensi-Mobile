@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\FaceException;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureSuperadmin;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -63,4 +64,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(fn (ThrottleRequestsException $e, Request $request) => $apiError(
             $request, 429, 'Terlalu banyak percobaan. Coba lagi nanti.'
         ));
+
+        $exceptions->render(function (FaceException $e, Request $request) use ($apiError) {
+            $message = match ($e->errorCode) {
+                'no_face' => 'Wajah tidak terdeteksi.',
+                'multiple_faces' => 'Terdeteksi lebih dari satu wajah.',
+                default => $e->getMessage(),
+            };
+
+            return $apiError($request, $e->getCode() ?: 422, $message, ['code' => $e->errorCode]);
+        });
     })->create();

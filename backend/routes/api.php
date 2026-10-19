@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\FaceController;
 use App\Http\Controllers\Api\MeController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +17,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/departments', [DepartmentController::class, 'index'])
         ->middleware('permission:departments.view');
+
+    Route::prefix('face')->group(function () {
+        Route::post('/enroll', [FaceController::class, 'enroll']);
+        Route::get('/template', [FaceController::class, 'show']);
+        Route::post('/verify', [FaceController::class, 'verify']);
+    });
 });
