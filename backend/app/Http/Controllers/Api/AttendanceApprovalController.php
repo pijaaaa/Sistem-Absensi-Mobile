@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Services\NotificationService;
 use App\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class AttendanceApprovalController extends Controller
 {
+    public function __construct(private NotificationService $notifier) {}
+
     public function index(Request $request): JsonResponse
     {
         $attendances = Attendance::with('employee')
@@ -60,6 +63,15 @@ class AttendanceApprovalController extends Controller
         ]);
 
         AuditLogger::record('attendance.'.$status, $attendance, null, ['approval_status' => $status]);
+
+        if ($user = $attendance->employee?->user) {
+            $this->notifier->send(
+                $user,
+                'Kehadiran device cadangan '.$status,
+                'Absensi device cadangan Anda '.($status === 'approved' ? 'disetujui' : 'ditolak').'.',
+                ['type' => 'attendance_decision', 'id' => $attendance->id],
+            );
+        }
 
         return response()->json([
             'success' => true,

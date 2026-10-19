@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\FaceController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\MeController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\SummaryController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -60,4 +62,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:leave_requests.approve');
     Route::post('/leave-approval/{leave}/reject', [LeaveRequestController::class, 'reject'])
         ->middleware('permission:leave_requests.approve');
+
+    Route::get('/attendance/summary', [SummaryController::class, 'self'])
+        ->middleware('permission:attendance.view');
+    Route::get('/team-stats', [SummaryController::class, 'team'])
+        ->middleware('permission:team_stats.view');
+
+    Route::post('/push-tokens', [NotificationController::class, 'registerToken']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
 });

@@ -15,7 +15,7 @@ class Attendance extends Model
         'is_dinas', 'is_offline', 'time_trust', 'client_uuid',
         'device_id', 'is_backup_device', 'approval_status', 'approver_id',
         'face_score_local', 'face_score_server',
-        'review_flag', 'review_status', 'review_note',
+        'review_flag', 'review_status', 'review_note', 'is_absent',
     ];
 
     protected function casts(): array
@@ -28,6 +28,7 @@ class Attendance extends Model
             'is_offline' => 'boolean',
             'is_backup_device' => 'boolean',
             'review_flag' => 'boolean',
+            'is_absent' => 'boolean',
             'late_minutes' => 'integer',
             'early_leave_minutes' => 'integer',
             'face_score_local' => 'float',

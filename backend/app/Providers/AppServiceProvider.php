@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Employee;
 use App\Observers\EmployeeObserver;
 use App\Services\Face\FaceServiceClient;
+use App\Services\FcmService;
 use App\Support\Access\PermissionService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -18,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(FaceServiceClient::class, fn () => new FaceServiceClient(
             config('services.face.url'),
             (string) config('services.face.secret'),
+        ));
+
+        $this->app->singleton(FcmService::class, fn () => new FcmService(
+            config('services.fcm.server_key'),
+            config('services.fcm.url'),
         ));
     }
 

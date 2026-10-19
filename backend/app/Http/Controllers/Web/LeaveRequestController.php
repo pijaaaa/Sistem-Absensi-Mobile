@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
 use App\Services\LeaveRequestService;
+use App\Services\NotificationService;
 use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,10 @@ use Illuminate\View\View;
 
 class LeaveRequestController extends Controller
 {
-    public function __construct(private LeaveRequestService $service) {}
+    public function __construct(
+        private LeaveRequestService $service,
+        private NotificationService $notifier,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -35,6 +39,7 @@ class LeaveRequestController extends Controller
 
         $this->service->approve($leaveRequest, auth()->id());
         AuditLogger::record('leave.approved', $leaveRequest, null, ['status' => 'approved']);
+        $this->notifyRequester($leaveRequest);
 
         return back()->with('status', 'Pengajuan manager disetujui.');
     }
@@ -50,8 +55,21 @@ class LeaveRequestController extends Controller
 
         $this->service->reject($leaveRequest, auth()->id(), $data['rejection_reason']);
         AuditLogger::record('leave.rejected', $leaveRequest, null, ['status' => 'rejected']);
+        $this->notifyRequester($leaveRequest);
 
         return back()->with('status', 'Pengajuan manager ditolak.');
+    }
+
+    private function notifyRequester(LeaveRequest $leave): void
+    {
+        if ($user = $leave->employee?->user) {
+            $this->notifier->send(
+                $user,
+                'Pengajuan '.$leave->status,
+                sprintf('Pengajuan %s Anda %s.', $leave->type, $leave->status === 'approved' ? 'disetujui' : 'ditolak'),
+                ['type' => 'leave_decision', 'id' => $leave->id],
+            );
+        }
     }
 
     private function ensureManagerRequest(LeaveRequest $leave): void

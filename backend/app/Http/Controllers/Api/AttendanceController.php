@@ -11,6 +11,7 @@ use App\Models\Employee;
 use App\Services\AttendanceService;
 use App\Services\DeviceService;
 use App\Services\Face\FaceServiceClient;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -20,6 +21,7 @@ class AttendanceController extends Controller
         private AttendanceService $attendance,
         private DeviceService $devices,
         private FaceServiceClient $face,
+        private NotificationService $notifier,
     ) {}
 
     public function checkIn(AttendanceRequest $request): JsonResponse
@@ -33,6 +35,15 @@ class AttendanceController extends Controller
         $attendance = $result['attendance'];
 
         $this->storeCapture($attendance, 'in', $photo);
+
+        if ($attendance->is_backup_device) {
+            $this->notifier->sendMany(
+                $this->notifier->approversFor($employee),
+                'Approval kehadiran',
+                $employee->name.' absen dari device cadangan, menunggu approval.',
+                ['type' => 'attendance_pending', 'id' => $attendance->id],
+            );
+        }
 
         return response()->json([
             'success' => true,

@@ -86,6 +86,29 @@ php artisan tinker --execute="echo Illuminate\Support\Facades\Http::withHeaders(
 
 Harus mengembalikan `{"status":"ok","service":"face-service"}`.
 
+### 4. Push notification (FCM)
+
+1. Buat project di [Firebase Console](https://console.firebase.google.com), tambahkan app Android.
+2. Salin **Server key** (Project Settings → Cloud Messaging) ke `backend/.env`:
+   ```
+   FCM_SERVER_KEY=AAAA...
+   ```
+   Jika `FCM_SERVER_KEY` kosong, push dilewati (notifikasi in-app tetap tersimpan di tabel `notifications`).
+3. Di aplikasi Flutter (Kelompok 2): ambil token FCM, kirim ke `POST /api/push-tokens`.
+
+> Catatan: implementasi sekarang memakai endpoint FCM legacy. Untuk production, migrasikan ke **HTTP v1** (service account) — kontrak `FcmService` tinggal diganti.
+
+### 5. Job terjadwal
+
+Jalankan scheduler (Windows Task Scheduler atau terminal):
+
+```
+php artisan schedule:work
+```
+
+- `app:mark-absentees` (harian 00:05) — tandai alfa hari kerja lewat tanpa absen/izin.
+- `app:purge-expired-face-captures` (harian 01:00) — hapus foto crop > 30 hari (file + baris); template wajah tidak disentuh.
+
 ## Milestone
 
-Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. Kelompok 1 berjalan: B0–B8 selesai (skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah, absensi online + device binding, offline sync, cuti/sakit/izin/dinas).
+Lihat ROADMAP.md — tiap sesi kerjakan satu milestone. Kelompok 1 berjalan: B0–B9 selesai (skeleton, master data & auth, manajemen akses & menu, web admin, rules engine, face-service & API wajah, absensi online + device binding, offline sync, cuti/sakit/izin/dinas, notifikasi & job terjadwal).

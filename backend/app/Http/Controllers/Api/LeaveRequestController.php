@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
 use App\Services\LeaveRequestService;
+use App\Services\NotificationService;
 use App\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class LeaveRequestController extends Controller
 {
-    public function __construct(private LeaveRequestService $service) {}
+    public function __construct(
+        private LeaveRequestService $service,
+        private NotificationService $notifier,
+    ) {}
 
     public function store(Request $request): JsonResponse
     {
@@ -37,6 +41,13 @@ class LeaveRequestController extends Controller
         }
 
         $leave = $this->service->create($employee, $data);
+
+        $this->notifier->sendMany(
+            $this->notifier->approversFor($employee),
+            'Pengajuan '.$leave->type,
+            sprintf('%s mengajukan %s (%s s/d %s).', $employee->name, $leave->type, $leave->start_date->toDateString(), $leave->end_date->toDateString()),
+            ['type' => 'leave_request', 'id' => $leave->id],
+        );
 
         return response()->json([
             'success' => true,
@@ -106,6 +117,7 @@ class LeaveRequestController extends Controller
 
         $this->service->approve($leave, $request->user()->id);
         AuditLogger::record('leave.approved', $leave, null, ['status' => 'approved']);
+        $this->notifyRequester($leave);
 
         return response()->json(['success' => true, 'message' => 'Pengajuan disetujui.', 'data' => $this->payload($leave->fresh())]);
     }
@@ -121,8 +133,21 @@ class LeaveRequestController extends Controller
 
         $this->service->reject($leave, $request->user()->id, $data['reason']);
         AuditLogger::record('leave.rejected', $leave, null, ['status' => 'rejected']);
+        $this->notifyRequester($leave);
 
         return response()->json(['success' => true, 'message' => 'Pengajuan ditolak.', 'data' => $this->payload($leave->fresh())]);
+    }
+
+    private function notifyRequester(LeaveRequest $leave): void
+    {
+        if ($user = $leave->employee?->user) {
+            $this->notifier->send(
+                $user,
+                'Pengajuan '.$leave->status,
+                sprintf('Pengajuan %s Anda %s.', $leave->type, $leave->status === 'approved' ? 'disetujui' : 'ditolak'),
+                ['type' => 'leave_decision', 'id' => $leave->id],
+            );
+        }
     }
 
     private function authorizeApproval(Request $request, LeaveRequest $leave): void

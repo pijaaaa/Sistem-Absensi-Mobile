@@ -41,4 +41,9 @@ return [
         'model_version' => env('FACE_MODEL_VERSION', 'sface-2021dec+yunet-2023mar'),
     ],
 
+    'fcm' => [
+        'server_key' => env('FCM_SERVER_KEY'),
+        'url' => env('FCM_URL', 'https://fcm.googleapis.com/fcm/send'),
+    ],
+
 ];
