@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AttendanceApprovalController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AttendanceSyncController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DeviceController;
@@ -33,6 +34,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn'])
         ->middleware('permission:attendance.create');
     Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut'])
+        ->middleware('permission:attendance.create');
+
+    Route::get('/time', [AttendanceSyncController::class, 'serverTime']);
+    Route::post('/attendance/sync', [AttendanceSyncController::class, 'sync'])
         ->middleware('permission:attendance.create');
 
     Route::get('/attendance-approval', [AttendanceApprovalController::class, 'index'])
