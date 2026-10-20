@@ -4,6 +4,7 @@ namespace App\Support\Access;
 
 use App\Enums\Role;
 use App\Models\Menu;
+use App\Models\Module;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -21,7 +22,8 @@ class MenuService
     {
         $roleValue = $role instanceof Role ? $role->value : $role;
 
-        return Cache::rememberForever("menus:$platform:$roleValue", function () use ($roleValue, $platform) {
+        // ponytail: cache primitif, bukan model — hindari __PHP_Incomplete_Class saat kelas berubah.
+        $rows = Cache::rememberForever("menus:$platform:$roleValue", function () use ($roleValue, $platform) {
             $keys = $this->permissions->keysForRole($roleValue);
 
             return Menu::query()
@@ -30,10 +32,17 @@ class MenuService
                 ->with('module')
                 ->orderBy('sort_order')
                 ->get()
-                ->filter(function (Menu $menu) use ($keys) {
-                    return in_array($menu->module->key.'.view', $keys, true);
-                })
-                ->values();
+                ->filter(fn (Menu $menu) => in_array($menu->module->key.'.view', $keys, true))
+                ->map(fn (Menu $menu) => $menu->getAttributes() + ['module_key' => $menu->module->key])
+                ->values()
+                ->all();
+        });
+
+        return (new Collection($rows))->map(function (array $row) {
+            $menu = (new Menu)->newFromBuilder($row);
+            $menu->setRelation('module', (new Module)->newFromBuilder(['key' => $row['module_key']]));
+
+            return $menu;
         });
     }
 
