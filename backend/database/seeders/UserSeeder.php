@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
 
         User::firstOrCreate(['email' => 'admin@example.com'], [
             'name' => 'Super Admin',
-            'password' => 'password',
+            'password' => bcrypt('password'),
             'role' => 'superadmin',
             'is_active' => true,
         ]);
@@ -34,7 +34,7 @@ class UserSeeder extends Seeder
     {
         $user = User::firstOrCreate(['email' => $email], [
             'name' => $name,
-            'password' => 'password',
+            'password' => bcrypt('password'),
             'role' => 'manager_department',
             'is_active' => true,
         ]);
@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
     {
         $user = User::firstOrCreate(['email' => $email], [
             'name' => $name,
-            'password' => 'password',
+            'password' => bcrypt('password'),
             'role' => 'karyawan',
             'is_active' => true,
         ]);

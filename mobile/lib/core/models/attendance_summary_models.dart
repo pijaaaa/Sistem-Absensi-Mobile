@@ -14,7 +14,8 @@ class AttendanceSummaryModel {
   final int totalDinas;
   final int totalHoliday;
   final int totalAbsent;
-  final Map<String, DayStatus> calendar; // date -> status
+  final int remainingLeave;
+  final Map<String, DayStatus> calendar;
 
   AttendanceSummaryModel({
     required this.year,
@@ -32,42 +33,94 @@ class AttendanceSummaryModel {
     required this.totalDinas,
     required this.totalHoliday,
     required this.totalAbsent,
+    required this.remainingLeave,
     required this.calendar,
   });
 
   factory AttendanceSummaryModel.fromJson(Map<String, dynamic> json) {
-    final calendarData = json['calendar'] as Map<String, dynamic>? ?? {};
+    final calendarRaw = json['calendar'];
     final calendar = <String, DayStatus>{};
-    
-    calendarData.forEach((date, data) {
-      if (data is Map<String, dynamic>) {
-        calendar[date] = DayStatus.fromJson(data);
+
+    if (calendarRaw is List) {
+      for (final item in calendarRaw) {
+        if (item is Map<String, dynamic>) {
+          final date = item['date'] as String? ?? '';
+          if (date.isNotEmpty) {
+            calendar[date] = DayStatus.fromJson(item);
+          }
+        }
       }
-    });
+    } else if (calendarRaw is Map<String, dynamic>) {
+      calendarRaw.forEach((date, data) {
+        if (data is Map<String, dynamic>) {
+          calendar[date] = DayStatus.fromJson(data);
+        }
+      });
+    }
+
+    final lateData = json['telat'] as Map<String, dynamic>?;
+    final lateTotal = lateData?['total'] as int? ??
+        (lateData?['kuning'] as int? ?? 0) +
+            (lateData?['merah'] as int? ?? 0) +
+            (lateData?['toleransi'] as int? ?? 0);
+
+    final totalLateTolerance = lateData?['toleransi'] as int? ??
+        lateData?['green'] as int? ??
+        0;
+    final totalLateYellow = lateData?['kuning'] as int? ?? 0;
+    final totalLateRed = lateData?['merah'] as int? ?? 0;
 
     return AttendanceSummaryModel(
       year: json['year'] ?? DateTime.now().year,
       month: json['month'] ?? DateTime.now().month,
-      totalPresent: json['total_present'] ?? 0,
-      totalLate: json['total_late'] ?? 0,
-      totalOnTime: json['total_on_time'] ?? 0,
-      totalLateTolerance: json['total_late_tolerance'] ?? 0,
-      totalLateYellow: json['total_late_yellow'] ?? 0,
-      totalLateRed: json['total_late_red'] ?? 0,
-      totalMinutesLate: json['total_minutes_late'] ?? 0,
-      totalLeave: json['total_leave'] ?? 0,
-      totalSick: json['total_sick'] ?? 0,
-      totalPermission: json['total_permission'] ?? 0,
-      totalDinas: json['total_dinas'] ?? 0,
-      totalHoliday: json['total_holiday'] ?? 0,
-      totalAbsent: json['total_absent'] ?? 0,
+      totalPresent: json['hadir'] ??
+          json['total_present'] ??
+          json['total_on_time'] ??
+          0,
+      totalLate: lateTotal,
+      totalOnTime: json['tepat_waktu'] ??
+          json['total_on_time'] ??
+          (json['hadir'] as int? ?? 0) -
+              (lateTotal),
+      totalLateTolerance: totalLateTolerance,
+      totalLateYellow: totalLateYellow,
+      totalLateRed: totalLateRed,
+      totalMinutesLate:
+          json['total_menit_telat'] ?? json['total_minutes_late'] ?? 0,
+      totalLeave: json['cuti'] ?? json['total_leave'] ?? 0,
+      totalSick: json['sakit'] ?? json['total_sick'] ?? 0,
+      totalPermission: json['izin'] ?? json['total_permission'] ?? 0,
+      totalDinas: json['dinas'] ?? json['total_dinas'] ?? 0,
+      totalHoliday: json['libur'] ?? json['total_holiday'] ?? 0,
+      totalAbsent: json['alfa'] ?? json['total_absent'] ?? 0,
+      remainingLeave: json['sisa_cuti'] ??
+          json['remaining_leave'] ??
+          json['remaining_leave'] as int? ??
+          0,
       calendar: calendar,
     );
+  }
+
+  DayStatus? get today {
+    final today = DateTime.now();
+    final dateKey =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    return calendar[dateKey];
+  }
+
+  bool get isCheckedInToday {
+    final day = today;
+    return day != null && day.checkIn != null;
+  }
+
+  bool get isCheckedOutToday {
+    final day = today;
+    return day != null && day.checkOut != null;
   }
 }
 
 class DayStatus {
-  final String status; // 'present', 'late_tolerance', 'late_yellow', 'late_red', 'leave', 'sick', 'permission', 'dinas', 'holiday', 'absent', 'future'
+  final String status;
   final String? checkIn;
   final String? checkOut;
   final int? lateMinutes;
@@ -96,6 +149,17 @@ class DayStatus {
       isOffline: json['is_offline'],
     );
   }
+
+  bool get isPresent => checkIn != null;
+  bool get isCheckedOut => checkOut != null;
+  bool get isAbsent => status == 'absent' || status == 'alfa';
+  bool get isLate => lateMinutes != null && lateMinutes! > 0;
+  bool get isLeave =>
+      status == 'leave' ||
+      status == 'cuti' ||
+      status == 'sakit' ||
+      status == 'izin' ||
+      status == 'dinas';
 }
 
 class TeamStatsModel {
@@ -117,16 +181,20 @@ class TeamStatsModel {
 
   factory TeamStatsModel.fromJson(Map<String, dynamic> json) {
     return TeamStatsModel(
-      totalEmployees: json['total_employees'] ?? 0,
-      presentToday: json['present_today'] ?? 0,
-      lateToday: json['late_today'] ?? 0,
-      notCheckedIn: json['not_checked_in'] ?? 0,
+      totalEmployees:
+          json['total_employees'] ?? json['total_karyawan'] ?? 0,
+      presentToday: json['present_today'] ?? json['hadir'] ?? 0,
+      lateToday: json['late_today'] ?? json['telat'] ?? 0,
+      notCheckedIn:
+          json['not_checked_in'] ?? json['belum_absen'] ?? 0,
       lateEmployees: (json['late_employees'] as List? ?? [])
           .map((e) => EmployeeAttendance.fromJson(e as Map<String, dynamic>))
           .toList(),
-      notCheckedInEmployees: (json['not_checked_in_employees'] as List? ?? [])
-          .map((e) => EmployeeAttendance.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      notCheckedInEmployees:
+          (json['not_checked_in_employees'] as List? ?? [])
+              .map((e) =>
+                  EmployeeAttendance.fromJson(e as Map<String, dynamic>))
+              .toList(),
     );
   }
 }

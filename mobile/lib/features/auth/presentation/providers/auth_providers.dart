@@ -1,8 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/constants/storage_keys.dart';
 import 'package:mobile/core/models/user_model.dart';
+import 'package:mobile/features/auth/data/datasource/auth_data_source.dart';
+import 'package:mobile/features/auth/data/repository/auth_repository.dart';
+import 'package:mobile/core/network/providers.dart';
 
 final authLoadingProvider = StateProvider<bool>((ref) => false);
+
+// Auth repository provider
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  final dataSource = ref.watch(authDataSourceProvider);
+  return AuthRepository(dataSource: dataSource);
+});
+
+final authDataSourceProvider = Provider<AuthDataSource>((ref) {
+  final dio = ref.watch(dioProvider);
+  final storage = ref.watch(flutterSecureStorageProvider);
+  return AuthDataSourceImpl(dio: dio, storage: storage);
+});
 
 class AuthState {
   final bool isAuthenticated;
@@ -46,11 +61,13 @@ class AuthState {
 
 final authStateProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier();
+  return AuthNotifier(ref);
 });
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(AuthState());
+  final Ref ref;
+
+  AuthNotifier(this.ref) : super(AuthState());
 
   void setAuthenticated({
     required String token,
@@ -77,7 +94,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(permissions: permissions);
   }
 
-  void logout() {
+  /// Refresh auth state from API
+  Future<void> refreshAuthState() async {
+    try {
+      final authRepo = ref.read(authRepositoryProvider);
+      final user = await authRepo.getCurrentUser();
+      final menus = await authRepo.getMenus();
+      final permissions = await authRepo.getPermissions();
+
+      state = state.copyWith(
+        isAuthenticated: user != null,
+        token: await authRepo.getToken(),
+        user: user,
+        employee: user?.employee,
+        menus: menus,
+        permissions: permissions,
+      );
+    } catch (e) {
+      // Keep existing state on error
+    }
+  }
+
+  Future<void> logout() async {
+    final authRepo = ref.read(authRepositoryProvider);
+    await authRepo.logout();
     state = AuthState();
   }
 

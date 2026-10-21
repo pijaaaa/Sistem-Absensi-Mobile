@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:mobile/features/auth/data/repository/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -33,126 +34,140 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 32),
-                  // Logo
-                  SizedBox(
-                    height: 120,
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/bsplogo.png',
-                        height: 100,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.business, size: 80);
-                        },
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  kToolbarHeight,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 32),
+                    // Logo
+                    SizedBox(
+                      height: 120,
+                      child: Center(
+                        child: Image.asset(
+                          'assets/images/bsplogo.png',
+                          height: 100,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.business, size: 80);
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Title
-                  Text(
-                    'Sistem Absensi',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                    const SizedBox(height: 24),
+                    // Title
+                    Text(
+                      'Sistem Absensi',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'PT Bumi Siak Pusako',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 4),
+                    Text(
+                      'PT Bumi Siak Pusako',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  // NIP / Email field
-                  TextFormField(
-                    controller: _identifierController,
-                    decoration: InputDecoration(
-                      labelText: 'NIP / Email',
-                      hintText: 'Masukkan NIP atau email',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      border: const OutlineInputBorder(),
+                    const SizedBox(height: 32),
+                    // NIP / Email field
+                    TextFormField(
+                      controller: _identifierController,
+                      decoration: InputDecoration(
+                        labelText: 'NIP / Email',
+                        hintText: 'Masukkan NIP atau email',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person_outline),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'NIP/email harus diisi';
+                        }
+                        return null;
+                      },
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'NIP atau email harus diisi';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Password field
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      hintText: 'Masukkan password',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
+                    const SizedBox(height: 16),
+                    // Password field
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        hintText: 'Masukkan password',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword
                               ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
+                              : Icons.visibility),
+                          onPressed: () {
                             setState(() {
                               _obscurePassword = !_obscurePassword;
                             });
                           },
-                      ),
-                      border: const OutlineInputBorder(),
-                    ),
-                    obscureText: _obscurePassword,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Password harus diisi';
-                      }
-                      if (value.length < 3) {
-                        return 'Password minimal 3 karakter';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  // Login button
-                  SizedBox(
-                    height: 50,
-                    child: FilledButton(
-                      onPressed: isLoading ? null : _handleLogin,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text(
-                              'Masuk',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      obscureText: _obscurePassword,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Password harus diisi';
+                        }
+                        if (value.length < 3) {
+                          return 'Password minimal 3 karakter';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    // Login button
+                    SizedBox(
+                      height: 50,
+                      child: FilledButton(
+                        onPressed: isLoading ? null : _handleLogin,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text(
+                                'Masuk',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      'v1.0.0',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -166,116 +181,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     ref.read(authLoadingProvider.notifier).state = true;
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      final authRepo = ref.read(authRepositoryProvider);
+      await authRepo.login(
+        login: _identifierController.text,
+        password: _passwordController.text,
+      );
 
-      final isManager =
-          _identifierController.text.contains('manager') ||
-          _identifierController.text.contains('001');
-      final name = isManager ? 'Andi Wijaya' : 'Fikri Ramadhan';
-
-      ref.read(authStateProvider.notifier).setAuthenticated(
-            token: 'dummy_token',
-            user: UserModel(
-              id: 1,
-              name: name,
-              email: _identifierController.text,
-              role: isManager ? 'manager_department' : 'karyawan',
-              employee: EmployeeModel(
-                id: 1,
-                nip: 'EMP001',
-                name: name,
-                departmentId: 1,
-                workLocationId: 1,
-              ),
-            ),
-            menus: isManager
-                ? [
-                    {
-                      'feature_key': 'home',
-                      'label': 'Beranda',
-                      'icon': 'home'
-                    },
-                    {
-                      'feature_key': 'attendance',
-                      'label': 'Absen',
-                      'icon': 'fingerprint'
-                    },
-                    {
-                      'feature_key': 'history',
-                      'label': 'Riwayat',
-                      'icon': 'calendar'
-                    },
-                    {
-                      'feature_key': 'leave',
-                      'label': 'Pengajuan',
-                      'icon': 'document'
-                    },
-                    {
-                      'feature_key': 'approval',
-                      'label': 'Approval',
-                      'icon': 'check_circle'
-                    },
-                    {
-                      'feature_key': 'team_stats',
-                      'label': 'Statistik Tim',
-                      'icon': 'bar_chart'
-                    },
-                    {
-                      'feature_key': 'notification',
-                      'label': 'Notifikasi',
-                      'icon': 'bell'
-                    },
-                    {
-                      'feature_key': 'profile',
-                      'label': 'Profil',
-                      'icon': 'person'
-                    },
-                  ]
-                : [
-                    {
-                      'feature_key': 'home',
-                      'label': 'Beranda',
-                      'icon': 'home'
-                    },
-                    {
-                      'feature_key': 'attendance',
-                      'label': 'Absen',
-                      'icon': 'fingerprint'
-                    },
-                    {
-                      'feature_key': 'history',
-                      'label': 'Riwayat',
-                      'icon': 'calendar'
-                    },
-                    {
-                      'feature_key': 'leave',
-                      'label': 'Pengajuan',
-                      'icon': 'document'
-                    },
-                    {
-                      'feature_key': 'notification',
-                      'label': 'Notifikasi',
-                      'icon': 'bell'
-                    },
-                    {
-                      'feature_key': 'profile',
-                      'label': 'Profil',
-                      'icon': 'person'
-                    },
-                  ],
-            permissions: {
-              'attendance.view',
-              'attendance.create',
-              'leave.view',
-              'leave.create',
-              'notification.view',
-              if (isManager) ...{
-                'approval.view',
-                'approval.approve',
-                'team_stats.view',
-              },
-            },
-          );
+      await ref.read(authStateProvider.notifier).refreshAuthState();
 
       if (!mounted) return;
       context.go('/home');
@@ -283,7 +195,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(
+            e.toString().replaceAll('Exception: ', ''),
+            style: const TextStyle(color: Colors.white),
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );

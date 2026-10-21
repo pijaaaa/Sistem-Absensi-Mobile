@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:mobile/core/constants/storage_keys.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -40,6 +42,10 @@ class AuthDataSourceImpl implements AuthDataSource {
         },
       );
     } on DioException catch (e) {
+      print('[AUTH] Login error: ${e.message}');
+      print('[AUTH] Login error type: ${e.type}');
+      print('[AUTH] Login error response: ${e.response?.data}');
+      print('[AUTH] Login error status: ${e.response?.statusCode}');
       throw Exception(_formatError(e));
     }
 
@@ -69,7 +75,8 @@ class AuthDataSourceImpl implements AuthDataSource {
     try {
       final response = await dio.get(ApiConstants.me);
       final data = response.data as Map<String, dynamic>;
-      final user = UserModel.fromJson(data['user'] ?? data);
+      final apiData = data['data'] as Map<String, dynamic>? ?? data;
+      final user = UserModel.fromJson(apiData);
       await saveUser(user);
       return user;
     } on DioException catch (e) {
@@ -97,7 +104,9 @@ class AuthDataSourceImpl implements AuthDataSource {
     try {
       final response = await dio.get(ApiConstants.permissions);
       final data = response.data as Map<String, dynamic>;
-      final permissions = (data['permissions'] as List? ?? [])
+      // Backend returns: { "data": { "is_superadmin": bool, "keys": ["perm1", "perm2"] } }
+      final permissionData = data['data'] as Map<String, dynamic>? ?? data;
+      final permissions = (permissionData['keys'] as List? ?? permissionData['permissions'] as List? ?? [])
           .map((e) => e as String)
           .toSet();
       await storage.write(
@@ -161,28 +170,14 @@ class AuthDataSourceImpl implements AuthDataSource {
   }
 
   String _encodeUser(UserModel user) {
-    // Simple JSON encode without extra imports
-    return user.toJson().toString();
+    return jsonEncode(user.toJson());
   }
 
   Map<String, dynamic> _decodeUser(String data) {
-    // Simple JSON decode
-    final cleaned = data
-        .replaceAll(RegExp(r'^Map\.from\('), '')
-        .replaceAll(RegExp(r'\)$'), '');
-    // Use eval-like parsing (simplified)
-    final result = <String, dynamic>{};
-    final pairs = cleaned.split(', ');
-    for (final pair in pairs) {
-      final kv = pair.split(': ');
-      if (kv.length == 2) {
-        result[kv[0]] = kv[1];
-      }
-    }
-    return result;
+    return jsonDecode(data) as Map<String, dynamic>;
   }
 
   String _encodeList(List<Map<String, dynamic>> list) {
-    return list.toString();
+    return jsonEncode(list);
   }
 }

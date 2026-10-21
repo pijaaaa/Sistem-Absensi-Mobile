@@ -55,9 +55,15 @@ class AttendanceDataSource {
     }
   }
 
-  Future<Map<String, dynamic>> fetchSummary() async {
+  Future<Map<String, dynamic>> fetchSummary({int? year, int? month}) async {
     try {
-      final response = await dio.get('/attendance/summary');
+      final response = await dio.get(
+        '/attendance/summary',
+        queryParameters: {
+          if (year != null) 'year': year,
+          if (month != null) 'month': month,
+        },
+      );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw Exception(_formatError(e));

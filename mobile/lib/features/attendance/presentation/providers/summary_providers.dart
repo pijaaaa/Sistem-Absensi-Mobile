@@ -3,11 +3,11 @@ import 'package:mobile/features/attendance/data/datasource/attendance_data_sourc
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 import 'package:mobile/core/models/attendance_summary_models.dart';
 
-// Monthly summary provider
+  // Monthly summary provider (uses /attendance/summary with year/month params)
 final monthlySummaryProvider = FutureProvider.family<AttendanceSummaryModel, MonthYearParams>(
   (ref, params) async {
     final dataSource = ref.watch(attendanceDataSourceProvider);
-    final response = await dataSource.fetchMonthlySummary(
+    final response = await dataSource.fetchSummary(
       year: params.year,
       month: params.month,
     );
