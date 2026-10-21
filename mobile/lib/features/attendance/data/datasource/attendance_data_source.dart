@@ -64,6 +64,35 @@ class AttendanceDataSource {
     }
   }
 
+  /// Get detailed monthly summary with calendar
+  Future<Map<String, dynamic>> fetchMonthlySummary({
+    int? year,
+    int? month,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/attendance/summary/monthly',
+        queryParameters: {
+          if (year != null) 'year': year,
+          if (month != null) 'month': month,
+        },
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(_formatError(e));
+    }
+  }
+
+  /// Get team statistics (for manager)
+  Future<Map<String, dynamic>> fetchTeamStats() async {
+    try {
+      final response = await dio.get('/attendance/team-stats');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(_formatError(e));
+    }
+  }
+
   /// Get server time (B7 - for elapsed-realtime anchor)
   Future<int> fetchServerTime() async {
     try {

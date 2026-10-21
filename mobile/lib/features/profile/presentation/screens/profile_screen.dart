@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:mobile/features/auth/presentation/providers/device_providers.dart';
+import 'package:mobile/core/widgets/confirm_dialog.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -60,10 +62,7 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // Device Status
-            _buildDetailCard(context, [
-              _buildDetailItem(context, Icons.phone_android, 'Device Utama', 'Pixel 8a'),
-              _buildDetailItem(context, Icons.phone, 'Device Cadangan', 'None'),
-            ]),
+            _buildDeviceStatusCard(context, ref),
             const SizedBox(height: 24),
 
             // Settings
@@ -75,9 +74,19 @@ class ProfileScreen extends ConsumerWidget {
 
             // Logout Button
             FilledButton.icon(
-              onPressed: () {
-                ref.read(authStateProvider.notifier).logout();
-                context.go('/login');
+              onPressed: () async {
+                final confirmed = await ConfirmDialog.show(
+                  context: context,
+                  title: 'Keluar',
+                  content: 'Anda yakin ingin keluar dari aplikasi?',
+                  confirmText: 'Keluar',
+                  isDestructive: true,
+                );
+                
+                if (confirmed == true && context.mounted) {
+                  ref.read(authStateProvider.notifier).logout();
+                  context.go('/login');
+                }
               },
               icon: const Icon(Icons.logout),
               label: const Text('Keluar'),
@@ -194,6 +203,126 @@ class ProfileScreen extends ConsumerWidget {
             },
             child: Text(getLabel(mode)),
           ),
+      ],
+    );
+  }
+
+  Widget _buildDeviceStatusCard(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final deviceStatusAsync = ref.watch(deviceStatusProvider);
+    final currentDeviceAsync = ref.watch(currentDeviceInfoProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.phone_android, color: theme.colorScheme.primary, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  'Status Device',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            deviceStatusAsync.when(
+              data: (deviceStatus) {
+                if (deviceStatus == null) {
+                  return Column(
+                    children: [
+                      Text(
+                        'Device belum terdaftar',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      currentDeviceAsync.when(
+                        data: (deviceInfo) => Text(
+                          deviceInfo['device_name'] ?? 'Unknown Device',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                      ),
+                    ],
+                  );
+                }
+
+                return Column(
+                  children: [
+                    _buildDeviceRow(
+                      context,
+                      icon: deviceStatus.isPrimary ? Icons.phone_android : Icons.phone_iphone,
+                      label: deviceStatus.isPrimary ? 'Device Utama' : 'Device Cadangan',
+                      value: deviceStatus.name,
+                      color: deviceStatus.isPrimary ? AppColors.primary : AppColors.accent,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDeviceRow(
+                      context,
+                      icon: Icons.check_circle,
+                      label: 'Status',
+                      value: deviceStatus.isActive ? 'Aktif' : 'Nonaktif',
+                      color: deviceStatus.isActive ? AppColors.onTime : AppColors.error,
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (error, _) => Text(
+                'Gagal memuat status device',
+                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeviceRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

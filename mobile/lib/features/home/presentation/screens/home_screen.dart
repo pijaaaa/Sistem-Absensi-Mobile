@@ -6,6 +6,7 @@ import 'package:mobile/core/widgets/stat_tile.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/attendance/presentation/widgets/offline_sync_badge.dart';
+import 'package:mobile/features/home/presentation/widgets/team_stats_section.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -123,13 +124,19 @@ class HomeScreen extends ConsumerWidget {
                   _AttendanceCard(isManager: isManager),
                   const SizedBox(height: 24),
 
-                  // Summary Stats
-                  _buildSummaryStats(context, isManager),
+                  // Summary Stats / Team Stats for Manager
+                  if (isManager)
+                    const TeamStatsSection()
+                  else
+                    _buildSummaryStats(context, isManager),
                   const SizedBox(height: 24),
 
-                  // Today's Summary Section Title
+                  // Manager Card Approval Shortcut
                   if (isManager) ...[
-                    _buildManagerCard(context),
+                    GestureDetector(
+                      onTap: () => context.push('/approval'),
+                      child: _buildManagerCard(context),
+                    ),
                     const SizedBox(height: 24),
                   ],
 

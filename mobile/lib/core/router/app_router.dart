@@ -6,6 +6,7 @@ import 'package:mobile/features/attendance/presentation/screens/attendance_flow_
 import 'package:mobile/features/attendance/presentation/screens/history_screen.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
+import 'package:mobile/features/auth/presentation/screens/device_registration_screen.dart';
 import 'package:mobile/features/design_showcase/design_showcase_screen.dart';
 import 'package:mobile/features/face/presentation/screens/enrollment_screen.dart';
 import 'package:mobile/features/home/presentation/screens/home_screen.dart';
@@ -39,6 +40,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/device-registration',
+        builder: (context, state) => const DeviceRegistrationScreen(),
       ),
       GoRoute(
         path: '/home',

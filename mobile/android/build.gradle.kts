@@ -2,6 +2,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven(url = uri("https://raw.githubusercontent.com/FlapMM/Flutter-Assets/main/repo"))
     }
 }
 

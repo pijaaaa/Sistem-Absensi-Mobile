@@ -24,6 +24,7 @@ class AppColors {
 
   // === STATUS COLORS ===
   static const success = Color(0xFF2E9E5B);      // Hadir/tepat waktu
+  static const onTime = Color(0xFF2E9E5B);       // Alias untuk success
   static const tolerance = Color(0xFF7BB661);    // Toleransi (hijau muda)
   static const warningYellow = Color(0xFFE8A317); // Telat kuning (oranye)
   static const error = Color(0xFFD64545);         // Telat merah

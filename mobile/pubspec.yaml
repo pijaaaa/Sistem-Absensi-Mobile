@@ -51,6 +51,9 @@ dependencies:
   path: ^1.9.0
   connectivity_plus: ^6.0.0
   workmanager: ^0.6.0
+  fl_chart: ^1.2.0
+  fvm: ^2.4.1
+  device_info_plus: ^12.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

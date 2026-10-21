@@ -3,6 +3,7 @@ import 'package:mobile/core/theme/app_colors.dart';
 
 enum StatusType {
   present,      // Hadir
+  onTime,       // Tepat waktu (alias untuk present)
   tolerance,    // Toleransi
   lateYellow,   // Telat kuning
   lateRed,      // Telat merah
@@ -38,6 +39,7 @@ class StatusChip extends StatelessWidget {
     if (customColor != null) return customColor!;
     switch (type) {
       case StatusType.present:
+      case StatusType.onTime:
         return AppColors.success;
       case StatusType.tolerance:
         return AppColors.tolerance;

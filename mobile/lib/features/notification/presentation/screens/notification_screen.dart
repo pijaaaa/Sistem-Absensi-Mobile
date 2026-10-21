@@ -1,23 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-class NotificationItem {
-  final String id;
-  final String title;
-  final String body;
-  final DateTime time;
-  final bool isRead;
-  final IconData icon;
-
-  NotificationItem({
-    required this.id,
-    required this.title,
-    required this.body,
-    required this.time,
-    this.isRead = false,
-    required this.icon,
-  });
-}
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/widgets/skeleton_loader.dart';
+import 'package:mobile/core/widgets/error_state.dart';
+import 'package:mobile/features/notification/presentation/providers/notification_providers.dart';
+import 'package:mobile/core/models/notification_model.dart';
+import 'package:intl/intl.dart';
 
 class NotificationScreen extends ConsumerWidget {
   const NotificationScreen({super.key});
@@ -25,53 +13,29 @@ class NotificationScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-
-    // Dummy data
-    final items = [
-      NotificationItem(
-        id: '1',
-        title: 'Pengajuan Disetujui',
-        body: 'Cuti tahunan Anda telah disetujui oleh manager.',
-        time: DateTime.now().subtract(const Duration(hours: 2)),
-        isRead: false,
-        icon: Icons.check_circle,
-      ),
-      NotificationItem(
-        id: '2',
-        title: 'Absen dari Device Cadangan',
-        body: 'Persetujuan kehadiran device cadangan menunggu persetujuan.',
-        time: DateTime.now().subtract(const Duration(hours: 5)),
-        isRead: true,
-        icon: Icons.warning,
-      ),
-      NotificationItem(
-        id: '3',
-        title: 'Pengingat Absen',
-        body: 'Jangan lupa absen masuk hari ini.',
-        time: DateTime.now().subtract(const Duration(days: 1)),
-        isRead: true,
-        icon: Icons.notifications,
-      ),
-    ];
-
-    final todayItems = items.where((item) => item.time.day == DateTime.now().day).toList();
-    final yesterdayItems = items.where((item) => item.time.day == DateTime.now().subtract(const Duration(days: 1)).day).toList();
-    final olderItems = items.where((item) => item.time.day < DateTime.now().subtract(const Duration(days: 1)).day).toList();
+    final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifikasi'),
         actions: [
           TextButton(
-            onPressed: () {
-              // Mark all as read
+            onPressed: () async {
+              await ref.read(notificationActionProvider.notifier).markAllAsRead();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Semua notifikasi ditandai dibaca')),
+                );
+              }
             },
             child: const Text('Tandai Semua Dibaca', style: TextStyle(color: Colors.white70)),
           ),
         ],
       ),
-      body: items.isEmpty
-          ? Center(
+      body: notificationsAsync.when(
+        data: (items) {
+          if (items.isEmpty) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -81,23 +45,59 @@ class NotificationScreen extends ConsumerWidget {
                       style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 ],
               ),
-            )
-          : ListView(
+            );
+          }
+
+          final today = DateTime.now();
+          final todayItems = items.where((item) =>
+              item.createdAt.year == today.year &&
+              item.createdAt.month == today.month &&
+              item.createdAt.day == today.day).toList();
+
+          final yesterday = today.subtract(const Duration(days: 1));
+          final yesterdayItems = items.where((item) =>
+              item.createdAt.year == yesterday.year &&
+              item.createdAt.month == yesterday.month &&
+              item.createdAt.day == yesterday.day).toList();
+
+          final olderItems = items.where((item) =>
+              item.createdAt.isBefore(DateTime(yesterday.year, yesterday.month, yesterday.day))).toList();
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(notificationsProvider);
+            },
+            child: ListView(
               children: [
                 if (todayItems.isNotEmpty) ...[
                   _buildSectionHeader(context, 'Hari Ini'),
-                  ...todayItems.map((item) => _buildNotificationItem(context, item)),
+                  ...todayItems.map((item) => _buildNotificationItem(context, ref, item)),
                 ],
                 if (yesterdayItems.isNotEmpty) ...[
                   _buildSectionHeader(context, 'Kemarin'),
-                  ...yesterdayItems.map((item) => _buildNotificationItem(context, item)),
+                  ...yesterdayItems.map((item) => _buildNotificationItem(context, ref, item)),
                 ],
                 if (olderItems.isNotEmpty) ...[
                   _buildSectionHeader(context, 'Lainnya'),
-                  ...olderItems.map((item) => _buildNotificationItem(context, item)),
+                  ...olderItems.map((item) => _buildNotificationItem(context, ref, item)),
                 ],
               ],
             ),
+          );
+        },
+        loading: () => ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: 4,
+          itemBuilder: (context, index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SkeletonLoader(height: 80, borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+        error: (error, _) => ErrorState(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(notificationsProvider),
+        ),
+      ),
     );
   }
 
@@ -105,7 +105,7 @@ class NotificationScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       child: Text(
         title,
         style: theme.textTheme.bodySmall?.copyWith(
@@ -116,23 +116,30 @@ class NotificationScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNotificationItem(BuildContext context, NotificationItem item) {
+  Widget _buildNotificationItem(BuildContext context, WidgetRef ref, NotificationModel item) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final bgColor = item.isRead
         ? Colors.transparent
-        : (isDark ? const Color(0xFF4FA07C).withOpacity(0.1) : const Color(0xFF2D6049).withOpacity(0.08));
+        : (isDark ? AppColors.primary.withValues(alpha: 0.15) : AppColors.primary.withValues(alpha: 0.08));
 
     return ListTile(
       tileColor: bgColor,
       leading: CircleAvatar(
-        backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-        child: Icon(item.icon, color: theme.colorScheme.primary, size: 20),
+        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        child: Icon(Icons.notifications, color: AppColors.primary, size: 20),
       ),
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(
+              item.title,
+              style: TextStyle(
+                fontWeight: item.isRead ? FontWeight.normal : FontWeight.bold,
+              ),
+            ),
+          ),
           if (!item.isRead)
             Container(
               width: 8,
@@ -144,24 +151,21 @@ class NotificationScreen extends ConsumerWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 4),
           Text(item.body,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
-          Text(_formatTime(item.time),
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 11)),
+          const SizedBox(height: 2),
+          Text(
+            DateFormat('HH:mm • dd MMM yyyy', 'id_ID').format(item.createdAt),
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 11),
+          ),
         ],
       ),
-      onTap: () {
-        // Mark as read and navigate to detail
+      onTap: () async {
+        if (!item.isRead) {
+          await ref.read(notificationActionProvider.notifier).markAsRead(item.id);
+        }
       },
     );
-  }
-
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}j';
-    return '${time.day}/${time.month}';
   }
 }
