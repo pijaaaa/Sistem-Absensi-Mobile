@@ -68,9 +68,12 @@ class AppNavigationBar extends ConsumerWidget {
       onDestinationSelected: (index) {
         final item = visibleMenus[index];
         final route = _routeMap[item.featureKey] ?? '/home';
-        if (route != GoRouterState.of(context).matchedLocation) {
-          GoRouter.of(context).go(route);
+        final currentLocation = GoRouterState.of(context).matchedLocation;
+        if (route == currentLocation) return;
+        if (GoRouter.of(context).canPop()) {
+          GoRouter.of(context).pop();
         }
+        GoRouter.of(context).push(route);
         onTap?.call(index);
       },
       indicatorColor: _getIndicatorColor(context),

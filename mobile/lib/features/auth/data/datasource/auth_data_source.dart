@@ -158,11 +158,11 @@ class AuthDataSourceImpl implements AuthDataSource {
   }
 
   String _formatError(DioException e) {
-    if (e.response?.statusCode == 401) return 'NIP/email atau password salah.';
-    if (e.response?.statusCode == 422) {
-      final msg = e.response?.data['message'] as String?;
-      return msg ?? 'Data yang dimasukkan tidak valid.';
+    final data = e.response?.data;
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
     }
+    if (e.response?.statusCode == 401) return 'NIP/email atau password salah.';
     if (e.type == DioExceptionType.connectionError) {
       return 'Tidak dapat terhubung ke server. Pastikan jaringan Anda menyala.';
     }

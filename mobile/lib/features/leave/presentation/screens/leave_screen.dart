@@ -5,11 +5,11 @@ import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/core/widgets/app_text_field.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
-import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/features/leave/presentation/providers/leave_providers.dart';
 import 'package:mobile/features/leave/presentation/screens/leave_history_tab.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 class LeaveScreen extends ConsumerStatefulWidget {

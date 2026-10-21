@@ -43,12 +43,12 @@
     <x-table :headers="[['label' => 'Lokasi'], ['label' => 'Hadir hari ini']]">
         @forelse ($data['perLocation'] as $row)
             <tr>
-                <td class="px-4 py-2">{{ $row->name }}</td>
-                <td class="px-4 py-2">{{ $row->total }}</td>
+                <td class="px-4 py-2">{{ $row['name'] ?? $row->name ?? '' }}</td>
+                <td class="px-4 py-2">{{ $row['total'] ?? $row->total ?? 0 }}</td>
             </tr>
         @empty
             <tr><td colspan="2" class="px-4 py-6 text-center text-gray-400">Belum ada data hari ini.</td></tr>
-        @endforelse
+         @endforelse
     </x-table>
 </div>
 @endsection

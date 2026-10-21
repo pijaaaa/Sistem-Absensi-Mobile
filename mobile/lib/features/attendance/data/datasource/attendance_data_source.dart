@@ -70,29 +70,19 @@ class AttendanceDataSource {
     }
   }
 
-  /// Get detailed monthly summary with calendar
+  /// Get monthly summary (same endpoint as fetchSummary, kept for compatibility)
+  @Deprecated('Use fetchSummary instead')
   Future<Map<String, dynamic>> fetchMonthlySummary({
     int? year,
     int? month,
   }) async {
-    try {
-      final response = await dio.get(
-        '/attendance/summary/monthly',
-        queryParameters: {
-          if (year != null) 'year': year,
-          if (month != null) 'month': month,
-        },
-      );
-      return response.data as Map<String, dynamic>;
-    } on DioException catch (e) {
-      throw Exception(_formatError(e));
-    }
+    return fetchSummary(year: year, month: month);
   }
 
   /// Get team statistics (for manager)
   Future<Map<String, dynamic>> fetchTeamStats() async {
     try {
-      final response = await dio.get('/attendance/team-stats');
+      final response = await dio.get('/team-stats');
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
@@ -102,9 +92,10 @@ class AttendanceDataSource {
   /// Get server time (B7 - for elapsed-realtime anchor)
   Future<int> fetchServerTime() async {
     try {
-      final response = await dio.get('/attendance/server-time');
+      final response = await dio.get('/time');
       final data = response.data as Map<String, dynamic>;
-      return data['server_time_millis'] as int;
+      final serverTime = data['server_time_millis'] ?? data['data']?['server_time'] ?? 0;
+      return serverTime as int;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
     }
@@ -124,7 +115,7 @@ class AttendanceDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/attendance/sync-offline',
+        '/attendance/sync',
         data: {
           'client_uuid': clientUuid,
           'is_check_in': isCheckIn,
@@ -144,15 +135,13 @@ class AttendanceDataSource {
   }
 
   String _formatError(DioException e) {
-    if (e.response?.statusCode == 422) {
-      final data = e.response?.data;
-      if (data is Map && data['message'] != null) {
-        return data['message'].toString();
-      }
+    final data = e.response?.data;
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
     }
     if (e.type == DioExceptionType.connectionError) {
-      return 'Tidak dapat terhubung ke server.';
+      return 'Tidak dapat terhubung ke server. Pastikan jaringan Anda menyala.';
     }
-    return e.response?.data['message'] ?? 'Terjadi kesalahan saat absen.';
+    return 'Terjadi kesalahan. Silakan coba lagi.';
   }
 }

@@ -8,13 +8,12 @@ class ApprovalDataSource {
   /// Get inbox approval (leave requests + backup device attendance)
   Future<Map<String, dynamic>> getApprovalInbox({
     String? type, // 'leave' or 'attendance'
-    String? status, // 'pending', 'approved', 'rejected'
+    String? status,
   }) async {
     try {
       final response = await dio.get(
-        '/approvals/inbox',
+        '/leave-approval',
         queryParameters: {
-          if (type != null) 'type': type,
           if (status != null) 'status': status,
         },
       );
@@ -30,7 +29,7 @@ class ApprovalDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/leave-requests/$requestId/approve',
+        '/leave-approval/$requestId/approve',
       );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -45,7 +44,7 @@ class ApprovalDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/leave-requests/$requestId/reject',
+        '/leave-approval/$requestId/reject',
         data: {'reason': reason},
       );
       return response.data as Map<String, dynamic>;
@@ -60,7 +59,7 @@ class ApprovalDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/attendance/$attendanceId/approve',
+        '/attendance-approval/$attendanceId/approve',
       );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -75,7 +74,7 @@ class ApprovalDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '/attendance/$attendanceId/reject',
+        '/attendance-approval/$attendanceId/reject',
         data: {'reason': reason},
       );
       return response.data as Map<String, dynamic>;
@@ -85,11 +84,9 @@ class ApprovalDataSource {
   }
 
   String _formatError(DioException e) {
-    if (e.response?.statusCode == 422) {
-      final data = e.response?.data;
-      if (data is Map && data['message'] != null) {
-        return data['message'].toString();
-      }
+    final data = e.response?.data;
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
     }
     if (e.response?.statusCode == 403) {
       return 'Anda tidak memiliki akses untuk menyetujui ini.';
@@ -100,6 +97,6 @@ class ApprovalDataSource {
     if (e.type == DioExceptionType.connectionError) {
       return 'Tidak dapat terhubung ke server.';
     }
-    return e.response?.data['message'] ?? 'Terjadi kesalahan.';
+    return 'Terjadi kesalahan. Silakan coba lagi.';
   }
 }
