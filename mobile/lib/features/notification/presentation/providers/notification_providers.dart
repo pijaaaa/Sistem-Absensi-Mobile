@@ -14,6 +14,15 @@ final notificationsProvider = FutureProvider<List<NotificationModel>>((ref) asyn
   return list.map((json) => NotificationModel.fromJson(json)).toList();
 });
 
+final unreadNotificationsCountProvider = Provider<int>((ref) {
+  final notificationsAsync = ref.watch(notificationsProvider);
+  return notificationsAsync.when(
+    data: (items) => items.where((e) => !e.isRead).length,
+    loading: () => 0,
+    error: (_, __) => 0,
+  );
+});
+
 final notificationActionProvider = StateNotifierProvider<NotificationActionNotifier, AsyncValue<void>>(
   (ref) => NotificationActionNotifier(ref),
 );

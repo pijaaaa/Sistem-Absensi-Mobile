@@ -18,6 +18,7 @@ import 'package:mobile/features/home/presentation/providers/home_providers.dart'
 import 'package:mobile/features/home/presentation/widgets/team_stats_section.dart';
 import 'package:mobile/features/home/presentation/widgets/today_attendance_card.dart';
 import 'package:mobile/features/leave/presentation/providers/leave_providers.dart';
+import 'package:mobile/features/notification/presentation/providers/notification_providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -152,54 +153,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: GradientHeader(
         height: 200,
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                greeting,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w300,
-                ),
-              ),
-              Text(
-                userName,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                department,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withOpacity(0.85),
-                ),
-              ),
-              const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${_now.day} ${_monthName(_now.month)} ${_now.year}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withOpacity(0.9),
-                    ),
+          child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  greeting,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w300,
                   ),
-                  Text(
-                    '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withOpacity(0.9),
-                      fontFamily: 'monospace',
-                    ),
+                ),
+                Text(
+                  userName,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  department,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withOpacity(0.85),
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${_now.day} ${_monthName(_now.month)} ${_now.year}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                    Text(
+                      '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Builder(
+                  builder: (context) {
+                    final unreadCount = ref.watch(unreadNotificationsCountProvider);
+                    return _NotificationIconButton(unreadCount: unreadCount);
+                  },
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSummaryStats(BuildContext context, bool isManager) {
@@ -436,6 +453,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ],
-      );
+    );
+  }
+}
+
+class _NotificationIconButton extends StatelessWidget {
+  final int unreadCount;
+
+  const _NotificationIconButton({required this.unreadCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.push('/notifications'),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            shape: BoxShape.circle,
+          ),
+          width: 36,
+          height: 36,
+          child: Stack(
+            children: [
+              const Icon(
+                Icons.notifications,
+                color: Colors.white,
+                size: 18,
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.red,
+                    ),
+                    child: Center(
+                      child: Text(
+                        unreadCount > 9 ? '9+' : unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 7,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

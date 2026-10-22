@@ -40,6 +40,7 @@ class AppNavigationBar extends ConsumerWidget {
     'approval': '/approval',
     'team_stats': '/home',
     'notifications': '/notifications',
+    'more': '/more',
   };
 
   @override
@@ -52,8 +53,8 @@ class AppNavigationBar extends ConsumerWidget {
 
     final menus =
         menusRaw.map((e) => MenuItemModel.fromJson(e)).toList();
-    final visibleMenus = menus.take(5).toList();
-    final hasMore = menus.length > 5;
+    final visibleMenus = menus.where((e) => e.featureKey != 'notifications').take(5).toList();
+    final hasMore = menus.where((e) => e.featureKey != 'notifications').length > 5;
 
     if (hasMore) {
       visibleMenus.add(MenuItemModel(

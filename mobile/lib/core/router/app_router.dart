@@ -11,6 +11,7 @@ import 'package:mobile/features/design_showcase/design_showcase_screen.dart';
 import 'package:mobile/features/face/presentation/screens/enrollment_screen.dart';
 import 'package:mobile/features/home/presentation/screens/home_screen.dart';
 import 'package:mobile/features/leave/presentation/screens/leave_screen.dart';
+import 'package:mobile/features/more/presentation/screens/more_screen.dart';
 import 'package:mobile/features/notification/presentation/screens/notification_screen.dart';
 import 'package:mobile/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mobile/splash_screen.dart';
@@ -75,6 +76,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/more',
+        builder: (context, state) => const MoreScreen(),
       ),
       GoRoute(
         path: '/enrollment',

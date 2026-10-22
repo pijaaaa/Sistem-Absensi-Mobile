@@ -10,7 +10,7 @@ import 'package:mobile/core/theme/theme_provider.dart';
 import 'package:mobile/features/attendance/data/local/workmanager_service.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  await   await WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize locale data for date formatting
   await initializeDateFormatting('id_ID', null);
