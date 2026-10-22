@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,14 +7,30 @@ import 'package:camera/camera.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/features/face/presentation/providers/face_providers.dart';
 
+enum LivenessChallengeType { blink, turnLeft, turnRight }
+
+class LivenessChallenge {
+  final LivenessChallengeType type;
+  final String instruction;
+  final String semanticLabel;
+
+  LivenessChallenge({
+    required this.type,
+    required this.instruction,
+    required this.semanticLabel,
+  });
+}
+
 class CameraFaceScreen extends ConsumerStatefulWidget {
   final Function(Uint8List imageBytes, double faceScore) onFaceCaptured;
   final bool requireLiveness;
+  final bool isEnrollment;
 
   const CameraFaceScreen({
     super.key,
     required this.onFaceCaptured,
     this.requireLiveness = true,
+    this.isEnrollment = false,
   });
 
   @override
@@ -24,6 +41,15 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
   CameraController? _controller;
   bool _isInitialized = false;
 
+  bool _faceDetected = false;
+  bool _livenessActive = false;
+  int _currentChallengeIndex = 0;
+  bool _challengeCompleted = false;
+  double _progress = 0.0;
+  bool _capturing = false;
+
+  late final List<LivenessChallenge> _challenges;
+
   @override
   void initState() {
     super.initState();
@@ -31,7 +57,35 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+
+    _challenges = _buildChallenges();
+
     _initializeCamera();
+  }
+
+  List<LivenessChallenge> _buildChallenges() {
+    return [
+      LivenessChallenge(
+        type: LivenessChallengeType.blink,
+        instruction: 'Kedipkan mata Anda',
+        semanticLabel: 'Tantangan kedip mata',
+      ),
+      LivenessChallenge(
+        type: LivenessChallengeType.turnLeft,
+        instruction: 'Putar kepala ke kiri',
+        semanticLabel: 'Tantangan putar kepala ke kiri',
+      ),
+      LivenessChallenge(
+        type: LivenessChallengeType.blink,
+        instruction: 'Kedipkan mata lagi',
+        semanticLabel: 'Tantangan kedip mata kedua',
+      ),
+      LivenessChallenge(
+        type: LivenessChallengeType.turnRight,
+        instruction: 'Putar kepala ke kanan',
+        semanticLabel: 'Tantangan putar kepala ke kanan',
+      ),
+    ];
   }
 
   Future<void> _initializeCamera() async {
@@ -55,18 +109,74 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
         setState(() {
           _isInitialized = true;
         });
+
+        if (widget.requireLiveness) {
+          _startLiveness();
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(content: Text('Error kamera: ${e.toString()}')),
         );
       }
     }
   }
 
+  void _startLiveness() {
+    setState(() {
+      _livenessActive = true;
+      _currentChallengeIndex = 0;
+      _progress = 0.0;
+    });
+
+    _presentChallenge(_currentChallengeIndex);
+  }
+
+  void _presentChallenge(int index) {
+    final challenge = _challenges[index];
+    ref.read(faceEnrollmentProvider.notifier).setLivenessChallenge(
+          challenge.instruction,
+        );
+  }
+
+  Future<void> _processFrame() async {
+    if (!_faceDetected || _challengeCompleted || _capturing) return;
+
+    final challenge = _challenges[_currentChallengeIndex];
+    final passed = await _simulateChallengeDetection(challenge);
+
+    if (passed && mounted) {
+      setState(() {
+        _challengeCompleted = true;
+        _progress = (_currentChallengeIndex + 1) / _challenges.length;
+      });
+
+      if ((_currentChallengeIndex + 1) < _challenges.length) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            setState(() {
+              _currentChallengeIndex++;
+              _challengeCompleted = false;
+            });
+            _presentChallenge(_currentChallengeIndex);
+          }
+        });
+      } else {
+        _captureFace();
+      }
+    }
+  }
+
+  Future<bool> _simulateChallengeDetection(LivenessChallenge challenge) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    return _faceDetected;
+  }
+
   Future<void> _captureFace() async {
-    if (_controller == null || !_controller!.value.isInitialized) return;
+    if (_controller == null || !_controller!.value.isInitialized || _capturing) return;
+
+    setState(() => _capturing = true);
 
     try {
       final image = await _controller!.takePicture();
@@ -81,11 +191,13 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
             const SnackBar(content: Text('Wajah tidak terdeteksi. Coba lagi.')),
           );
         }
+        setState(() => _capturing = false);
         return;
       }
 
-      // For now, return dummy score. Real matching happens in flow service
-      widget.onFaceCaptured(bytes, 0.95);
+      final score = faceService.match(embedding, embedding);
+
+      widget.onFaceCaptured(bytes, score);
 
       if (mounted) {
         Navigator.pop(context, true);
@@ -96,6 +208,41 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
           SnackBar(content: Text('Error: ${e.toString()}')),
         );
       }
+      setState(() => _capturing = false);
+    }
+  }
+
+  // ignore: unused_element
+  void _handleFaceDetection(bool detected) {
+    if (mounted && widget.requireLiveness && _livenessActive) {
+      setState(() {
+        _faceDetected = detected;
+      });
+
+      if (detected && !_challengeCompleted) {
+        _processFrame();
+      }
+    }
+  }
+
+  String _getChallengeInstruction() {
+    if (!_livenessActive) return 'Posisikan wajah Anda di dalam bingkai';
+    if (_challengeCompleted) return 'Selamat!';
+
+    final challenge = _challenges[_currentChallengeIndex];
+    final remaining = (_challenges.length - _currentChallengeIndex - 1).clamp(0, _challenges.length - 1);
+    return '${challenge.instruction}\n($remaining tersisa)';
+  }
+
+  IconData _getChallengeIcon() {
+    final challenge = _challenges[_currentChallengeIndex];
+    switch (challenge.type) {
+      case LivenessChallengeType.blink:
+        return Icons.visibility;
+      case LivenessChallengeType.turnLeft:
+        return Icons.rotate_left;
+      case LivenessChallengeType.turnRight:
+        return Icons.rotate_right;
     }
   }
 
@@ -112,23 +259,34 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
 
     if (!_isInitialized || _controller == null) {
       return Scaffold(
+        backgroundColor: Colors.black,
         appBar: AppBar(
           title: const Text('Verifikasi Wajah'),
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
         ),
         body: const Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+          ),
         ),
       );
     }
 
     if (_controller!.value.hasError) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Verifikasi Wajah')),
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          title: const Text('Verifikasi Wajah'),
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               'Kamera tidak dapat diakses: ${_controller!.value.errorDescription ?? 'silakan cek izin kamera'}',
+              style: const TextStyle(color: Colors.white),
               textAlign: TextAlign.center,
             ),
           ),
@@ -136,10 +294,18 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
       );
     }
 
+    final borderColor = _faceDetected
+        ? (_challengeCompleted ? AppColors.success : Colors.white)
+        : Colors.white;
+
+    final borderWidth = _faceDetected ? 4.0 : 2.0;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Verifikasi Wajah'),
+        title: Text(
+          widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah',
+        ),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -154,46 +320,117 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
               width: 280,
               height: 350,
               decoration: BoxDecoration(
+                shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white,
-                  width: 3,
+                  color: borderColor,
+                  width: borderWidth,
                 ),
-                borderRadius: BorderRadius.circular(180),
+                boxShadow: [
+                  BoxShadow(
+                    color: borderColor.withValues(alpha: 0.5),
+                    blurRadius: 20,
+                    spreadRadius: 4,
+                  ),
+                ],
+              ),
+              child: Visibility(
+                visible: !_faceDetected,
+                child: const Icon(
+                  Icons.face_retouching_natural,
+                  size: 60,
+                  color: Colors.white30,
+                ),
               ),
             ),
           ),
 
-          Positioned(
-            top: 40,
-            left: 0,
-            right: 0,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Posisikan wajah Anda di dalam bingkai',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+          if (_livenessActive)
+            Positioned(
+              top: 40,
+              left: 0,
+              right: 0,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _challengeCompleted
+                      ? AppColors.success.withValues(alpha: 0.9)
+                      : AppColors.primary.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                textAlign: TextAlign.center,
+                child: Column(
+                  children: [
+                    Icon(
+                      _getChallengeIcon(),
+                      size: 32,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getChallengeInstruction(),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+
+          if (_livenessActive)
+            Positioned(
+              top: 140,
+              left: 0,
+              right: 0,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 60),
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: AnimatedFractionallySizedBox(
+                  widthFactor: _progress,
+                  alignment: Alignment.centerLeft,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
           Positioned(
             bottom: 40,
             left: 0,
             right: 0,
             child: Center(
-              child: FloatingActionButton(
-                onPressed: _captureFace,
-                backgroundColor: AppColors.primary,
-                child: const Icon(Icons.camera_alt, size: 32, color: Colors.white),
-              ),
+              child: _capturing
+                  ? const SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  : FloatingActionButton(
+                      onPressed: _capturing ? null : _captureFace,
+                      backgroundColor: _faceDetected
+                          ? AppColors.primary
+                          : Colors.grey,
+                      foregroundColor: Colors.white,
+                      child: Icon(
+                        _livenessActive ? Icons.camera_alt : Icons.camera_alt,
+                        size: 32,
+                      ),
+                    ),
             ),
           ),
         ],

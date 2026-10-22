@@ -10,6 +10,8 @@ abstract class FaceDataSource {
     List<List<double>>? embeddings,
     String? modelVersion,
   });
+
+  Future<List<double>?> downloadTemplate();
 }
 
 class FaceDataSourceImpl implements FaceDataSource {
@@ -57,6 +59,24 @@ class FaceDataSourceImpl implements FaceDataSource {
     );
 
     return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<List<double>?> downloadTemplate() async {
+    final response = await dio.get(ApiConstants.faceTemplate);
+
+    if (response.statusCode == 200 && response.data != null) {
+      final data = response.data;
+
+      if (data is Map<String, dynamic>) {
+        final embedding = data['embedding'];
+        if (embedding != null) {
+          return (embedding as List).map((e) => (e as num).toDouble()).toList();
+        }
+      }
+    }
+
+    return null;
   }
 }
 

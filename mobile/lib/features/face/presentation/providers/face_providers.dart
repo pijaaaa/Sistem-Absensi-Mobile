@@ -36,6 +36,7 @@ class FaceEnrollmentState {
   final int totalSamples;
   final String livenessChallenge;
   final bool livenessPassed;
+  final DateTime? livenessStartedAt;
   final String? errorMessage;
 
   FaceEnrollmentState({
@@ -45,6 +46,7 @@ class FaceEnrollmentState {
     this.totalSamples = 5,
     this.livenessChallenge = '',
     this.livenessPassed = false,
+    this.livenessStartedAt,
     this.errorMessage,
   });
 
@@ -55,6 +57,7 @@ class FaceEnrollmentState {
     int? totalSamples,
     String? livenessChallenge,
     bool? livenessPassed,
+    DateTime? livenessStartedAt,
     String? errorMessage,
   }) {
     return FaceEnrollmentState(
@@ -64,6 +67,7 @@ class FaceEnrollmentState {
       totalSamples: totalSamples ?? this.totalSamples,
       livenessChallenge: livenessChallenge ?? this.livenessChallenge,
       livenessPassed: livenessPassed ?? this.livenessPassed,
+      livenessStartedAt: livenessStartedAt ?? this.livenessStartedAt,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
@@ -83,7 +87,10 @@ class FaceEnrollmentNotifier extends StateNotifier<FaceEnrollmentState> {
   }
 
   void setLivenessChallenge(String challenge) {
-    state = state.copyWith(livenessChallenge: challenge);
+    state = state.copyWith(
+      livenessChallenge: challenge,
+      livenessStartedAt: DateTime.now(),
+    );
   }
 
   void completeLiveness() {

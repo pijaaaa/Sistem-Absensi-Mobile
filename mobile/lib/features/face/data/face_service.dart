@@ -5,11 +5,13 @@
 abstract class BaseFaceService {
   static const String detectorModel = 'face_detection_yunet_2023mar.onnx';
   static const String recognizerModel = 'face_recognition_sface_2021dec.onnx';
-  static const String modelVersion = 'sface-2021dec+yunet-2023mar';
+  String get modelVersion;
 
   Future<bool> initialize();
   Future<List<double>?> detectFace(List<int> imageData);
   Future<List<double>?> extractEmbedding(List<int> imageData);
   double match(List<double> stored, List<double> live);
+  Future<bool> detectEyeBlink(List<int> imageData, {bool isOpen = true});
+  Future<bool> detectHeadTurn(List<int> imageData, {required String direction});
   void dispose();
 }

@@ -20,11 +20,32 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
   final List<Uint8List> _photos = [];
   final List<List<double>> _embeddings = [];
   bool _isSubmitting = false;
+  bool _hasTemplateDownloaded = false;
 
   static const int targetSamples = 3;
   static const String faceModelVersion = 'sface-2021dec+yunet-2023mar';
 
-  Future<void> _captureSample() async {
+  @override
+  void initState() {
+    super.initState();
+    _downloadExistingTemplate();
+  }
+
+  Future<void> _downloadExistingTemplate() async {
+    try {
+      final dataSource = ref.read(faceDataSourceProvider);
+      final template = await dataSource.downloadTemplate();
+      if (template != null) {
+        setState(() {
+          _hasTemplateDownloaded = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('[ENROLL] downloadTemplate error: $e');
+    }
+  }
+
+  Future<void> _startEnrollmentWithLiveness() async {
     final status = await Permission.camera.request();
     if (!status.isGranted) {
       if (!mounted) return;
@@ -38,18 +59,23 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     }
 
     Uint8List? captured;
+    double? faceScore;
+
     await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => CameraFaceScreen(
           onFaceCaptured: (bytes, score) {
             captured = bytes;
+            faceScore = score;
           },
+          requireLiveness: true,
+          isEnrollment: true,
         ),
       ),
     );
 
-    if (captured == null) return;
+    if (captured == null || faceScore == null) return;
 
     setState(() => _photos.add(captured!));
 
@@ -105,7 +131,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     } on DioException catch (e) {
       debugPrint('[ENROLL] DioException: ${e.type} - ${e.response?.data}');
       if (mounted) {
-        _showError('${_dioErrorMessage(e)}');
+        _showError(_dioErrorMessage(e));
       }
       return false;
     } catch (e) {
@@ -139,13 +165,86 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     return 'Gagal (HTTP ${e.response?.statusCode ?? e.type})';
   }
 
+  Future<void> _showBiometricConsent() async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Row(
+          children: [
+            Icon(Icons.fingerprint, color: AppColors.primary, size: 28),
+            const SizedBox(width: 12),
+            const Text('Persetujuan Data Biometrik'),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Aplikasi ini akan mengumpulkan data wajah (embedding) untuk keperluan absensi. Data ini:',
+                style: TextStyle(height: 1.5),
+              ),
+              SizedBox(height: 8),
+              Text('• Disimpan terenkripsi di server', style: TextStyle(height: 1.5)),
+              Text('• Digunakan hanya untuk verifikasi absensi', style: TextStyle(height: 1.5)),
+              Text('• Tidak pernah disimpan sebagai foto permanen', style: TextStyle(height: 1.5)),
+              Text('• Dapat dihapus dengan menghubungi admin', style: TextStyle(height: 1.5)),
+              SizedBox(height: 12),
+              Text('Dengan menyetujui, Anda setuju data biometrik Anda akan digunakan untuk absensi.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Tolak'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            child: const Text('Setuju & Lanjut'),
+          ),
+        ],
+      ),
+    );
+
+    if (accepted != true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pendaftaran wajah dibatalkan.'),
+          ),
+        );
+        context.pop();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final done = _embeddings.length >= targetSamples;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftar Wajah')),
+      appBar: AppBar(
+        title: const Text('Daftar Wajah'),
+        actions: [
+          if (_hasTemplateDownloaded)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Icon(
+                Icons.download,
+                color: AppColors.success,
+                size: 24,
+              ),
+            ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -162,7 +261,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ambil $targetSamples foto wajah dari sudut berbeda untuk pendaftaran akurat.',
+              'Ambil $targetSamples foto wajah dari sudut berbeda dengan liveness challenge.',
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
@@ -185,20 +284,24 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.check_circle, size: 32, color: Colors.green),
+                    child: const Icon(Icons.check_circle,
+                        size: 32, color: Colors.green),
                   );
                 }),
               ),
             ],
             const Spacer(),
             AppButton(
-              text: done ? 'Daftarkan Sekarang' : 'Ambil Foto Wajah',
+              text: done
+                  ? 'Daftarkan dengan Liveness'
+                  : 'Ambil Sampel dengan Liveness',
               icon: done ? Icons.face_retouching_natural : Icons.camera_alt,
               isLoading: _isSubmitting,
               onPressed: _isSubmitting
                   ? null
                   : (done
                       ? () async {
+                          await _showBiometricConsent();
                           final ok = await _submitEnrollment();
                           if (!mounted) return;
                           if (ok) {
@@ -209,7 +312,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                             }
                           }
                         }
-                      : _captureSample),
+                      : _startEnrollmentWithLiveness),
               backgroundColor: done ? AppColors.success : null,
             ),
           ],
