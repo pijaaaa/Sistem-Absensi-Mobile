@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/widgets/gradient_header.dart';
+import 'package:mobile/core/models/leave_models.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/core/widgets/stat_tile.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
@@ -342,90 +343,96 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildRecentActivity(BuildContext context) {
-    final items = [
-      {
-        'date': '19 Okt',
-        'status': 'Hadir',
-        'time': '08:02',
-        'type': StatusType.present,
+    return Consumer(
+      builder: (context, ref, _) {
+        final items = ref.watch(recentActivityProvider);
+        if (items.isEmpty) {
+          return const Center(
+            child: Text('Belum ada aktivitas absensi.'),
+          );
+        }
+        return Column(
+          children:
+              items.asMap().entries.map((entry) {
+                final item = entry.value;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.primary.withOpacity(0.15),
+                    child: Icon(
+                      Icons.history,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(item.status),
+                  subtitle:
+                      Text('${item.date} • ${item.time}'),
+                  trailing: StatusChip(
+                    label: item.status,
+                    type: item.type,
+                    outline: true,
+                  ),
+                );
+              }).toList(),
+        );
       },
-      {
-        'date': '18 Okt',
-        'status': 'Telat 5m',
-        'time': '08:15',
-        'type': StatusType.lateYellow,
-      },
-      {
-        'date': '17 Okt',
-        'status': 'Pulang',
-        'time': '17:00',
-        'type': StatusType.present,
-      },
-    ];
-
-    return Column(
-      children:
-          items.asMap().entries.map((entry) {
-            final item = entry.value;
-            final statusType = item['type'] as StatusType;
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.15),
-                child: Icon(
-                  Icons.history,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-              title: Text(item['status'] as String),
-              subtitle:
-                  Text('${item['date']} • ${item['time']}'),
-              trailing: StatusChip(
-                label: item['status'] as String,
-                type: statusType,
-                outline: true,
-              ),
-            );
-          }).toList(),
     );
   }
 
   Widget _buildMyRequests(BuildContext context) {
-    final items = [
-      {
-        'title': 'Cuti Tahunan',
-        'date': '01-15 Okt 2026',
-        'status': 'Disetujui',
-        'type': StatusType.approved,
+    return Consumer(
+      builder: (context, ref, _) {
+        final items = ref.watch(myRequestsProvider);
+        if (items.isEmpty) {
+          return const Center(
+            child: Text('Belum ada pengajuan cuti.'),
+          );
+        }
+        return Column(
+          children:
+              items.take(5).toList().asMap().entries.map((entry) {
+                final req = entry.value;
+                return ListTile(
+                  leading: Icon(
+                    Icons.document_scanner_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(req.typeLabel),
+                  subtitle: Text(
+                    '${req.startDate.day}/${req.startDate.month}/${req.startDate.year} - ${req.endDate.day}/${req.endDate.month}/${req.endDate.year}',
+                  ),
+                  trailing: StatusChip(
+                    label: _statusLabel(req),
+                    type: _statusType(req),
+                    outline: true,
+                  ),
+                );
+              }).toList(),
+        );
       },
-      {
-        'title': 'Izin Sakit',
-        'date': '10 Okt 2026',
-        'status': 'Pending',
-        'type': StatusType.pending,
-      },
-    ];
-
-    return Column(
-      children:
-          items.asMap().entries.map((entry) {
-            final item = entry.value;
-            final statusType = item['type'] as StatusType;
-            return ListTile(
-              leading: Icon(
-                Icons.document_scanner_outlined,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              title: Text(item['title'] as String),
-              subtitle: Text(item['date'] as String),
-              trailing: StatusChip(
-                label: item['status'] as String,
-                type: statusType,
-                outline: true,
-              ),
-            );
-          }).toList(),
     );
+  }
+
+  String _statusLabel(LeaveRequestModel req) {
+    switch (req.status) {
+      case 'approved':
+        return 'Disetujui';
+      case 'rejected':
+        return 'Ditolak';
+      default:
+        return 'Pending';
+    }
+  }
+
+  StatusType _statusType(LeaveRequestModel req) {
+    switch (req.status) {
+      case 'approved':
+        return StatusType.approved;
+      case 'rejected':
+        return StatusType.rejected;
+      default:
+        return StatusType.pending;
+    }
   }
 
   Widget _buildSectionWithTitle(

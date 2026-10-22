@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:mobile/features/attendance/data/datasource/attendance_data_source.dart';
 
 class AttendanceRepository {
@@ -10,7 +11,8 @@ class AttendanceRepository {
     required double lng,
     required double faceScoreLocal,
     required String clientUuid,
-    String? deviceUid,
+    required String deviceUid,
+    required Uint8List photo,
     bool isBackupDevice = false,
   }) async {
     return await dataSource.checkIn(
@@ -19,6 +21,7 @@ class AttendanceRepository {
       faceScoreLocal: faceScoreLocal,
       clientUuid: clientUuid,
       deviceUid: deviceUid,
+      photo: photo,
       isBackupDevice: isBackupDevice,
     );
   }
@@ -28,7 +31,8 @@ class AttendanceRepository {
     required double lng,
     required double faceScoreLocal,
     required String clientUuid,
-    String? deviceUid,
+    required String deviceUid,
+    required Uint8List photo,
   }) async {
     return await dataSource.checkOut(
       lat: lat,
@@ -36,6 +40,7 @@ class AttendanceRepository {
       faceScoreLocal: faceScoreLocal,
       clientUuid: clientUuid,
       deviceUid: deviceUid,
+      photo: photo,
     );
   }
 

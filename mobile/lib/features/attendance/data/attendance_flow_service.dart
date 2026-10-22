@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
 import 'package:uuid/uuid.dart';
@@ -111,7 +112,8 @@ class AttendanceFlowService {
     required double lat,
     required double lng,
     required double faceScore,
-    String? deviceUid,
+    required Uint8List photo,
+    required String deviceUid,
     bool isBackupDevice = false,
   }) async {
     try {
@@ -124,6 +126,7 @@ class AttendanceFlowService {
               faceScoreLocal: faceScore,
               clientUuid: clientUuid,
               deviceUid: deviceUid,
+              photo: photo,
               isBackupDevice: isBackupDevice,
             )
           : await repository.checkOut(
@@ -132,6 +135,7 @@ class AttendanceFlowService {
               faceScoreLocal: faceScore,
               clientUuid: clientUuid,
               deviceUid: deviceUid,
+              photo: photo,
             );
 
       return AttendanceResult(

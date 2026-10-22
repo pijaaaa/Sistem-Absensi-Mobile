@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/face/data/face_data_source.dart';
 import 'package:mobile/features/face/data/face_service.dart';
 import 'package:mobile/features/face/data/face_service_impl.dart';
 import 'package:mobile/features/face/data/face_service_stub.dart';
+import 'package:mobile/core/network/providers.dart';
 
 /// Factory: choose implementation based on platform
 BaseFaceService createFaceService() {
@@ -14,6 +16,11 @@ final faceServiceProvider = Provider<BaseFaceService>((ref) {
   final service = createFaceService();
   ref.onDispose(() => service.dispose());
   return service;
+});
+
+final faceDataSourceProvider = Provider<FaceDataSource>((ref) {
+  final dio = ref.watch(dioProvider);
+  return FaceDataSourceImpl(dio: dio);
 });
 
 final faceServiceInitProvider = FutureProvider<bool>((ref) async {

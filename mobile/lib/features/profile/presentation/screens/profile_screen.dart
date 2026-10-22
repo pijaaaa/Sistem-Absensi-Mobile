@@ -69,6 +69,13 @@ class ProfileScreen extends ConsumerWidget {
             _buildSettingItem(context, Icons.palette_outlined, 'Tema Aplikasi', _buildThemeSelector(context, ref)),
             _buildSettingItem(context, Icons.language, 'Bahasa', Text('Bahasa Indonesia')),
             _buildSettingItem(context, Icons.notifications_outlined, 'Notifikasi', Text('Aktif')),
+            ListTile(
+              leading: Icon(Icons.face_retouching_natural, color: Theme.of(context).colorScheme.primary),
+              title: Text('Daftar Wajah'),
+              subtitle: Text('Registrasi wajah untuk absensi'),
+              trailing: Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => context.go('/enrollment'),
+            ),
             _buildSettingItem(context, Icons.info_outline, 'Versi Aplikasi', Text('1.0.0')),
             const SizedBox(height: 24),
 

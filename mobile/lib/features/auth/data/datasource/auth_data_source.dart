@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:mobile/core/constants/storage_keys.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/models/user_model.dart';
+import 'package:mobile/core/services/device_service.dart';
 import 'package:mobile/core/constants/api_constants.dart';
 
 abstract class AuthDataSource {
@@ -24,14 +25,18 @@ abstract class AuthDataSource {
 class AuthDataSourceImpl implements AuthDataSource {
   final Dio dio;
   final FlutterSecureStorage storage;
+  final DeviceService deviceService;
 
-  AuthDataSourceImpl({required this.dio, required this.storage});
+  AuthDataSourceImpl({required this.dio, required this.storage, required this.deviceService});
 
   @override
   Future<Map<String, dynamic>> login({
     required String login,
     required String password,
   }) async {
+    final deviceUid = await deviceService.getDeviceUid();
+    final deviceName = await deviceService.getDeviceName();
+
     Response response;
     try {
       response = await dio.post(
@@ -39,6 +44,8 @@ class AuthDataSourceImpl implements AuthDataSource {
         data: {
           'login': login,
           'password': password,
+          'device_uid': deviceUid,
+          'device_name': deviceName,
         },
       );
     } on DioException catch (e) {

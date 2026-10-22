@@ -10,14 +10,35 @@ import 'package:mobile/core/theme/theme_provider.dart';
 import 'package:mobile/features/attendance/data/local/workmanager_service.dart';
 
 void main() async {
-  await   await WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize locale data for date formatting
   await initializeDateFormatting('id_ID', null);
 
-  // Initialize background sync
-  await WorkManagerService.initialize();
-  await WorkManagerService.registerPeriodicSync();
+  // Initialize background sync (non-fatal: ignore if Workmanager unavailable)
+  try {
+    await WorkManagerService.initialize();
+    await WorkManagerService.registerPeriodicSync();
+  } catch (e) {
+    // ignore — bg sync optional, must not crash app startup
+  }
+
+  // Catch-all: avoid black screen on unexpected widget errors, log to console
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            'Terjadi kesalahan:\n${details.exception}',
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  };
 
   runApp(const ProviderScope(child: AbsensiApp()));
 }

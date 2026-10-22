@@ -1,12 +1,14 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 import 'package:mobile/features/attendance/presentation/screens/camera_face_screen.dart';
 import 'package:mobile/features/attendance/data/attendance_flow_service.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:mobile/features/auth/presentation/providers/device_providers.dart';
 
 class AttendanceFlowScreen extends ConsumerStatefulWidget {
   final bool isCheckIn;
@@ -49,12 +51,26 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
     try {
       final flowService = ref.read(attendanceFlowServiceProvider);
       final authState = ref.read(authStateProvider);
-      
-      // Get work location from employee data
-      // For now, use dummy coordinates - should come from authState.employee.workLocation
-      final targetLat = -0.4619; // Dummy
-      final targetLng = 101.4478; // Dummy
-      final radius = 100.0; // Dummy
+
+      final workLocation = authState.employee?.workLocation;
+      final targetLat = workLocation?.lat;
+      final targetLng = workLocation?.lng;
+      final radius = (workLocation?.radiusM ?? 100).toDouble();
+
+      // Mode 'off' or no coordinates → geofence bypass (backend also skips it)
+      if (workLocation?.mode == 'off' || targetLat == null || targetLng == null) {
+        final position = await ref.read(attendanceFlowServiceProvider).locationService.getCurrentPosition();
+        setState(() {
+          _locationResult = LocationCheckResult(
+            isValid: true,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            distance: 0,
+          );
+          _isCheckingLocation = false;
+        });
+        return;
+      }
 
       final result = await flowService.checkLocation(
         targetLat: targetLat,
@@ -143,12 +159,16 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
       if (isOnline) {
         // Online: submit langsung ke API
         final flowService = ref.read(attendanceFlowServiceProvider);
-        
+        final deviceService = ref.read(deviceServiceProvider);
+        final deviceUid = await deviceService.getDeviceUid();
+
         final result = await flowService.submitAttendance(
           isCheckIn: widget.isCheckIn,
           lat: _locationResult!.latitude!,
           lng: _locationResult!.longitude!,
           faceScore: _faceScore ?? 0.0,
+          photo: _capturedImageBytes!,
+          deviceUid: deviceUid,
         );
 
         if (mounted) {
@@ -159,7 +179,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
         }
       } else {
         // Offline: save ke database lokal
-        final uuid = await offlineService.saveOfflineAttendance(
+        await offlineService.saveOfflineAttendance(
           isCheckIn: widget.isCheckIn,
           lat: _locationResult!.latitude!,
           lng: _locationResult!.longitude!,
@@ -185,10 +205,10 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _attendanceResult = AttendanceResult(
-            success: false,
-            errorMessage: e.toString(),
-          );
+            _attendanceResult = AttendanceResult(
+              success: false,
+              errorMessage: e.toString().replaceAll('Exception: ', ''),
+            );
           _isSubmitting = false;
         });
       }
@@ -478,7 +498,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.pending.withOpacity(0.1),
+                  color: AppColors.pending.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.pending),
                 ),
@@ -513,6 +533,18 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
               ),
             ),
           const Spacer(),
+          if (!success && _attendanceResult?.errorMessage != null &&
+              (_attendanceResult!.errorMessage!.toLowerCase().contains('wajah') ||
+                  _attendanceResult!.errorMessage!.toLowerCase().contains('face')))
+            AppButton(
+              text: 'Daftar Wajah',
+              onPressed: () {
+                context.go('/enrollment');
+              },
+              icon: Icons.face_retouching_natural,
+              outline: true,
+            ),
+          const SizedBox(height: 12),
           AppButton(
             text: 'Selesai',
             onPressed: () {

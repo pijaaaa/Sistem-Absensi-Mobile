@@ -4,6 +4,7 @@ import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/features/auth/data/datasource/auth_data_source.dart';
 import 'package:mobile/features/auth/data/repository/auth_repository.dart';
 import 'package:mobile/core/network/providers.dart';
+import 'package:mobile/features/auth/presentation/providers/device_providers.dart';
 
 final authLoadingProvider = StateProvider<bool>((ref) => false);
 
@@ -16,7 +17,8 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 final authDataSourceProvider = Provider<AuthDataSource>((ref) {
   final dio = ref.watch(dioProvider);
   final storage = ref.watch(flutterSecureStorageProvider);
-  return AuthDataSourceImpl(dio: dio, storage: storage);
+  final deviceService = ref.watch(deviceServiceProvider);
+  return AuthDataSourceImpl(dio: dio, storage: storage, deviceService: deviceService);
 });
 
 class AuthState {

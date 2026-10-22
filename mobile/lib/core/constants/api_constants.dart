@@ -14,4 +14,9 @@ class ApiConstants {
   static const menus = '/me/menus';
   static const permissions = '/me/permissions';
   static const updateFcmToken = '/auth/fcm-token';
+
+  // Face endpoints
+  static const faceEnroll = '/face/enroll';
+  static const faceVerify = '/face/verify';
+  static const faceTemplate = '/face/template';
 }

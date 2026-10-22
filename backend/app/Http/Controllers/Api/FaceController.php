@@ -19,8 +19,7 @@ class FaceController extends Controller
         $data = $request->validate([
             'photos' => ['nullable', 'array', 'min:1'],
             'photos.*' => ['image', 'max:5120'],
-            'embeddings' => ['nullable', 'array', 'min:1'],
-            'embeddings.*' => ['array', 'min:16'],
+            'embeddings' => ['nullable', 'string', 'max:8000'],
             'model_version' => ['nullable', 'string', 'max:100'],
         ]);
 
@@ -33,14 +32,23 @@ class FaceController extends Controller
         $embeddings = [];
         $modelVersion = $data['model_version'] ?? null;
 
-        foreach ($request->file('photos', []) as $photo) {
-            $result = $this->face->embed($photo->get(), $photo->getClientOriginalName());
-            $embeddings[] = $result['embedding'];
-            $modelVersion = $result['model_version'];
+        if (! empty($data['embeddings'])) {
+            $decoded = json_decode($data['embeddings'], true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $embedding) {
+                    if (is_array($embedding) && count($embedding) >= 16) {
+                        $embeddings[] = array_map('floatval', $embedding);
+                    }
+                }
+            }
         }
 
-        foreach ($data['embeddings'] ?? [] as $embedding) {
-            $embeddings[] = array_map('floatval', $embedding);
+        if (empty($embeddings)) {
+            foreach ($request->file('photos', []) as $photo) {
+                $result = $this->face->embed($photo->get(), $photo->getClientOriginalName());
+                $embeddings[] = $result['embedding'];
+                $modelVersion = $result['model_version'];
+            }
         }
 
         if (empty($embeddings)) {

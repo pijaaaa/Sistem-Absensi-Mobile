@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 
 class AttendanceDataSource {
   final Dio dio;
@@ -10,20 +12,28 @@ class AttendanceDataSource {
     required double lng,
     required double faceScoreLocal,
     required String clientUuid,
-    String? deviceUid,
+    required Uint8List photo,
+    required String deviceUid,
     bool isBackupDevice = false,
   }) async {
+    final formData = FormData.fromMap({
+      'lat': lat,
+      'lng': lng,
+      'face_score_local': faceScoreLocal,
+      'client_uuid': clientUuid,
+      'device_uid': deviceUid,
+      'is_backup_device': isBackupDevice,
+      'photo': MultipartFile.fromBytes(
+        photo,
+        filename: 'face_${clientUuid}.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    });
+
     try {
       final response = await dio.post(
         '/attendance/check-in',
-        data: {
-          'lat': lat,
-          'lng': lng,
-          'face_score_local': faceScoreLocal,
-          'client_uuid': clientUuid,
-          'device_uid': deviceUid,
-          'is_backup_device': isBackupDevice,
-        },
+        data: formData,
       );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -36,18 +46,26 @@ class AttendanceDataSource {
     required double lng,
     required double faceScoreLocal,
     required String clientUuid,
-    String? deviceUid,
+    required Uint8List photo,
+    required String deviceUid,
   }) async {
+    final formData = FormData.fromMap({
+      'lat': lat,
+      'lng': lng,
+      'face_score_local': faceScoreLocal,
+      'client_uuid': clientUuid,
+      'device_uid': deviceUid,
+      'photo': MultipartFile.fromBytes(
+        photo,
+        filename: 'face_${clientUuid}.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    });
+
     try {
       final response = await dio.post(
         '/attendance/check-out',
-        data: {
-          'lat': lat,
-          'lng': lng,
-          'face_score_local': faceScoreLocal,
-          'client_uuid': clientUuid,
-          'device_uid': deviceUid,
-        },
+        data: formData,
       );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -136,9 +154,19 @@ class AttendanceDataSource {
 
   String _formatError(DioException e) {
     final data = e.response?.data;
-    if (data is Map && data['message'] != null) {
-      return data['message'].toString();
+    if (data is Map) {
+      if (data['errors'] is Map && (data['errors'] as Map).isNotEmpty) {
+        final first = (data['errors'] as Map).values.first;
+        if (first is List && first.isNotEmpty) {
+          return first.first.toString();
+        }
+        return first.toString();
+      }
+      if (data['message'] != null) {
+        return data['message'].toString();
+      }
     }
+    if (e.response?.statusCode == 401) return 'NIP/email atau password salah.';
     if (e.type == DioExceptionType.connectionError) {
       return 'Tidak dapat terhubung ke server. Pastikan jaringan Anda menyala.';
     }

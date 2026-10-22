@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:mobile/core/network/providers.dart';
@@ -151,6 +152,8 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
     required double lng,
     required double faceScoreLocal,
     required String clientUuid,
+    required Uint8List photo,
+    required String deviceUid,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -159,6 +162,8 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
         lng: lng,
         faceScoreLocal: faceScoreLocal,
         clientUuid: clientUuid,
+        photo: photo,
+        deviceUid: deviceUid,
       );
       state = state.copyWith(
         isLoading: false,
@@ -179,6 +184,8 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
     required double lng,
     required double faceScoreLocal,
     required String clientUuid,
+    required Uint8List photo,
+    required String deviceUid,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -187,6 +194,8 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
         lng: lng,
         faceScoreLocal: faceScoreLocal,
         clientUuid: clientUuid,
+        photo: photo,
+        deviceUid: deviceUid,
       );
       state = state.copyWith(
         isLoading: false,
