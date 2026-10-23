@@ -126,8 +126,8 @@ class _ManualSyncDialogState extends ConsumerState<ManualSyncDialog> {
               Text(
                 _message!,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: _message!.contains('Error')
-                      ? Colors.red
+                   color: _message!.contains('Error')
+                      ? AppColors.error
                       : AppColors.success,
                 ),
                 textAlign: TextAlign.center,

@@ -147,9 +147,12 @@ class HomeScreenPlaceholder extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Navigation dinamis dan FCM akan dikerjakan di milestone selanjutnya.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+              ),
             ),
           ],
         ),

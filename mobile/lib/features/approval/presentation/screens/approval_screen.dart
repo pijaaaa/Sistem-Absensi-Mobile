@@ -177,7 +177,7 @@ class _LeaveApprovalCard extends ConsumerWidget {
                 child: AppButton(
                   text: 'Setuju',
                   onPressed: () => _handleApprove(context, ref, item.id),
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppColors.success,
                 ),
               ),
               const SizedBox(width: 12),
@@ -496,7 +496,7 @@ class _AttendanceApprovalCard extends ConsumerWidget {
                 child: AppButton(
                   text: 'Setuju',
                   onPressed: () => _handleApprove(context, ref, item.id),
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppColors.success,
                 ),
               ),
               const SizedBox(width: 12),

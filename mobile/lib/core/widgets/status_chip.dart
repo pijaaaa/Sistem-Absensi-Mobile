@@ -66,7 +66,7 @@ class StatusChip extends StatelessWidget {
       case StatusType.rejected:
         return AppColors.error;
       case StatusType.offline:
-        return Colors.blueGrey;
+        return AppColors.pending;
     }
   }
 
@@ -118,6 +118,6 @@ class StatusChip extends StatelessWidget {
             0.587 * bgColor.green +
             0.114 * bgColor.blue) /
         255;
-    return luminance > 0.5 ? const Color(0xFF0B1330) : Colors.white;
+    return luminance > 0.5 ? AppColors.lightTextPrimary : Colors.white;
   }
 }

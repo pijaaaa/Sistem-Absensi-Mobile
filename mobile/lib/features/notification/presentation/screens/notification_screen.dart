@@ -28,7 +28,7 @@ class NotificationScreen extends ConsumerWidget {
                 );
               }
             },
-            child: const Text('Tandai Semua Dibaca', style: TextStyle(color: Colors.white70)),
+              child: const Text('Tandai Semua Dibaca', style: TextStyle(color: AppColors.darkTextSecondary)),
           ),
         ],
       ),
@@ -144,7 +144,7 @@ class NotificationScreen extends ConsumerWidget {
             Container(
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.blue),
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.info),
             ),
         ],
       ),

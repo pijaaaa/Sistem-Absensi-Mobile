@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -96,11 +97,16 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
         orElse: () => cameras.first,
       );
 
+      final imageFormat = Platform.isAndroid
+          ? ImageFormatGroup.yuv420
+          : ImageFormatGroup.jpeg;
+
+      // Use low resolution for better performance on older devices
       _controller = CameraController(
         frontCamera,
-        ResolutionPreset.medium,
+        ResolutionPreset.low,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
+        imageFormatGroup: imageFormat,
       );
 
       await _controller!.initialize();
@@ -424,7 +430,7 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
                       onPressed: _capturing ? null : _captureFace,
                       backgroundColor: _faceDetected
                           ? AppColors.primary
-                          : Colors.grey,
+                          : theme.colorScheme.onSurfaceVariant,
                       foregroundColor: Colors.white,
                       child: Icon(
                         _livenessActive ? Icons.camera_alt : Icons.camera_alt,

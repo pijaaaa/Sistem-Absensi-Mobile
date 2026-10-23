@@ -105,11 +105,11 @@ class AppTheme {
   static ThemeData get darkTheme {
     final base = ColorScheme.dark(
       brightness: Brightness.dark,
-      primary: const Color(0xFF4FA07C),
+      primary: AppColors.primary,
       onPrimary: AppColors.darkBackground,
       primaryContainer: AppColors.primaryDark,
-      onPrimaryContainer: const Color(0xFFE3EFE8),
-      secondary: const Color(0xFFF5C542),
+      onPrimaryContainer: AppColors.primarySoft,
+      secondary: AppColors.accent,
       onSecondary: AppColors.darkTextPrimary,
       surface: AppColors.darkSurface,
       onSurface: AppColors.darkTextPrimary,
@@ -143,7 +143,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF4FA07C),
+          backgroundColor: AppColors.primary,
           foregroundColor: AppColors.darkBackground,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -157,7 +157,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: const Color(0xFF4FA07C),
+          foregroundColor: AppColors.primary,
           textStyle: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w500,

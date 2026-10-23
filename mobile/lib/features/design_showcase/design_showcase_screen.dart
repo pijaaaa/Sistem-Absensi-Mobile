@@ -281,8 +281,8 @@ class _ColorSwatch extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(8),
-            border: color.computeLuminance() > 0.5
-                ? Border.all(color: Colors.grey)
+             border: color.computeLuminance() > 0.5
+                ? Border.all(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3))
                 : null,
           ),
         ),

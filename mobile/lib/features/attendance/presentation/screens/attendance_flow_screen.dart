@@ -102,7 +102,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Mock location (Fake GPS) terdeteksi! Mohon matikan aplikasi pemalsu lokasi.'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -112,7 +112,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_locationResult?.errorMessage ?? 'Anda berada di luar area absen'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -264,13 +264,13 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: isActive ? theme.colorScheme.primary : Colors.grey[300],
+          backgroundColor: isActive ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
           child: isActive && _currentStep > step
               ? const Icon(Icons.check, color: Colors.white, size: 20)
               : Text(
                   '${step + 1}',
                   style: TextStyle(
-                    color: isActive ? Colors.white : Colors.grey[700],
+                    color: isActive ? Colors.white : theme.colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -280,7 +280,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
         Text(
           label,
           style: TextStyle(
-            color: isActive ? theme.colorScheme.primary : Colors.grey[600],
+             color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             fontSize: 12,
           ),
@@ -295,7 +295,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
       child: Container(
         height: 2,
         margin: const EdgeInsets.only(bottom: 28),
-        color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey[300],
+        color: isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
       ),
     );
   }
@@ -332,10 +332,10 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
                     : Icons.location_off,
             size: 80,
             color: isMockLocation
-                ? Colors.orange
+                ? AppColors.pending
                 : isValid
                     ? AppColors.success
-                    : Colors.red,
+                    : AppColors.error,
           ),
           const SizedBox(height: 24),
           Text(
@@ -347,10 +347,10 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: isMockLocation
-                  ? Colors.orange
+                  ? AppColors.pending
                   : isValid
                       ? AppColors.success
-                      : Colors.red,
+                      : AppColors.error,
             ),
           ),
           const SizedBox(height: 12),
@@ -474,7 +474,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
           Icon(
             success ? (isOffline ? Icons.cloud_off : Icons.check_circle) : Icons.error,
             size: 100,
-            color: success ? (isOffline ? AppColors.pending : AppColors.success) : Colors.red,
+            color: success ? (isOffline ? AppColors.pending : AppColors.success) : AppColors.error,
           ),
           const SizedBox(height: 24),
           Text(
@@ -483,7 +483,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
                 : 'Absensi Gagal',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: success ? (isOffline ? AppColors.pending : AppColors.success) : Colors.red,
+              color: success ? (isOffline ? AppColors.pending : AppColors.success) : AppColors.error,
             ),
           ),
           const SizedBox(height: 12),
@@ -528,7 +528,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 _attendanceResult!.errorMessage!,
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.red),
+                style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
                 textAlign: TextAlign.center,
               ),
             ),

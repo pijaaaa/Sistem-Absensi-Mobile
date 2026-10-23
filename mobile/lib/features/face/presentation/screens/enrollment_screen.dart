@@ -52,7 +52,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Izin kamera diperlukan untuk mendaftarkan wajah.'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -230,21 +230,32 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     final theme = Theme.of(context);
     final done = _embeddings.length >= targetSamples;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Daftar Wajah'),
-        actions: [
-          if (_hasTemplateDownloaded)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Icon(
-                Icons.download,
-                color: AppColors.success,
-                size: 24,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        // Navigate back to home instead of exiting app
+        context.go('/home');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Daftar Wajah'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/home'),
+          ),
+          actions: [
+            if (_hasTemplateDownloaded)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Icon(
+                  Icons.download,
+                  color: AppColors.success,
+                  size: 24,
+                ),
               ),
-            ),
-        ],
-      ),
+          ],
+        ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -305,17 +316,14 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                           final ok = await _submitEnrollment();
                           if (!mounted) return;
                           if (ok) {
-                            if (context.canPop()) {
-                              context.pop(true);
-                            } else {
-                              context.go('/home');
-                            }
+                            context.go('/home');
                           }
                         }
                       : _startEnrollmentWithLiveness),
               backgroundColor: done ? AppColors.success : null,
             ),
-          ],
+           ],
+          ),
         ),
       ),
     );

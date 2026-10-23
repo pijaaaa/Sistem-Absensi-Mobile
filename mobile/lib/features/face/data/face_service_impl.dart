@@ -1,4 +1,5 @@
 import 'package:dartcv4/dartcv.dart' as cv;
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mobile/features/face/data/face_matcher.dart';
 import 'package:mobile/features/face/data/face_service.dart';
@@ -7,11 +8,13 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 /// Mobile face service implementation using OpenCV (YuNet + SFace)
+/// Optimized for performance on older devices (Android 7, RAM 2GB)
 class MobileFaceService implements BaseFaceService {
   cv.FaceDetectorYN? _detector;
   cv.FaceRecognizerSF? _recognizer;
   bool _isInitialized = false;
   String _modelPath = '';
+  bool _useFastMode = false;
 
   @override
   String get modelVersion => 'sface-2021dec+yunet-2023mar';
@@ -51,6 +54,7 @@ class MobileFaceService implements BaseFaceService {
       );
 
       _isInitialized = true;
+      _detectDevicePerformance();
       return true;
     } catch (e) {
       debugPrint('[FaceService] init error: $e');
@@ -58,6 +62,28 @@ class MobileFaceService implements BaseFaceService {
       return false;
     }
   }
+
+  /// Detect device performance level and adjust processing mode
+  void _detectDevicePerformance() {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      deviceInfo.androidInfo.then((info) {
+        // physicalRamSize is in megabytes
+        final isLowRam = info.isLowRamDevice || info.physicalRamSize < 3000; // < 3GB RAM
+        final sdkVersion = info.version.sdkInt;
+        
+        if (isLowRam || sdkVersion < 28) {
+          _useFastMode = true;
+          debugPrint('[FaceService] Low-end device detected, using fast mode');
+        }
+      }).catchError((_) {});
+    } catch (_) {
+      // Default to normal mode
+    }
+  }
+
+  /// Check if widget is still mounted (for async callbacks)
+  bool get mounted => _isInitialized;
 
   Future<void> _copyModelsToDocuments() async {
     final modelsDir = _modelPath;
@@ -75,6 +101,29 @@ class MobileFaceService implements BaseFaceService {
       final bytes = data.buffer.asUint8List();
       await File('$modelsDir/${BaseFaceService.recognizerModel}')
           .writeAsBytes(bytes);
+    }
+  }
+
+  /// Resize image for faster processing on low-end devices
+  List<int> _resizeImageForFastMode(List<int> imageData) {
+    if (!_useFastMode) return imageData;
+    
+    try {
+      final img = cv.imdecode(Uint8List.fromList(imageData), cv.IMREAD_COLOR);
+      if (img.isEmpty) return imageData;
+      
+      // Resize to width 320 for faster face detection on low-end devices
+      final resized = cv.resize(img, (320, 240));
+      final encoded = cv.imencode('.jpg', resized);
+      
+      img.dispose();
+      resized.dispose();
+      
+      // imencode returns (bool, Uint8List)
+      return encoded.$2;
+    } catch (e) {
+      debugPrint('[FaceService] resize error: $e');
+      return imageData;
     }
   }
 
@@ -126,7 +175,10 @@ class MobileFaceService implements BaseFaceService {
     cv.Mat? aligned;
     cv.Mat? features;
     try {
-      img = await _decodeImage(imageData);
+      // On low-end devices, resize image before processing to improve performance
+      final processedImage = _useFastMode ? _resizeImageForFastMode(imageData) : imageData;
+      
+      img = await _decodeImage(processedImage);
       if (img == null) return null;
 
       faces = _detector!.detect(img);

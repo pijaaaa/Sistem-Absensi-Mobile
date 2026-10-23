@@ -19,4 +19,7 @@ class ApiConstants {
   static const faceEnroll = '/face/enroll';
   static const faceVerify = '/face/verify';
   static const faceTemplate = '/face/template';
+
+  // Security endpoints
+  static const securityReport = '/security/report';
 }

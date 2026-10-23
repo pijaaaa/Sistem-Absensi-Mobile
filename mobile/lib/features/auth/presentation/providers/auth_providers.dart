@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/constants/storage_keys.dart';
 import 'package:mobile/core/models/user_model.dart';
+import 'package:mobile/core/services/security_service.dart';
 import 'package:mobile/features/auth/data/datasource/auth_data_source.dart';
 import 'package:mobile/features/auth/data/repository/auth_repository.dart';
 import 'package:mobile/core/network/providers.dart';
@@ -111,6 +113,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         employee: user?.employee,
         menus: menus,
         permissions: permissions,
+      );
+
+      // Report security flags to backend (non-blocking)
+      Future.microtask(
+        ref.read(securityServiceWithDioProvider).reportSecurityFlags,
       );
     } catch (e) {
       // Keep existing state on error

@@ -92,7 +92,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               'PT Bumi Siak Pusako',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
               ),
             ),
           ],
