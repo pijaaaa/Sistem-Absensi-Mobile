@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -179,19 +180,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     if (_formKey.currentState?.validate() != true) return;
 
+    debugPrint('[LOGIN] Starting login attempt for: ${_identifierController.text}');
     ref.read(authLoadingProvider.notifier).state = true;
+    
     try {
       final authRepo = ref.read(authRepositoryProvider);
       await authRepo.login(
         login: _identifierController.text,
         password: _passwordController.text,
+      ).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('Login timeout after 5 seconds', const Duration(seconds: 5));
+        },
       );
 
+      debugPrint('[LOGIN] Login successful, refreshing auth state');
       await ref.read(authStateProvider.notifier).refreshAuthState();
 
       if (!mounted) return;
+      debugPrint('[LOGIN] Navigating to /home');
       context.go('/home');
+    } on TimeoutException catch (e) {
+      debugPrint('[LOGIN] Login timed out: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login gagal. Server tidak merespon dalam 5 detik.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } catch (e) {
+      debugPrint('[LOGIN] Login failed: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
