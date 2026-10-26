@@ -17,11 +17,9 @@ class EnrollmentScreen extends ConsumerStatefulWidget {
 }
 
 class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
-  final List<Uint8List> _photos = [];
   bool _isSubmitting = false;
   bool _hasTemplateDownloaded = false;
 
-  static const int targetSamples = 3;
   static const String faceModelVersion = 'sface-2021dec+yunet-2023mar';
 
   @override
@@ -44,7 +42,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     }
   }
 
-  Future<void> _startEnrollmentWithLiveness() async {
+  Future<void> _startEnrollment() async {
     final status = await Permission.camera.request();
     if (!status.isGranted) {
       if (!mounted) return;
@@ -75,18 +73,23 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
 
     if (captured == null) return;
 
-    setState(() => _photos.add(captured!));
+    if (!mounted) return;
+    final goRouter = GoRouter.of(context);
+    await _showBiometricConsent();
+    final ok = await _submitEnrollment(captured!);
+    if (!mounted) return;
+    if (ok) {
+      goRouter.go('/home');
+    }
   }
 
-  Future<bool> _submitEnrollment() async {
-    if (_photos.isEmpty) return false;
-
+  Future<bool> _submitEnrollment(Uint8List photo) async {
     setState(() => _isSubmitting = true);
     try {
       final dataSource = ref.read(faceDataSourceProvider);
       final response = await dataSource
           .enroll(
-            photos: _photos,
+            photos: [photo],
             modelVersion: faceModelVersion,
           )
           .timeout(const Duration(seconds: 30));
@@ -94,8 +97,8 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       if (!mounted) return false;
 
       final count = response['data'] is Map
-          ? response['data']['count'] ?? _photos.length
-          : (response['count'] ?? _photos.length);
+          ? response['data']['count'] ?? 1
+          : (response['count'] ?? 1);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Wajah berhasil didaftarkan ($count sampel).')),
@@ -202,13 +205,11 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final done = _photos.length >= targetSamples;
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        // Navigate back to home instead of exiting app
         context.go('/home');
       },
       child: Scaffold(
@@ -230,74 +231,53 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
               ),
           ],
         ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Icon(Icons.face_retouching_natural,
-                size: 80, color: theme.colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(
-              'Pendaftaran Wajah',
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ambil $targetSamples foto wajah dari sudut berbeda dengan liveness challenge.',
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Sampel terambil: ${_photos.length}/$targetSamples',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            if (_photos.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: List.generate(_photos.length, (i) {
-                  return Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.check_circle,
-                        size: 32, color: Colors.green),
-                  );
-                }),
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(Icons.face_retouching_natural,
+                  size: 80, color: theme.colorScheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                'Pendaftaran Wajah',
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Satu sesi liveness (toleh kiri-kanan) lalu foto terambil otomatis.',
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              if (_hasTemplateDownloaded)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Template wajah sudah terdaftar. Daftar ulang untuk memperbarui.',
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.success),
+                      ),
+                    ],
+                  ),
+                ),
+              const Spacer(),
+              AppButton(
+                text: 'Daftar Wajah dengan Liveness',
+                icon: Icons.face_retouching_natural,
+                isLoading: _isSubmitting,
+                onPressed: _isSubmitting ? null : _startEnrollment,
               ),
             ],
-            const Spacer(),
-            AppButton(
-              text: done
-                  ? 'Daftarkan dengan Liveness'
-                  : 'Ambil Sampel dengan Liveness',
-              icon: done ? Icons.face_retouching_natural : Icons.camera_alt,
-              isLoading: _isSubmitting,
-              onPressed: _isSubmitting
-                  ? null
-                  : (done
-                      ? () async {
-                          final goRouter = GoRouter.of(context);
-                          await _showBiometricConsent();
-                          final ok = await _submitEnrollment();
-                          if (!mounted) return;
-                          if (ok) {
-                            goRouter.go('/home');
-                          }
-                        }
-                      : _startEnrollmentWithLiveness),
-              backgroundColor: done ? AppColors.success : null,
-            ),
-           ],
           ),
         ),
       ),
