@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -26,8 +27,8 @@ void callbackDispatcher() {
                         result.contains(ConnectivityResult.wifi) ||
                         result.contains(ConnectivityResult.ethernet);
         
-        if (!isOnline) {
-          return Future.value(true); // Retry later
+         if (!isOnline) {
+          return true; // Retry later
         }
 
         // Initialize repository (need token from storage)
@@ -36,7 +37,7 @@ void callbackDispatcher() {
         dio.options.baseUrl = 'http://localhost:8000/api'; // Dummy for background task
         final dataSource = AttendanceDataSource(dio: dio);
         final repository = AttendanceRepository(dataSource: dataSource);
-        
+
         final offlineService = OfflineAttendanceService(
           database: database,
           elapsedTimeService: elapsedTimeService,
@@ -46,14 +47,14 @@ void callbackDispatcher() {
 
         // Sync pending attendances
         final syncResult = await offlineService.syncPendingAttendances();
-        
-        return Future.value(syncResult.success);
+
+        return syncResult.success;
       }
-      
-      return Future.value(true);
+
+      return true;
     } catch (e) {
-      print('Background sync error: $e');
-      return Future.value(false);
+      debugPrint('Background sync error: $e');
+      return false;
     }
   });
 }

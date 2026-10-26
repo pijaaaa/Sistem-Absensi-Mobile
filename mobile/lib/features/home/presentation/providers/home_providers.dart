@@ -168,7 +168,7 @@ final recentActivityProvider = Provider<List<RecentActivityItem>>((ref) {
 
 String _monthName(int month) {
   const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return months[month] ?? '';
+  return months[month];
 }
 
 final myRequestsProvider = Provider<List<LeaveRequestModel>>((ref) {

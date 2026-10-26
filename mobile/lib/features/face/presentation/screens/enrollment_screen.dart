@@ -18,7 +18,6 @@ class EnrollmentScreen extends ConsumerStatefulWidget {
 
 class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
   final List<Uint8List> _photos = [];
-  final List<List<double>> _embeddings = [];
   bool _isSubmitting = false;
   bool _hasTemplateDownloaded = false;
 
@@ -59,15 +58,14 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     }
 
     Uint8List? captured;
-    double? faceScore;
 
+    if (!mounted) return;
     await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => CameraFaceScreen(
-          onFaceCaptured: (bytes, score) {
+          onFaceCaptured: (bytes) {
             captured = bytes;
-            faceScore = score;
           },
           requireLiveness: true,
           isEnrollment: true,
@@ -75,44 +73,20 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       ),
     );
 
-    if (captured == null || faceScore == null) return;
+    if (captured == null) return;
 
     setState(() => _photos.add(captured!));
-
-    try {
-      final service = ref.read(faceServiceProvider);
-      final embedding = await service.extractEmbedding(captured!);
-
-      if (!mounted) return;
-      if (embedding == null || embedding.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Wajah tidak terdeteksi. Coba lagi.')),
-        );
-        return;
-      }
-
-      setState(() => _embeddings.add(embedding));
-    } catch (e) {
-      if (!mounted) return;
-      debugPrint('[ENROLL] extractEmbedding error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal memproses wajah: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-    }
   }
 
   Future<bool> _submitEnrollment() async {
-    if (_embeddings.isEmpty) return false;
+    if (_photos.isEmpty) return false;
 
     setState(() => _isSubmitting = true);
     try {
       final dataSource = ref.read(faceDataSourceProvider);
       final response = await dataSource
           .enroll(
-            embeddings: _embeddings,
+            photos: _photos,
             modelVersion: faceModelVersion,
           )
           .timeout(const Duration(seconds: 30));
@@ -120,8 +94,8 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       if (!mounted) return false;
 
       final count = response['data'] is Map
-          ? response['data']['count'] ?? _embeddings.length
-          : (response['count'] ?? _embeddings.length);
+          ? response['data']['count'] ?? _photos.length
+          : (response['count'] ?? _photos.length);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Wajah berhasil didaftarkan ($count sampel).')),
@@ -228,7 +202,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final done = _embeddings.length >= targetSamples;
+    final done = _photos.length >= targetSamples;
 
     return PopScope(
       canPop: false,
@@ -278,7 +252,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Sampel terambil: ${_embeddings.length}/$targetSamples',
+              'Sampel terambil: ${_photos.length}/$targetSamples',
               style: theme.textTheme.bodyMedium
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
@@ -312,11 +286,12 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                   ? null
                   : (done
                       ? () async {
+                          final goRouter = GoRouter.of(context);
                           await _showBiometricConsent();
                           final ok = await _submitEnrollment();
                           if (!mounted) return;
                           if (ok) {
-                            context.go('/home');
+                            goRouter.go('/home');
                           }
                         }
                       : _startEnrollmentWithLiveness),

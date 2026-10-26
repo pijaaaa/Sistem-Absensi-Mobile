@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/core/theme/app_colors.dart';
-import 'package:mobile/core/theme/app_theme.dart';
 
 class SectionTitle extends StatelessWidget {
   final String title;
@@ -37,7 +36,7 @@ class SectionTitle extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     color,
-                    color.withOpacity(0.5),
+                    color.withValues(alpha: 0.5),
                     Colors.transparent,
                   ],
                 ),

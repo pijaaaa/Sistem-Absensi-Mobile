@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
-import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
@@ -21,7 +20,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final summaryAsync = ref.watch(
       monthlySummaryProvider(
         MonthYearParams(year: _currentMonth.year, month: _currentMonth.month),

@@ -24,8 +24,8 @@ class LeaveDataSource {
       final response = await dio.get(
         '/leave-requests',
         queryParameters: {
-          if (type != null) 'type': type,
-          if (status != null) 'status': status,
+          'type': ?type,
+          'status': ?status,
         },
       );
       final data = response.data as Map<String, dynamic>;

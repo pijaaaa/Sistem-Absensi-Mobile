@@ -1,6 +1,6 @@
 # Add project specific ProGuard rules here.
 
-# OpenCV / dartcv4
+# Flutter plugins (camera, google_mlkit_face_detection, ...)
 -keep class io.flutter.plugins.** { *; }
 -keep class com.arthenica.** { *; }
 
@@ -13,6 +13,3 @@
 -dontwarn okio.**
 -dontwarn javax.annotation.**
 -dontwarn kotlin.**
-
-# Keep Dart FFI
--keep class dart.** { *; }

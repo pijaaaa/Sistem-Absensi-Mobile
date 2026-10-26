@@ -153,14 +153,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.5+6"
-  change_case:
-    dependency: transitive
-    description:
-      name: change_case
-      sha256: e41ef3df58521194ef8d7649928954805aeb08061917cf658322305e61568003
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.0"
   characters:
     dependency: transitive
     description:
@@ -297,14 +289,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.6"
-  dartcv4:
-    dependency: "direct main"
-    description:
-      name: dartcv4
-      sha256: e78c39ea09decc04ee70be9684eb63c092e0cb006b37615d214a08b6e098d5a9
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.1"
   date_format:
     dependency: transitive
     description:
@@ -639,6 +623,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.1.0"
+  google_mlkit_commons:
+    dependency: transitive
+    description:
+      name: google_mlkit_commons
+      sha256: "621e94de22fd0f1e902e593b892746d80ab7542b39c2552aa091d904eb82fc6f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.13.0"
+  google_mlkit_face_detection:
+    dependency: "direct main"
+    description:
+      name: google_mlkit_face_detection
+      sha256: dd4a6c61e45390217cdc7522e7766b77e9d075cdface0503716ec6722e33d4f4
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.15.1"
   graphs:
     dependency: transitive
     description:
@@ -876,14 +876,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  native_toolchain_cmake:
-    dependency: transitive
-    description:
-      name: native_toolchain_cmake
-      sha256: "8ba223410102665483e873b83d2156720233a6a0181c07f9dc41cb2e961336b0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.2"
   nm:
     dependency: transitive
     description:
@@ -900,14 +892,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.5.0"
-  opencv_dart:
-    dependency: "direct main"
-    description:
-      name: opencv_dart
-      sha256: a135da49e35c1a42f433e8925561711e3c8b5dade59f999fd62787be628491e1
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.2"
   package_config:
     dependency: transitive
     description:

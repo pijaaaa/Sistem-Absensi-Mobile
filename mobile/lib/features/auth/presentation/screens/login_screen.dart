@@ -2,9 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
-import 'package:mobile/features/auth/data/repository/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});

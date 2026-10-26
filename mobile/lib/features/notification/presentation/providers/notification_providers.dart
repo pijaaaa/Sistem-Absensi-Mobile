@@ -19,7 +19,7 @@ final unreadNotificationsCountProvider = Provider<int>((ref) {
   return notificationsAsync.when(
     data: (items) => items.where((e) => !e.isRead).length,
     loading: () => 0,
-    error: (_, __) => 0,
+    error: (_, _) => 0,
   );
 });
 

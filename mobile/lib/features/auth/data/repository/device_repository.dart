@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/auth/data/datasource/device_data_source.dart';
 import 'package:mobile/core/services/device_service.dart';
 import 'package:mobile/core/models/device_model.dart';
@@ -21,7 +20,6 @@ class DeviceRepository {
   Future<DeviceRegistrationResult> checkAndRegisterDevice() async {
     final deviceInfo = await deviceService.getDeviceInfo();
     final deviceUid = deviceInfo['device_uid']!;
-    final deviceName = deviceInfo['device_name']!;
 
     try {
       // Check if device is already registered

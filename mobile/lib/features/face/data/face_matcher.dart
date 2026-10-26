@@ -1,7 +1,10 @@
 // Pure Dart face matching utilities — tidak bergantung pada OpenCV native libs.
 // Memungkinkan unit test terisolasi di CI/desktop tanpa native assets.
 
+import 'dart:math';
+
 /// Hitung cosine similarity antara dua vektor.
+/// Nilai 1.0 = vektor paralel (perfect match), 0.0 = ortogonal, -1.0 = berlawanan.
 double cosineSimilarity(List<double> a, List<double> b) {
   if (a.length != b.length) return 0.0;
 
@@ -14,7 +17,7 @@ double cosineSimilarity(List<double> a, List<double> b) {
     normB += b[i] * b[i];
   }
 
-  final denom = (normA * normB);
+  final denom = sqrt(normA * normB);
   if (denom == 0) return 0.0;
 
   return dotProduct / denom;

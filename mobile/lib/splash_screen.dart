@@ -41,6 +41,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Check auth status after a delay
     Future.delayed(const Duration(seconds: 3), () {
       // For now, auto navigate to login (auth check to be implemented in F0/F2)
+      if (!mounted) return;
       context.go('/login');
     });
   }

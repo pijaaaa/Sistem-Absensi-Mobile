@@ -20,7 +20,7 @@ class ApprovalScreen extends ConsumerStatefulWidget {
 class _ApprovalScreenState extends ConsumerState<ApprovalScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _selectedStatus = 'pending';
+  final String _selectedStatus = 'pending';
 
   @override
   void initState() {
@@ -145,7 +145,7 @@ class _LeaveApprovalCard extends ConsumerWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.1),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                 child: Icon(icon, color: AppColors.primary),
               ),
               const SizedBox(width: 12),
@@ -471,7 +471,7 @@ class _AttendanceApprovalCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.1),
+              color: AppColors.accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(

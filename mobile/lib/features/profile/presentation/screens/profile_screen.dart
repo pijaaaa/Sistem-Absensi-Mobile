@@ -15,7 +15,6 @@ class ProfileScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final authState = ref.watch(authStateProvider);
     final user = authState.user;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,7 +28,7 @@ class ProfileScreen extends ConsumerWidget {
             // Avatar
             CircleAvatar(
               radius: 48,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Text(
                 _getInitials(user?.name ?? ''),
                 style: TextStyle(
@@ -130,7 +129,6 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildDetailCard(BuildContext context, List<Widget> children) {
-    final theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -256,7 +254,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
                     ],
                   );

@@ -26,7 +26,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState.isAuthenticated;
       final location = state.matchedLocation;
       final loggingIn = location == '/login';
-      final goingHome = location == '/home';
       final isFirst = location == '/splash';
 
       if (isAuthenticated && (loggingIn || isFirst)) return '/home';
@@ -98,7 +97,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 class _AuthRefreshStream extends ChangeNotifier {
   _AuthRefreshStream(this.ref) {
-    ref.listen(authStateProvider, (_, __) {
+    ref.listen(authStateProvider, (_, _) {
       notifyListeners();
     });
   }
@@ -151,7 +150,7 @@ class HomeScreenPlaceholder extends ConsumerWidget {
               'Navigation dinamis dan FCM akan dikerjakan di milestone selanjutnya.',
               style: TextStyle(
                 fontSize: 12,
-                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
             ),
           ],

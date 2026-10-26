@@ -5,7 +5,6 @@ import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/core/widgets/app_text_field.dart';
-import 'package:mobile/core/widgets/confirm_dialog.dart';
 import 'package:mobile/core/widgets/empty_state.dart';
 import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/core/widgets/section_title.dart';
@@ -282,7 +281,7 @@ class _ColorSwatch extends StatelessWidget {
             color: color,
             borderRadius: BorderRadius.circular(8),
              border: color.computeLuminance() > 0.5
-                ? Border.all(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3))
+                ? Border.all(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3))
                 : null,
           ),
         ),

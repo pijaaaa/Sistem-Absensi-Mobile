@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -53,7 +52,7 @@ class OfflineAttendanceService {
         final elapsedMillis = await elapsedTimeService.getElapsedRealtimeMillis();
         final bootCount = await elapsedTimeService.getBootCount();
 
-        final newAnchorId = await database.saveServerTimeAnchor(
+        await database.saveServerTimeAnchor(
           ServerTimeAnchorsCompanion(
             serverTimeMillis: Value(serverTimeMillis),
             elapsedRealtimeMillis: Value(elapsedMillis),

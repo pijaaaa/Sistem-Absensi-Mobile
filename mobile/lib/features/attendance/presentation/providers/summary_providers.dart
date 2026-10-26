@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/features/attendance/data/datasource/attendance_data_source.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 import 'package:mobile/core/models/attendance_summary_models.dart';
 

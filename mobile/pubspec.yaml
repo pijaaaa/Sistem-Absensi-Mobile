@@ -36,8 +36,7 @@ dependencies:
   fvm: ^2.4.1
   device_info_plus: ^12.4.0
   http_parser: ^4.0.2
-  opencv_dart: ^2.2.2
-  dartcv4: ^2.3.1
+  google_mlkit_face_detection: ^0.15.1
 
 dev_dependencies:
   flutter_test:
@@ -56,12 +55,11 @@ flutter:
 
   assets:
     - assets/images/bsplogo.png
-    - assets/models/
 
-# opencv_dart native assets config — objdetect (FaceDetectorYN/FaceRecognizerSF) is excluded by default
-# Reference: https://pub.dev/packages/opencv_dart
-hooks:
-  user_defines:
-    dartcv4:
-      include_modules:
-        - objdetect
+# On-device face detection & head-pose estimation use Google ML Kit
+# (google_mlkit_face_detection), which ships its native model via Google
+# Play Services (Android) / CocoaPods (iOS) and therefore needs no CMake
+# native-asset build. The OpenCV `face` module (YuNet/SFace) is NOT available
+# with dartcv4 (BUILD_opencv_face is forced OFF), so all embedding/recognition
+# work is delegated to the backend `/face/*` endpoints (face-service).
+

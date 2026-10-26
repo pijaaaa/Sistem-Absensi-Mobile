@@ -41,7 +41,7 @@ class OfflineSyncBadge extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -119,7 +119,7 @@ class _ManualSyncDialogState extends ConsumerState<ManualSyncDialog> {
                 textAlign: TextAlign.center,
               ),
               loading: () => const CircularProgressIndicator(),
-              error: (_, __) => const Text('Error loading data'),
+              error: (_, _) => const Text('Error loading data'),
             ),
             if (_message != null) ...[
               const SizedBox(height: 16),
@@ -150,7 +150,7 @@ class _ManualSyncDialogState extends ConsumerState<ManualSyncDialog> {
                   )
                 : const SizedBox.shrink(),
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
         ],
       ],

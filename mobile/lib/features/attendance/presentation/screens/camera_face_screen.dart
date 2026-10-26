@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +7,7 @@ import 'package:camera/camera.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/features/face/presentation/providers/face_providers.dart';
 
-enum LivenessChallengeType { blink, turnLeft, turnRight }
+enum LivenessChallengeType { turnLeft, turnRight }
 
 class LivenessChallenge {
   final LivenessChallengeType type;
@@ -23,7 +22,7 @@ class LivenessChallenge {
 }
 
 class CameraFaceScreen extends ConsumerStatefulWidget {
-  final Function(Uint8List imageBytes, double faceScore) onFaceCaptured;
+  final Function(Uint8List imageBytes) onFaceCaptured;
   final bool requireLiveness;
   final bool isEnrollment;
 
@@ -40,14 +39,31 @@ class CameraFaceScreen extends ConsumerStatefulWidget {
 
 class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
   CameraController? _controller;
-  bool _isInitialized = false;
+  bool _cameraReady = false;
+  bool _faceServiceReady = false;
 
   bool _faceDetected = false;
   bool _livenessActive = false;
+  bool _livenessDone = false;
   int _currentChallengeIndex = 0;
   bool _challengeCompleted = false;
   double _progress = 0.0;
   bool _capturing = false;
+
+  // Polling / analysis state
+  Timer? _pollTimer;
+  Timer? _showSkipTimer;
+  bool _analyzing = false;
+  int _challengeAttempts = 0;
+  bool _showSkip = false;
+  // Sign of the head turn detected in the first challenge ('left' or 'right').
+  // The second challenge requires the opposite turn — this makes liveness
+  // robust to front-camera mirror conventions (sign of yaw flips when mirrored).
+  String? _firstTurnDirection;
+
+  static const int _maxAttemptsPerChallenge = 10;
+  static const _pollInterval = Duration(milliseconds: 700);
+  static const double _yawThreshold = 12.0; // degrees off-center
 
   late final List<LivenessChallenge> _challenges;
 
@@ -61,25 +77,16 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
 
     _challenges = _buildChallenges();
 
-    _initializeCamera();
+    _initialize();
   }
 
   List<LivenessChallenge> _buildChallenges() {
+    // Blink challenge removed per requirement — only head turns remain.
     return [
-      LivenessChallenge(
-        type: LivenessChallengeType.blink,
-        instruction: 'Kedipkan mata Anda',
-        semanticLabel: 'Tantangan kedip mata',
-      ),
       LivenessChallenge(
         type: LivenessChallengeType.turnLeft,
         instruction: 'Putar kepala ke kiri',
         semanticLabel: 'Tantangan putar kepala ke kiri',
-      ),
-      LivenessChallenge(
-        type: LivenessChallengeType.blink,
-        instruction: 'Kedipkan mata lagi',
-        semanticLabel: 'Tantangan kedip mata kedua',
       ),
       LivenessChallenge(
         type: LivenessChallengeType.turnRight,
@@ -89,7 +96,9 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
     ];
   }
 
-  Future<void> _initializeCamera() async {
+  Future<void> _initialize() async {
+    await _initFaceService();
+
     try {
       final cameras = await availableCameras();
       final frontCamera = cameras.firstWhere(
@@ -101,7 +110,7 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
           ? ImageFormatGroup.yuv420
           : ImageFormatGroup.jpeg;
 
-      // Use low resolution for better performance on older devices
+      // Low resolution keeps ML Kit analysis fast on older devices.
       _controller = CameraController(
         frontCamera,
         ResolutionPreset.low,
@@ -111,19 +120,45 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
 
       await _controller!.initialize();
 
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
+      if (!mounted) return;
+      setState(() => _cameraReady = true);
 
+      if (_faceServiceReady) {
         if (widget.requireLiveness) {
           _startLiveness();
         }
+        _startPolling();
       }
     } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error kamera: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _initFaceService() async {
+    final faceService = ref.read(faceServiceProvider);
+    try {
+      final ok = await faceService.initialize();
+      if (!mounted) return;
+      setState(() => _faceServiceReady = ok);
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Model wajah belum siap. Silakan restart aplikasi.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[CameraFace] face service init error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error kamera: ${e.toString()}')),
+          SnackBar(
+            content: Text('Gagal memuat deteksi wajah: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
@@ -132,78 +167,187 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
   void _startLiveness() {
     setState(() {
       _livenessActive = true;
+      _livenessDone = false;
       _currentChallengeIndex = 0;
+      _challengeCompleted = false;
       _progress = 0.0;
+      _challengeAttempts = 0;
+      _firstTurnDirection = null;
+      _showSkip = false;
     });
 
     _presentChallenge(_currentChallengeIndex);
+
+    // After a grace period, allow skipping liveness so users are never stuck
+    // (e.g. very dim lighting / unsupported device).
+    _showSkipTimer?.cancel();
+    _showSkipTimer = Timer(const Duration(seconds: 12), () {
+      if (mounted && _livenessActive && !_livenessDone && !_showSkip) {
+        setState(() => _showSkip = true);
+      }
+    });
+  }
+
+  void _startPolling() {
+    _stopPolling();
+    _pollTimer = Timer.periodic(_pollInterval, (_) async {
+      if (!mounted || _capturing) return;
+      if (_challengeCompleted || _livenessDone) return;
+
+      _challengeAttempts++;
+      if (_challengeAttempts > _maxAttemptsPerChallenge) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Pastikan wajah terlihat jelas dan cahaya cukup, lalu ikuti instruksi putar kepala.',
+              ),
+            ),
+          );
+        }
+        _challengeAttempts = 0;
+      }
+
+      await _analyzeFrame();
+    });
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
   }
 
   void _presentChallenge(int index) {
+    if (!mounted) return;
     final challenge = _challenges[index];
     ref.read(faceEnrollmentProvider.notifier).setLivenessChallenge(
           challenge.instruction,
         );
   }
 
-  Future<void> _processFrame() async {
-    if (!_faceDetected || _challengeCompleted || _capturing) return;
+  Future<void> _analyzeFrame() async {
+    if (_analyzing) return;
+    if (_controller == null || !_controller!.value.isInitialized) return;
+    _analyzing = true;
+    XFile? image;
+    try {
+      image = await _controller!.takePicture();
+      final bytes = await image.readAsBytes();
 
-    final challenge = _challenges[_currentChallengeIndex];
-    final passed = await _simulateChallengeDetection(challenge);
+      final faceService = ref.read(faceServiceProvider);
+      final analysis = await faceService.analyzeFace(bytes);
+      _setFaceDetected(analysis != null);
 
-    if (passed && mounted) {
-      setState(() {
-        _challengeCompleted = true;
-        _progress = (_currentChallengeIndex + 1) / _challenges.length;
-      });
-
-      if ((_currentChallengeIndex + 1) < _challenges.length) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            setState(() {
-              _currentChallengeIndex++;
-              _challengeCompleted = false;
-            });
-            _presentChallenge(_currentChallengeIndex);
-          }
-        });
-      } else {
-        _captureFace();
+      // Run head-turn liveness against the detected face.
+      if (_livenessActive && !_challengeCompleted && analysis != null) {
+        if (_passLivenessTurn(analysis.yaw)) {
+          _completeChallenge();
+        }
+      }
+    } on CameraException catch (_) {
+      // Camera busy (previous capture not finished) — safe to ignore & retry.
+    } catch (e) {
+      debugPrint('[CameraFace] analyzeFrame error: $e');
+    } finally {
+      if (mounted) _analyzing = false;
+      if (image != null) {
+        try {
+          await File(image.path).delete();
+        } catch (_) {}
       }
     }
   }
 
-  Future<bool> _simulateChallengeDetection(LivenessChallenge challenge) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return _faceDetected;
+  /// Decide whether the current head-pose [yaw] satisfies the active turn
+  /// challenge. Direction handling is mirror-robust: the first challenge
+  /// accepts a turn in EITHER direction (remembering which one); the second
+  /// challenge requires the OPPOSITE turn, so a mirrored front-camera preview
+  /// still validates genuine back-and-forth head movement.
+  bool _passLivenessTurn(double yaw) {
+    if (yaw.abs() < _yawThreshold) return false;
+    final dir = yaw < 0 ? 'left' : 'right';
+    if (_firstTurnDirection == null) {
+      _firstTurnDirection = dir;
+      return true;
+    }
+    return dir != _firstTurnDirection;
   }
 
-  Future<void> _captureFace() async {
-    if (_controller == null || !_controller!.value.isInitialized || _capturing) return;
+  void _setFaceDetected(bool detected) {
+    if (!mounted || _faceDetected == detected) return;
+    setState(() => _faceDetected = detected);
+  }
+
+  void _completeChallenge() {
+    if (!mounted) return;
+    setState(() {
+      _challengeCompleted = true;
+      _challengeAttempts = 0;
+      _progress = (_currentChallengeIndex + 1) / _challenges.length;
+    });
+
+    ref.read(faceEnrollmentProvider.notifier).completeLiveness();
+
+    if ((_currentChallengeIndex + 1) < _challenges.length) {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (!mounted) return;
+        setState(() {
+          _currentChallengeIndex++;
+          _challengeCompleted = false;
+          _faceDetected = false;
+        });
+        _presentChallenge(_currentChallengeIndex);
+      });
+    } else {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) _finishLiveness();
+      });
+    }
+  }
+
+  void _finishLiveness() {
+    _stopPolling();
+    setState(() {
+      _livenessActive = false;
+      _livenessDone = true;
+      _showSkip = false;
+    });
+    // Brief grace so the user can face forward before the final capture.
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted && !_capturing) _capturePhoto();
+    });
+  }
+
+  Future<void> _capturePhoto() async {
+    if (_controller == null ||
+        !_controller!.value.isInitialized ||
+        _capturing) {
+      return;
+    }
 
     setState(() => _capturing = true);
 
+    XFile? image;
     try {
-      final image = await _controller!.takePicture();
+      image = await _controller!.takePicture();
       final bytes = await image.readAsBytes();
 
+      // Confirm a face is present in the final frame.
       final faceService = ref.read(faceServiceProvider);
-      final embedding = await faceService.extractEmbedding(bytes);
+      final analysis = await faceService.analyzeFace(bytes);
+      if (!mounted) return;
 
-      if (embedding == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Wajah tidak terdeteksi. Coba lagi.')),
-          );
-        }
-        setState(() => _capturing = false);
+      if (analysis == null || !analysis.isValid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Wajah tidak terdeteksi. Coba lagi.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        if (mounted) setState(() => _capturing = false);
         return;
       }
 
-      final score = faceService.match(embedding, embedding);
-
-      widget.onFaceCaptured(bytes, score);
+      widget.onFaceCaptured(bytes);
 
       if (mounted) {
         Navigator.pop(context, true);
@@ -213,38 +357,31 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
         );
+        setState(() => _capturing = false);
       }
-      setState(() => _capturing = false);
-    }
-  }
-
-  // ignore: unused_element
-  void _handleFaceDetection(bool detected) {
-    if (mounted && widget.requireLiveness && _livenessActive) {
-      setState(() {
-        _faceDetected = detected;
-      });
-
-      if (detected && !_challengeCompleted) {
-        _processFrame();
+    } finally {
+      if (image != null) {
+        try {
+          await File(image.path).delete();
+        } catch (_) {}
       }
     }
   }
 
   String _getChallengeInstruction() {
     if (!_livenessActive) return 'Posisikan wajah Anda di dalam bingkai';
+    if (_livenessDone) return 'Luruskan wajah ke kamera';
     if (_challengeCompleted) return 'Selamat!';
 
     final challenge = _challenges[_currentChallengeIndex];
-    final remaining = (_challenges.length - _currentChallengeIndex - 1).clamp(0, _challenges.length - 1);
+    final remaining = (_challenges.length - _currentChallengeIndex - 1)
+        .clamp(0, _challenges.length - 1);
     return '${challenge.instruction}\n($remaining tersisa)';
   }
 
   IconData _getChallengeIcon() {
     final challenge = _challenges[_currentChallengeIndex];
     switch (challenge.type) {
-      case LivenessChallengeType.blink:
-        return Icons.visibility;
       case LivenessChallengeType.turnLeft:
         return Icons.rotate_left;
       case LivenessChallengeType.turnRight:
@@ -254,8 +391,12 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
 
   @override
   void dispose() {
+    _stopPolling();
+    _showSkipTimer?.cancel();
     SystemChrome.setPreferredOrientations([]);
     _controller?.dispose();
+    // The face service is app-scoped (disposed via its Riverpod provider),
+    // so do NOT dispose it here — callers reuse it after pop.
     super.dispose();
   }
 
@@ -263,17 +404,31 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (!_isInitialized || _controller == null) {
+    final isReady = _cameraReady && _faceServiceReady;
+
+    if (!isReady || _controller == null) {
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
-          title: const Text('Verifikasi Wajah'),
+          title: Text(
+            widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah',
+          ),
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
         ),
-        body: const Center(
-          child: CircularProgressIndicator(
-            color: AppColors.primary,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: AppColors.primary),
+              const SizedBox(height: 16),
+              Text(
+                _faceServiceReady
+                    ? 'Memulai kamera...'
+                    : 'Mempersiapkan deteksi wajah...',
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ],
           ),
         ),
       );
@@ -283,7 +438,9 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
-          title: const Text('Verifikasi Wajah'),
+          title: Text(
+            widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah',
+          ),
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
         ),
@@ -291,7 +448,8 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              'Kamera tidak dapat diakses: ${_controller!.value.errorDescription ?? 'silakan cek izin kamera'}',
+              'Kamera tidak dapat diakses: '
+              '${_controller!.value.errorDescription ?? 'silakan cek izin kamera'}',
               style: const TextStyle(color: Colors.white),
               textAlign: TextAlign.center,
             ),
@@ -314,6 +472,17 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
         ),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        leading: widget.requireLiveness
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _livenessDone
+                    ? null
+                    : () {
+                        _stopPolling();
+                        Navigator.pop(context, false);
+                      },
+              )
+            : null,
       ),
       body: Stack(
         children: [
@@ -355,34 +524,7 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
               top: 40,
               left: 0,
               right: 0,
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _challengeCompleted
-                      ? AppColors.success.withValues(alpha: 0.9)
-                      : AppColors.primary.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      _getChallengeIcon(),
-                      size: 32,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _getChallengeInstruction(),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
+              child: _buildChallengeBanner(theme),
             ),
 
           if (_livenessActive)
@@ -390,23 +532,31 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
               top: 140,
               left: 0,
               right: 0,
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 60),
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: AnimatedFractionallySizedBox(
-                  widthFactor: _progress,
-                  alignment: Alignment.centerLeft,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOut,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+              child: _buildProgress(),
+            ),
+
+          // Skip fallback (only shown after a grace period with no progress)
+          if (_showSkip)
+            Positioned(
+              bottom: 90,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: TextButton.icon(
+                  onPressed: _livenessDone
+                      ? null
+                      : () {
+                          _stopPolling();
+                          _finishLiveness();
+                        },
+                  icon: const Icon(
+                    Icons.face_unlock_rounded,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                  label: const Text(
+                    'Lewati',
+                    style: TextStyle(color: Colors.white70),
                   ),
                 ),
               ),
@@ -426,21 +576,79 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
                         strokeWidth: 3,
                       ),
                     )
-                  : FloatingActionButton(
-                      onPressed: _capturing ? null : _captureFace,
-                      backgroundColor: _faceDetected
-                          ? AppColors.primary
-                          : theme.colorScheme.onSurfaceVariant,
-                      foregroundColor: Colors.white,
-                      child: Icon(
-                        _livenessActive ? Icons.camera_alt : Icons.camera_alt,
-                        size: 32,
-                      ),
-                    ),
+                  : _buildCaptureFab(theme),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChallengeBanner(ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _challengeCompleted
+            ? AppColors.success.withValues(alpha: 0.9)
+            : AppColors.primary.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            _getChallengeIcon(),
+            size: 32,
+            color: Colors.white,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _getChallengeInstruction(),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgress() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 60),
+      height: 8,
+      decoration: BoxDecoration(
+        color: Colors.white24,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: AnimatedFractionallySizedBox(
+        widthFactor: _progress,
+        alignment: Alignment.centerLeft,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.accent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCaptureFab(ThemeData theme) {
+    final bool canManualCapture =
+        _faceDetected && !widget.requireLiveness && !_livenessActive;
+
+    return FloatingActionButton(
+      onPressed: canManualCapture ? _capturePhoto : null,
+      backgroundColor: _faceDetected
+          ? AppColors.primary
+          : theme.colorScheme.onSurfaceVariant,
+      foregroundColor: Colors.white,
+      child: const Icon(Icons.camera_alt, size: 32),
     );
   }
 }

@@ -11,6 +11,17 @@ abstract class FaceDataSource {
     String? modelVersion,
   });
 
+  /// Verify a captured face against the employee's stored template.
+  ///
+  /// Sends the [photo] to the backend `POST /face/verify` endpoint, which
+  /// extracts the embedding server-side (via the face-service SFace model —
+  /// on-device OpenCV `face` is unavailable because dartcv4 forces
+  /// `BUILD_opencv_face OFF`) and matches it against the template stored for
+  /// the authenticated employee.
+  ///
+  /// Returns the `data` payload: `{score, threshold, match, model_version}`.
+  Future<Map<String, dynamic>> verify({required Uint8List photo});
+
   Future<List<double>?> downloadTemplate();
 }
 
@@ -59,6 +70,24 @@ class FaceDataSourceImpl implements FaceDataSource {
     );
 
     return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<Map<String, dynamic>> verify({required Uint8List photo}) async {
+    final formData = FormData.fromMap({
+      'photo': MultipartFile.fromBytes(
+        photo,
+        filename: 'verify_face.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    });
+
+    final response = await dio.post(ApiConstants.faceVerify, data: formData);
+
+    final data = response.data as Map<String, dynamic>;
+    return data['data'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(data['data'])
+        : data;
   }
 
   @override

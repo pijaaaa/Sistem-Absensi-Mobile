@@ -2,6 +2,7 @@
 /// dan verifikasi modelVersion.
 ///
 /// Test ini tidak membutuhkan OpenCV native runtime — hanya menguji logika Dart murni.
+library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/face/data/face_matcher.dart';
 

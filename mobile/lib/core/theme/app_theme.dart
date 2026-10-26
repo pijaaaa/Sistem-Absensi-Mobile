@@ -81,7 +81,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppColors.lightBorder.withOpacity(0.5)),
+          side: BorderSide(color: AppColors.lightBorder.withValues(alpha: 0.5)),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
@@ -180,7 +180,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppColors.darkBorder.withOpacity(0.5)),
+          side: BorderSide(color: AppColors.darkBorder.withValues(alpha: 0.5)),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(

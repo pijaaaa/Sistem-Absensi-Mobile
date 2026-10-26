@@ -1,21 +1,25 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:geolocator/geolocator.dart';
-import 'package:camera/camera.dart';
 import 'package:uuid/uuid.dart';
 import 'package:mobile/features/attendance/data/attendance_service.dart';
 import 'package:mobile/features/attendance/data/repository/attendance_repository.dart';
-import 'package:mobile/features/face/data/face_service.dart';
+import 'package:mobile/features/face/data/face_data_source.dart';
 
-/// Service to handle attendance flow: location check -> face verification -> API call
+/// Service to handle attendance flow: location check -> face verification -> API call.
+///
+/// Face *detection* + *liveness* run on-device with Google ML Kit (see
+/// `MlKitFaceService` / `CameraFaceScreen`). Face *embedding* + *matching*
+/// are delegated to the backend `/face/*` endpoints, because OpenCV's `face`
+/// module (YuNet/SFace) is unavailable with dartcv4 (it forces
+/// `BUILD_opencv_face OFF`).
 class AttendanceFlowService {
   final AttendanceLocationService locationService;
-  final BaseFaceService faceService;
+  final FaceDataSource faceDataSource;
   final AttendanceRepository repository;
 
   AttendanceFlowService({
     required this.locationService,
-    required this.faceService,
+    required this.faceDataSource,
     required this.repository,
   });
 
@@ -71,33 +75,31 @@ class AttendanceFlowService {
     }
   }
 
-  /// Capture and verify face
+  /// Verify a captured face against the employee's stored template via the
+  /// backend `/face/verify` endpoint (embedding + matching happen server-side).
   Future<FaceVerificationResult> verifyFace({
     required List<int> imageBytes,
-    required List<double> storedEmbedding,
     required double threshold,
   }) async {
     try {
-      // Extract embedding from captured image
-      final liveEmbedding = await faceService.extractEmbedding(imageBytes);
-      
-      if (liveEmbedding == null) {
+      final result = await faceDataSource.verify(
+        photo: Uint8List.fromList(imageBytes),
+      );
+
+      final match = result['match'] == true;
+      final score = (result['score'] as num?)?.toDouble();
+
+      if (!match) {
         return FaceVerificationResult(
           isValid: false,
-          errorMessage: 'Wajah tidak terdeteksi. Pastikan wajah terlihat jelas.',
+          score: score,
+          errorMessage:
+              'Wajah tidak cocok. Skor: ${(score ?? 0).toStringAsFixed(3)} '
+              '(threshold: ${result['threshold'] ?? threshold})',
         );
       }
 
-      // Match with stored embedding
-      final score = faceService.match(storedEmbedding, liveEmbedding);
-      
-      final isValid = score >= threshold;
-
-      return FaceVerificationResult(
-        isValid: isValid,
-        score: score,
-        errorMessage: isValid ? null : 'Wajah tidak cocok. Skor: ${(score * 100).toStringAsFixed(1)}%',
-      );
+      return FaceVerificationResult(isValid: true, score: score);
     } catch (e) {
       return FaceVerificationResult(
         isValid: false,

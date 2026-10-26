@@ -10,10 +10,9 @@ class DeviceService {
   static const _deviceNameKey = 'device_name';
 
   DeviceService({
-    required FlutterSecureStorage storage,
-    required DeviceInfoPlugin deviceInfo,
-  })  : _storage = storage,
-        _deviceInfo = deviceInfo;
+    required this._storage,
+    required this._deviceInfo,
+  });
 
   /// Get or generate stable device UID
   Future<String> getDeviceUid() async {

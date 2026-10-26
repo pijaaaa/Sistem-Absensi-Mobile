@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi memerlukan akses kamera untuk deteksi wajah dan tantangan liveness saat absensi serta pendaftaran wajah.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Lokasi diperlukan untuk validasi kehadiran absensi.</string>
 </dict>
 </plist>

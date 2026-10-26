@@ -12,7 +12,6 @@ import 'package:mobile/core/widgets/stat_tile.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/core/widgets/app_navigation_bar.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
-import 'package:mobile/features/attendance/data/local/offline_attendance_service.dart';
 import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
 import 'package:mobile/features/attendance/presentation/widgets/offline_sync_badge.dart';
 import 'package:mobile/features/home/presentation/providers/home_providers.dart';
@@ -177,7 +176,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Text(
                   department,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                   ),
                 ),
                 const Spacer(),
@@ -187,13 +186,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       '${_now.day} ${_monthName(_now.month)} ${_now.year}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                     Text(
                       '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontFamily: 'monospace',
                       ),
                     ),
@@ -336,7 +335,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               height: 60,
               borderRadius: BorderRadius.circular(20),
             ),
-          error: (_, __) => const SizedBox.shrink(),
+          error: (_, _) => const SizedBox.shrink(),
         );
       },
     );
@@ -357,7 +356,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 final item = entry.value;
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.15),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                     child: Icon(
                       Icons.history,
                       color: AppColors.primary,
@@ -479,7 +478,7 @@ class _NotificationIconButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           width: 36,

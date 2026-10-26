@@ -14,7 +14,7 @@ class ApprovalDataSource {
       final response = await dio.get(
         '/leave-approval',
         queryParameters: {
-          if (status != null) 'status': status,
+          'status': ?status,
         },
       );
       return response.data as Map<String, dynamic>;

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
-import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/features/auth/presentation/providers/device_providers.dart';
 
 class DeviceRegistrationScreen extends ConsumerStatefulWidget {
@@ -72,7 +71,7 @@ class _DeviceRegistrationScreenState
                   ),
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
               ),
               const SizedBox(height: 24),
               Text(
@@ -174,7 +173,7 @@ class _DeviceRegistrationScreenState
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -182,7 +181,7 @@ class _DeviceRegistrationScreenState
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 32),

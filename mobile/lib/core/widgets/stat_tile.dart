@@ -69,7 +69,7 @@ class StatTile extends StatelessWidget {
                 LinearProgressIndicator(
                   value: null,
                   backgroundColor:
-                      theme.colorScheme.onSurfaceVariant.withOpacity(0.2),
+                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
                   minHeight: 3,
                 ),
               ],

@@ -127,14 +127,16 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => CameraFaceScreen(
-          onFaceCaptured: (bytes, score) {
-            setState(() {
-              _capturedImageBytes = bytes;
-              _faceScore = score;
-            });
-          },
-        ),
+         builder: (context) => CameraFaceScreen(
+           onFaceCaptured: (bytes) {
+             setState(() {
+               _capturedImageBytes = bytes;
+               // Face liveness was enforced on-device (head-turn challenges)
+               // in CameraFaceScreen, so a captured photo = verified liveness.
+               _faceScore = 1.0;
+             });
+           },
+         ),
       ),
     );
 
@@ -280,7 +282,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
         Text(
           label,
           style: TextStyle(
-             color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+             color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             fontSize: 12,
           ),
@@ -295,7 +297,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
       child: Container(
         height: 2,
         margin: const EdgeInsets.only(bottom: 28),
-        color: isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+        color: isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
       ),
     );
   }

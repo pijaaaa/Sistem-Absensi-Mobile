@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile/core/constants/storage_keys.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/models/user_model.dart';
@@ -49,10 +50,10 @@ class AuthDataSourceImpl implements AuthDataSource {
         },
       );
     } on DioException catch (e) {
-      print('[AUTH] Login error: ${e.message}');
-      print('[AUTH] Login error type: ${e.type}');
-      print('[AUTH] Login error response: ${e.response?.data}');
-      print('[AUTH] Login error status: ${e.response?.statusCode}');
+      debugPrint('[AUTH] Login error: ${e.message}');
+      debugPrint('[AUTH] Login error type: ${e.type}');
+      debugPrint('[AUTH] Login error response: ${e.response?.data}');
+      debugPrint('[AUTH] Login error status: ${e.response?.statusCode}');
       throw Exception(_formatError(e));
     }
 

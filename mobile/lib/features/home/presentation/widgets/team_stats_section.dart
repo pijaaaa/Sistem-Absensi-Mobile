@@ -6,7 +6,6 @@ import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
-import 'package:mobile/core/models/attendance_summary_models.dart';
 
 class TeamStatsSection extends ConsumerWidget {
   const TeamStatsSection({super.key});

@@ -27,11 +27,11 @@ final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
 
 final attendanceFlowServiceProvider = Provider<AttendanceFlowService>((ref) {
   final locationService = ref.watch(attendanceLocationServiceProvider);
-  final faceService = ref.watch(faceServiceProvider);
+  final faceDataSource = ref.watch(faceDataSourceProvider);
   final repository = ref.watch(attendanceRepositoryProvider);
   return AttendanceFlowService(
     locationService: locationService,
-    faceService: faceService,
+    faceDataSource: faceDataSource,
     repository: repository,
   );
 });

@@ -4,12 +4,9 @@ import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/core/widgets/app_text_field.dart';
-import 'package:mobile/core/widgets/status_chip.dart';
-import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/features/leave/presentation/providers/leave_providers.dart';
 import 'package:mobile/features/leave/presentation/screens/leave_history_tab.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 class LeaveScreen extends ConsumerStatefulWidget {
@@ -62,7 +59,7 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> {
                             )
                           : const SizedBox.shrink(),
                       loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
+                      error: (_, _) => const SizedBox.shrink(),
                     ),
                   ],
                 ),
@@ -163,7 +160,7 @@ class _FormTabState extends ConsumerState<_FormTab> {
                 ),
               ),
               loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (_, _) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 20),
 

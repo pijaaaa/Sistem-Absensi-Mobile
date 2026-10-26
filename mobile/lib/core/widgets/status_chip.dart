@@ -76,7 +76,7 @@ class StatusChip extends StatelessWidget {
     final textColor = _getTextColor(color);
     final bgColor = outline
         ? Colors.transparent
-        : color.withOpacity(0.15);
+        : color.withValues(alpha: 0.15);
     final borderColor = outline
         ? color
         : Colors.transparent;
@@ -114,10 +114,8 @@ class StatusChip extends StatelessWidget {
   }
 
   Color _getTextColor(Color bgColor) {
-    final luminance = (0.299 * bgColor.red +
-            0.587 * bgColor.green +
-            0.114 * bgColor.blue) /
-        255;
+    final luminance =
+        0.299 * bgColor.r + 0.587 * bgColor.g + 0.114 * bgColor.b;
     return luminance > 0.5 ? AppColors.lightTextPrimary : Colors.white;
   }
 }

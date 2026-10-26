@@ -25,7 +25,7 @@ class AttendanceDataSource {
       'is_backup_device': isBackupDevice,
       'photo': MultipartFile.fromBytes(
         photo,
-        filename: 'face_${clientUuid}.jpg',
+        filename: 'face_$clientUuid.jpg',
         contentType: MediaType('image', 'jpeg'),
       ),
     });
@@ -57,7 +57,7 @@ class AttendanceDataSource {
       'device_uid': deviceUid,
       'photo': MultipartFile.fromBytes(
         photo,
-        filename: 'face_${clientUuid}.jpg',
+        filename: 'face_$clientUuid.jpg',
         contentType: MediaType('image', 'jpeg'),
       ),
     });
@@ -78,8 +78,8 @@ class AttendanceDataSource {
       final response = await dio.get(
         '/attendance/summary',
         queryParameters: {
-          if (year != null) 'year': year,
-          if (month != null) 'month': month,
+          'year': ?year,
+          'month': ?month,
         },
       );
       return response.data as Map<String, dynamic>;
