@@ -182,7 +182,6 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       await dataSource.deleteFace();
       setState(() {
         _hasTemplateDownloaded = false;
-        _capturedPhoto = null;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -205,8 +204,9 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
 
   Future<void> _showBiometricConsent() async {
     final accepted = await showDialog<bool>(
-          ],
-        ),
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Persetujuan Penggunaan Data Biometrik'),
         content: const SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
