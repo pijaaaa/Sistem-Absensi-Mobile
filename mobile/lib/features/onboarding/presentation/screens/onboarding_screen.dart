@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:mobile/core/constants/storage_keys.dart';
+import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/features/onboarding/presentation/widgets/onboarding_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -60,10 +58,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(StorageKeys.onboardingSeen, true);
-    if (!mounted) return;
-    context.go('/login');
+    await ref.read(appStateProvider.notifier).completeOnboarding();
   }
 
   void _nextPage() {

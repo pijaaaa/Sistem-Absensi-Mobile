@@ -7,9 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/core/constants/storage_keys.dart';
 import 'package:mobile/core/network/providers.dart';
+import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/services/push_notification_service.dart';
+import 'package:mobile/core/services/session_manager.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
@@ -71,7 +74,12 @@ void main() async {
   // Initialize SharedPreferences before app starts (needed for auth session)
   final prefs = await SharedPreferences.getInstance();
 
-  // Initialize Firebase + FCM
+  // Baca onboarding flag dan token sebelum runApp — berikan ke provider sebagai initial value
+  final onboardingDonePref = prefs.getBool(StorageKeys.onboardingSeen) ?? false;
+  final tokenPref = prefs.getString(StorageKeys.accessToken);
+  final isLoggedInPref = tokenPref != null && tokenPref.isNotEmpty;
+
+  SessionManager.setPrefs(prefs);
   try {
     await _initializeFirebase();
   } catch (e) {
@@ -110,6 +118,13 @@ void main() async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        appStateProvider.overrideWith(
+          (ref) => AppStateNotifier.withInitialState(
+            prefsInstance: prefs,
+            isLoggedIn: isLoggedInPref,
+            onboardingDone: onboardingDonePref,
+          ),
+        ),
       ],
       child: const AbsensiApp(),
     ),
@@ -125,6 +140,11 @@ class AbsensiApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+
+    // Setup 401 callback — trigger logout on expired token from Dio interceptor
+    SessionManager.onSessionExpired ??= () {
+      ref.read(appStateProvider.notifier).logout();
+    };
 
     return PopScope(
       canPop: false,

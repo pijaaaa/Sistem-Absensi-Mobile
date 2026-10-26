@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/features/approval/presentation/screens/approval_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/attendance_flow_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/history_screen.dart';
-import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/device_registration_screen.dart';
 import 'package:mobile/features/design_showcase/design_showcase_screen.dart';
@@ -18,22 +18,36 @@ import 'package:mobile/features/profile/presentation/screens/profile_screen.dart
 import 'package:mobile/splash_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final appState = ref.watch(appStateProvider);
 
   return GoRouter(
     initialLocation: '/splash',
-    refreshListenable: _AuthRefreshStream(ref),
+    refreshListenable: _AppStateRefreshStream(ref),
     redirect: (context, state) {
-      final isAuthenticated = authState.isAuthenticated;
       final location = state.matchedLocation;
-      final loggingIn = location == '/login';
-      final isFirst = location == '/splash';
-      final isOnboarding = location == '/onboarding';
 
-      if (isFirst || isOnboarding) return null;
+      // 1) Splash belum selesai → tetap di splash
+      if (!appState.splashDone) {
+        if (location != '/splash') return '/splash';
+        return null;
+      }
 
-      if (isAuthenticated && loggingIn) return '/home';
-      if (!isAuthenticated && !loggingIn) return '/login';
+      // 2) Sudah login, tapi di splash/onboarding/login → ke home
+      if (appState.isLoggedIn) {
+        if (location == '/splash' || location == '/onboarding' || location == '/login') {
+          return '/home';
+        }
+        return null;
+      }
+
+      // 3) Belum login + belum onboarding → ke onboarding
+      if (!appState.onboardingDone) {
+        if (location != '/onboarding') return '/onboarding';
+        return null;
+      }
+
+      // 4) Belum login + sudah onboarding → ke login
+      if (location == '/splash' || location == '/onboarding') return '/login';
       return null;
     },
     routes: [
@@ -103,90 +117,12 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class _AuthRefreshStream extends ChangeNotifier {
-  _AuthRefreshStream(this.ref) {
-    ref.listen(authStateProvider, (_, _) {
+class _AppStateRefreshStream extends ChangeNotifier {
+  _AppStateRefreshStream(this.ref) {
+    ref.listen(appStateProvider, (_, __) {
       notifyListeners();
     });
   }
 
   final Ref ref;
-}
-
-// A placeholder home screen that shows the app is working
-class HomeScreenPlaceholder extends ConsumerWidget {
-  const HomeScreenPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('F0 Foundation'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              ref.read(authStateProvider.notifier).logout();
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Selamat datang, ${authState.user?.name ?? "Pengguna"}!',
-              style: theme.textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 16),
-            Text('Role: ${authState.user?.role ?? "N/A"}'),
-            const SizedBox(height: 16),
-            const Text('Menu yang tersedia:'),
-            ...authState.menus.map(
-              (menu) => ListTile(
-                leading: Icon(_getIcon(menu['icon'] as String? ?? '')),
-                title: Text(menu['label'] as String? ?? 'Menu'),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Navigation dinamis dan FCM akan dikerjakan di milestone selanjutnya.',
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-IconData _getIcon(String iconName) {
-  switch (iconName) {
-    case 'home':
-      return Icons.home;
-    case 'fingerprint':
-      return Icons.fingerprint;
-    case 'calendar':
-      return Icons.calendar_today;
-    case 'document':
-      return Icons.document_scanner;
-    case 'person':
-      return Icons.person;
-    case 'check_circle':
-      return Icons.check_circle;
-    case 'bar_chart':
-      return Icons.bar_chart;
-    case 'bell':
-      return Icons.notifications;
-    default:
-      return Icons.menu;
-  }
 }

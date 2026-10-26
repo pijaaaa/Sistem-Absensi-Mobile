@@ -100,6 +100,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Refresh auth state from API
   Future<void> refreshAuthState() async {
+    debugPrint('[AUTH] refreshAuthState: START');
     try {
       final authRepo = ref.read(authRepositoryProvider);
 
@@ -122,12 +123,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
           menus: [],
           permissions: {},
         );
+        debugPrint('[AUTH] refreshAuthState: DONE (no token)');
         return;
       }
 
       // Validate token against backend (distinguish 401 vs offline)
       debugPrint('[AUTH] validating token against backend');
       final result = await authRepo.validateToken();
+      debugPrint('[AUTH] validateToken result: $result');
       if (result == TokenValidationResult.invalid) {
         debugPrint('[AUTH] token invalid/expired, clearing auth state');
         await authRepo.logout();
@@ -139,6 +142,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           menus: [],
           permissions: {},
         );
+        debugPrint('[AUTH] refreshAuthState: DONE (invalid token)');
         return;
       }
 

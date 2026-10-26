@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:mobile/core/providers/startup_provider.dart';
+import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 
@@ -17,6 +16,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  bool _splashCompleted = false;
 
   @override
   void initState() {
@@ -40,45 +40,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _controller.repeat(reverse: true, period: const Duration(milliseconds: 1500));
 
-    _checkStartupState();
+    _finishSplashAfterMinimum();
   }
 
-  Future<void> _checkStartupState() async {
-    debugPrint('[SPLASH] _checkStartupState started');
-    try {
-      // Minimum splash duration + startup decision
-      final minSplash = Future.delayed(const Duration(milliseconds: 1500));
-      final destinationFuture = ref.read(startupDestinationProvider.future);
+   void _finishSplashAfterMinimum() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_splashCompleted) return;
 
-      await Future.wait([minSplash, destinationFuture]);
-      final destination = await destinationFuture;
+      await Future.delayed(const Duration(milliseconds: 1500));
 
-      if (!mounted) return;
+      if (!mounted || _splashCompleted) return;
 
-      debugPrint('[SPLASH] destination: $destination');
-
-      switch (destination) {
-        case StartupDestination.home:
-          debugPrint('[SPLASH] -> /home');
+      final appState = ref.read(appStateProvider);
+      if (appState.isLoggedIn) {
+        try {
           await ref.read(authStateProvider.notifier).refreshAuthState();
-          if (!mounted) return;
-          if (ref.read(authStateProvider).isAuthenticated) {
-            context.go('/home');
-          } else {
-            context.go('/login');
+          final authState = ref.read(authStateProvider);
+          if (!authState.isAuthenticated || authState.token == null) {
+            // Token invalid/expired — sinkronkan appStateProvider
+            await ref.read(appStateProvider.notifier).logout();
           }
-        case StartupDestination.login:
-          debugPrint('[SPLASH] -> /login');
-          context.go('/login');
-        case StartupDestination.onboarding:
-          debugPrint('[SPLASH] -> /onboarding');
-          context.go('/onboarding');
+        } catch (e) {
+          debugPrint('[SPLASH] refreshAuthState error: $e');
+        }
       }
-    } catch (e, st) {
-      debugPrint('[SPLASH] ERROR: $e');
-      debugPrint('[SPLASH] STACK: $st');
-      if (mounted) context.go('/login');
-    }
+
+      _splashCompleted = true;
+      ref.read(appStateProvider.notifier).finishSplash();
+    });
   }
 
   @override

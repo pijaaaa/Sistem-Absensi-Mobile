@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:mobile/core/constants/storage_keys.dart';
+import 'package:mobile/core/providers/app_state_provider.dart';
+import 'package:mobile/core/network/providers.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -178,11 +180,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     if (_formKey.currentState?.validate() != true) return;
 
-    debugPrint('[LOGIN] Starting login attempt for: ${_identifierController.text}');
     ref.read(authLoadingProvider.notifier).state = true;
     
     try {
       final authRepo = ref.read(authRepositoryProvider);
+      final prefs = ref.read(sharedPreferencesProvider);
       await authRepo.login(
         login: _identifierController.text,
         password: _passwordController.text,
@@ -193,19 +195,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         },
       );
 
-      debugPrint('[LOGIN] Login successful, refreshing auth state');
+      final token = prefs.getString(StorageKeys.accessToken) ?? '';
+      await ref.read(appStateProvider.notifier).loginSuccess(token);
+
+      // Fetch user/menus/permissions ke authStateProvider untuk UI yang butuh data user
       await ref.read(authStateProvider.notifier).refreshAuthState();
 
-      if (!mounted) return;
-      final isAuthenticated = ref.read(authStateProvider).isAuthenticated;
-      debugPrint('[LOGIN] isAuthenticated: $isAuthenticated');
-
-      if (isAuthenticated) {
-        debugPrint('[LOGIN] Navigating to /home');
-        context.go('/home');
-      } else {
-        debugPrint('[LOGIN] Not authenticated after refresh, staying on login');
-      }
     } on TimeoutException catch (e) {
       debugPrint('[LOGIN] Login timed out: $e');
       if (!mounted) return;

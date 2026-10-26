@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/api_constants.dart';
+import '../services/session_manager.dart';
 
 class DioClient {
   final Dio dio;
@@ -53,8 +54,10 @@ class _AuthInterceptor extends Interceptor {
       debugPrint('[DIO] 401 Unauthorized — token may be expired');
       final path = err.requestOptions.path;
       if (!path.contains('/auth/login') && !path.contains('/auth/logout')) {
-        await prefs.remove('access_token');
-        await prefs.remove('user_data');
+        // Hapus token dari storage via SessionManager
+        await SessionManager.clearAuthData();
+        // Trigger logout callback (akan update app state + router)
+        SessionManager.triggerLogout();
       }
     }
     handler.next(err);

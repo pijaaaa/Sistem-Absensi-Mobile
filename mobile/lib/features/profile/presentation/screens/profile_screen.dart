@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
@@ -89,9 +90,8 @@ class ProfileScreen extends ConsumerWidget {
                   isDestructive: true,
                 );
                 
-                if (confirmed == true && context.mounted) {
-                  ref.read(authStateProvider.notifier).logout();
-                  context.go('/login');
+                 if (confirmed == true && context.mounted) {
+                  ref.read(appStateProvider.notifier).logout();
                 }
               },
               icon: const Icon(Icons.logout),
