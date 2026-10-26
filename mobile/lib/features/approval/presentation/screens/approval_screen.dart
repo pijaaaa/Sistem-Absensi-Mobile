@@ -99,6 +99,7 @@ class _LeaveApprovals extends ConsumerWidget {
             ref.invalidate(approvalInboxProvider);
           },
           child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: pendingItems.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
@@ -402,6 +403,7 @@ class _AttendanceApprovals extends ConsumerWidget {
             ref.invalidate(approvalInboxProvider);
           },
           child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: pendingItems.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),

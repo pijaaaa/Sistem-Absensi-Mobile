@@ -81,6 +81,7 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                   ref.invalidate(leaveRequestsProvider);
                 },
                 child: ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   itemCount: requests.length,
                   separatorBuilder: (context, index) => const SizedBox(height: 12),

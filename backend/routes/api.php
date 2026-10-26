@@ -26,9 +26,10 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:departments.view');
 
     Route::prefix('face')->group(function () {
-        Route::post('/enroll', [FaceController::class, 'enroll']);
-        Route::get('/template', [FaceController::class, 'show']);
-        Route::post('/verify', [FaceController::class, 'verify']);
+         Route::post('/enroll', [FaceController::class, 'enroll']);
+         Route::get('/template', [FaceController::class, 'show']);
+         Route::delete('/template', [FaceController::class, 'destroy']);
+         Route::post('/verify', [FaceController::class, 'verify']);
     });
 
     Route::get('/devices', [DeviceController::class, 'index']);

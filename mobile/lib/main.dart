@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -5,13 +7,71 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mobile/core/router/app_router.dart';
+import 'package:mobile/core/services/push_notification_service.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
 import 'package:mobile/features/attendance/data/local/workmanager_service.dart';
+import 'package:mobile/firebase_options.dart';
+
+Future<void> _initializeFirebase() async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  final fcm = FirebaseMessaging.instance;
+
+  // Request notification permission
+  final settings = await fcm.requestPermission();
+  if (settings.authorizationStatus == AuthorizationStatus.denied ||
+      settings.authorizationStatus == AuthorizationStatus.notDetermined) {
+    // permission not granted — still proceed, FCM token may not be available
+  }
+
+  // Get and log FCM token (registration on backend deferred to login flow)
+  try {
+    final token = await fcm.getToken();
+    debugPrint('[FCM] Token: $token');
+  } catch (e) {
+    debugPrint('[FCM] getToken error: $e');
+  }
+
+  // Initialize local notification service for foreground handling
+  await PushNotificationService.instance.initialize();
+  await PushNotificationService.instance.requestPermission();
+
+  // Configure message handlers
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    debugPrint('[FCM] onMessage: ${message.notification?.title}');
+    final data = message.toMap();
+    PushNotificationService.instance.showFromMap(data);
+  });
+
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    debugPrint('[FCM] onMessageOpenedApp: ${message.notification?.title}');
+  });
+
+  // Handle background/terminated messages via top-level function
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+}
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Must call initialize if background isolate runs without it
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  debugPrint('[FCM] background: ${message.notification?.title}');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase + FCM
+  try {
+    await _initializeFirebase();
+  } catch (e) {
+    debugPrint('[FCM] Initialization error: $e');
+  }
 
   // Initialize locale data for date formatting
   await initializeDateFormatting('id_ID', null);

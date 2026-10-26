@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/core/constants/storage_keys.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -38,12 +41,42 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _controller.repeat(reverse: true, period: const Duration(milliseconds: 1500));
 
-    // Check auth status after a delay
-    Future.delayed(const Duration(seconds: 3), () {
-      // For now, auto navigate to login (auth check to be implemented in F0/F2)
+    _checkStartupState();
+  }
+
+  Future<void> _checkStartupState() async {
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingSeen = prefs.getBool(StorageKeys.onboardingSeen) ?? false;
+
+    if (!onboardingSeen) {
+      if (!mounted) return;
+      context.go('/onboarding');
+      return;
+    }
+
+    final token = await ref.read(authDataSourceProvider).getToken();
+
+    if (token == null || token.isEmpty) {
       if (!mounted) return;
       context.go('/login');
-    });
+      return;
+    }
+
+    // Token exists — attempt to refresh auth state from API.
+    // refreshAuthState() catches errors internally and keeps existing state.
+    await ref.read(authStateProvider.notifier).refreshAuthState();
+
+    if (!mounted) return;
+    final isAuthenticated = ref.read(authStateProvider).isAuthenticated;
+    if (isAuthenticated) {
+      context.go('/home');
+    } else {
+      context.go('/login');
+    }
   }
 
   @override

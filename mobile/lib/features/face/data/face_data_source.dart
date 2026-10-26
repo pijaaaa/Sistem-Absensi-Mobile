@@ -23,6 +23,10 @@ abstract class FaceDataSource {
   Future<Map<String, dynamic>> verify({required Uint8List photo});
 
   Future<List<double>?> downloadTemplate();
+
+  /// Delete all stored face templates for the authenticated employee.
+  /// The employee can re-enroll afterward.
+  Future<Map<String, dynamic>> deleteFace();
 }
 
 class FaceDataSourceImpl implements FaceDataSource {
@@ -106,6 +110,16 @@ class FaceDataSourceImpl implements FaceDataSource {
     }
 
     return null;
+  }
+
+  @override
+  Future<Map<String, dynamic>> deleteFace() async {
+    final response = await dio.delete(ApiConstants.faceDelete);
+
+    final data = response.data as Map<String, dynamic>;
+    return data['data'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(data['data'])
+        : data;
   }
 }
 

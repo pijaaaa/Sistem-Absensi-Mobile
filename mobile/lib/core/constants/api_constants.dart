@@ -19,6 +19,8 @@ class ApiConstants {
   static const faceEnroll = '/face/enroll';
   static const faceVerify = '/face/verify';
   static const faceTemplate = '/face/template';
+  static const faceDelete = '/face/template';
+  static const fcmToken = '/push-tokens';
 
   // Security endpoints
   static const securityReport = '/security/report';

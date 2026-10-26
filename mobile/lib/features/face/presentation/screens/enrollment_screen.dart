@@ -142,17 +142,69 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     return 'Gagal (HTTP ${e.response?.statusCode ?? e.type})';
   }
 
-  Future<void> _showBiometricConsent() async {
-    final accepted = await showDialog<bool>(
+  Future<void> _deleteFace(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        title: Row(
+        title: const Row(
           children: [
-            Icon(Icons.fingerprint, color: AppColors.primary, size: 28),
-            const SizedBox(width: 12),
-            const Text('Persetujuan Data Biometrik'),
+            Icon(Icons.warning_rounded, color: AppColors.error, size: 28),
+            SizedBox(width: 12),
+            Text('Hapus Template Wajah'),
+          ],
+        ),
+        content: const Text(
+          'Anda yakin ingin menghapus template wajah? '
+          'Anda perlu mendaftarkan ulang saat ingin absen berbasis wajah.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (!confirmed!) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final dataSource = ref.read(faceDataSourceProvider);
+      await dataSource.deleteFace();
+      setState(() {
+        _hasTemplateDownloaded = false;
+        _capturedPhoto = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Template wajah berhasil dihapus.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menghapus: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _showBiometricConsent() async {
+    final accepted = await showDialog<bool>(
           ],
         ),
         content: const SingleChildScrollView(
@@ -277,6 +329,17 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
                 isLoading: _isSubmitting,
                 onPressed: _isSubmitting ? null : _startEnrollment,
               ),
+              if (_hasTemplateDownloaded) ...[
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: _isSubmitting ? null : () => _deleteFace(context, ref),
+                  icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
+                  label: Text(
+                    'Hapus Wajah',
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

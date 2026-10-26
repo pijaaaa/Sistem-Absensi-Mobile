@@ -16,6 +16,7 @@ abstract class AuthDataSource {
   Future<UserModel> fetchMe();
   Future<List<Map<String, dynamic>>> fetchMenus();
   Future<Set<String>> fetchPermissions();
+  Future<void> updateFcmToken(String token);
   Future<void> saveToken(String token);
   Future<void> saveUser(UserModel user);
   Future<String?> getToken();
@@ -114,6 +115,18 @@ class AuthDataSourceImpl implements AuthDataSource {
       return permissions;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
+    }
+  }
+
+  @override
+  Future<void> updateFcmToken(String token) async {
+    try {
+      await dio.post(
+        ApiConstants.fcmToken,
+        data: {'token': token},
+      );
+    } on DioException catch (e) {
+      debugPrint('[AUTH] FCM token update error: ${e.message}');
     }
   }
 

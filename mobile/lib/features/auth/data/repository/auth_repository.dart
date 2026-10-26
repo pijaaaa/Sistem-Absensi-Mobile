@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/features/auth/data/datasource/auth_data_source.dart';
 
@@ -14,6 +15,14 @@ class AuthRepository {
     final user = await dataSource.fetchMe();
     await dataSource.fetchMenus();
     await dataSource.fetchPermissions();
+
+    // Register FCM token with backend after successful login
+    final fcm = FirebaseMessaging.instance;
+    final token = await fcm.getToken();
+    if (token != null) {
+      await dataSource.updateFcmToken(token);
+    }
+
     return user;
   }
 
@@ -38,7 +47,7 @@ class AuthRepository {
   }
 
   Future<void> updateFcmToken(String token) async {
-    // Will implement later when FCM is set up
+    await dataSource.updateFcmToken(token);
   }
 
   Future<void> saveUserLocally(UserModel user) async {

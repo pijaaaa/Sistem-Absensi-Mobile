@@ -6,4 +6,5 @@ class StorageKeys {
   static const themeMode = 'theme_mode';
   static const deviceType = 'device_type';
   static const deviceStatus = 'device_status';
+  static const onboardingSeen = 'onboarding_seen';
 }

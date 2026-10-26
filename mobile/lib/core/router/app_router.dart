@@ -13,6 +13,7 @@ import 'package:mobile/features/home/presentation/screens/home_screen.dart';
 import 'package:mobile/features/leave/presentation/screens/leave_screen.dart';
 import 'package:mobile/features/more/presentation/screens/more_screen.dart';
 import 'package:mobile/features/notification/presentation/screens/notification_screen.dart';
+import 'package:mobile/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:mobile/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mobile/splash_screen.dart';
 
@@ -40,6 +41,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/device-registration',

@@ -68,6 +68,7 @@ class NotificationScreen extends ConsumerWidget {
               ref.invalidate(notificationsProvider);
             },
             child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 if (todayItems.isNotEmpty) ...[
                   _buildSectionHeader(context, 'Hari Ini'),

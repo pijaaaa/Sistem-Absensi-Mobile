@@ -91,6 +91,29 @@ class FaceController extends Controller
         ]);
     }
 
+    /**
+     * Hapus semua face template milik employee (bisa daftar ulang nanti).
+     */
+    public function destroy(Request $request): JsonResponse
+    {
+        $employee = $request->user()->employee;
+
+        if (! $employee) {
+            return $this->error('Profil karyawan tidak ditemukan.', 422);
+        }
+
+        $count = $employee->faceTemplates()->count();
+        $employee->faceTemplates()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => $count > 0
+                ? 'Template wajah berhasil dihapus.'
+                : 'Tidak ada template wajah untuk dihapus.',
+            'data' => ['deleted' => $count],
+        ]);
+    }
+
     public function verify(Request $request): JsonResponse
     {
         $request->validate(['photo' => ['required', 'image', 'max:5120']]);
