@@ -1,9 +1,9 @@
 import 'dart:convert';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mobile/core/constants/storage_keys.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/services/device_service.dart';
 import 'package:mobile/core/constants/api_constants.dart';
@@ -21,15 +21,16 @@ abstract class AuthDataSource {
   Future<void> saveUser(UserModel user);
   Future<String?> getToken();
   Future<UserModel?> getUser();
+  Future<bool> hasOnboardingDone();
   Future<void> logout();
 }
 
 class AuthDataSourceImpl implements AuthDataSource {
   final Dio dio;
-  final FlutterSecureStorage storage;
+  final SharedPreferences prefs;
   final DeviceService deviceService;
 
-  AuthDataSourceImpl({required this.dio, required this.storage, required this.deviceService});
+  AuthDataSourceImpl({required this.dio, required this.prefs, required this.deviceService});
 
   @override
   Future<Map<String, dynamic>> login({
@@ -93,7 +94,7 @@ class AuthDataSourceImpl implements AuthDataSource {
       final menus = (data['data'] as List? ?? data['menus'] as List? ?? [])
           .map((e) => e as Map<String, dynamic>)
           .toList();
-      await storage.write(key: StorageKeys.menus, value: _encodeList(menus));
+      await prefs.setString(StorageKeys.menus, _encodeList(menus));
       return menus;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
@@ -110,8 +111,8 @@ class AuthDataSourceImpl implements AuthDataSource {
       final permissions = (permissionData['keys'] as List? ?? permissionData['permissions'] as List? ?? [])
           .map((e) => e as String)
           .toSet();
-      await storage.write(
-          key: StorageKeys.permissions, value: permissions.join(','));
+      await prefs.setString(
+          StorageKeys.permissions, permissions.join(','));
       return permissions;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
@@ -132,22 +133,22 @@ class AuthDataSourceImpl implements AuthDataSource {
 
   @override
   Future<void> saveToken(String token) async {
-    await storage.write(key: StorageKeys.accessToken, value: token);
+    await prefs.setString(StorageKeys.accessToken, token);
   }
 
   @override
   Future<void> saveUser(UserModel user) async {
-    await storage.write(key: StorageKeys.user, value: _encodeUser(user));
+    await prefs.setString(StorageKeys.user, _encodeUser(user));
   }
 
   @override
   Future<String?> getToken() async {
-    return await storage.read(key: StorageKeys.accessToken);
+    return prefs.getString(StorageKeys.accessToken);
   }
 
   @override
   Future<UserModel?> getUser() async {
-    final data = await storage.read(key: StorageKeys.user);
+    final data = prefs.getString(StorageKeys.user);
     if (data == null || data.isEmpty) return null;
     try {
       final json = _decodeUser(data);
@@ -158,16 +159,21 @@ class AuthDataSourceImpl implements AuthDataSource {
   }
 
   @override
+  Future<bool> hasOnboardingDone() async {
+    return prefs.getBool(StorageKeys.onboardingSeen) ?? false;
+  }
+
+  @override
   Future<void> logout() async {
     try {
       await dio.post(ApiConstants.logout);
     } catch (_) {
       // Ignore network errors on logout
     }
-    await storage.delete(key: StorageKeys.accessToken);
-    await storage.delete(key: StorageKeys.user);
-    await storage.delete(key: StorageKeys.menus);
-    await storage.delete(key: StorageKeys.permissions);
+    await prefs.remove(StorageKeys.accessToken);
+    await prefs.remove(StorageKeys.user);
+    await prefs.remove(StorageKeys.menus);
+    await prefs.remove(StorageKeys.permissions);
   }
 
   String _formatError(DioException e) {

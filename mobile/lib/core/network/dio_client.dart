@@ -1,15 +1,16 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/api_constants.dart';
 
 class DioClient {
   final Dio dio;
-  final FlutterSecureStorage storage;
+  final SharedPreferences prefs;
 
   DioClient({
     required this.dio,
-    required this.storage,
+    required this.prefs,
   }) {
     dio.options.baseUrl = ApiConstants.baseUrl;
     dio.options.connectTimeout = ApiConstants.connectTimeout;
@@ -20,23 +21,23 @@ class DioClient {
     };
 
     dio.interceptors.addAll([
-      _AuthInterceptor(storage, dio),
+      _AuthInterceptor(prefs, dio),
     ]);
   }
 }
 
 class _AuthInterceptor extends Interceptor {
-  final FlutterSecureStorage storage;
+  final SharedPreferences prefs;
   final Dio dio;
 
-  _AuthInterceptor(this.storage, this.dio);
+  _AuthInterceptor(this.prefs, this.dio);
 
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await storage.read(key: 'access_token');
+    final token = prefs.getString('access_token');
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -49,9 +50,12 @@ class _AuthInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     if (err.response?.statusCode == 401) {
-      // Token expired or invalid
-      await storage.delete(key: 'access_token');
-      // Could navigate to login here if needed
+      debugPrint('[DIO] 401 Unauthorized — token may be expired');
+      final path = err.requestOptions.path;
+      if (!path.contains('/auth/login') && !path.contains('/auth/logout')) {
+        await prefs.remove('access_token');
+        await prefs.remove('user_data');
+      }
     }
     handler.next(err);
   }

@@ -1,6 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/features/auth/data/datasource/auth_data_source.dart';
+
+enum TokenValidationResult { valid, invalid, offline }
 
 class AuthRepository {
   final AuthDataSource dataSource;
@@ -57,5 +60,23 @@ class AuthRepository {
   Future<bool> hasUserLocally() async {
     final user = await dataSource.getUser();
     return user != null;
+  }
+
+  Future<bool> hasOnboardingDone() async {
+    return await dataSource.hasOnboardingDone();
+  }
+
+  Future<TokenValidationResult> validateToken() async {
+    try {
+      await dataSource.fetchMe();
+      return TokenValidationResult.valid;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        return TokenValidationResult.invalid;
+      }
+      return TokenValidationResult.offline;
+    } catch (e) {
+      return TokenValidationResult.offline;
+    }
   }
 }

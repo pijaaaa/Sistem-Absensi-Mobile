@@ -29,8 +29,7 @@ class LocalNotificationService {
 
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: iOS),
-      onSelectNotification: (payload) async {
-        // Handle notification tap
+      onDidReceiveNotificationResponse: (response) async {
         if (context.mounted) {
           Navigator.of(context).pushReplacementNamed('/notifications');
         }

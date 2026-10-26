@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile/core/constants/storage_keys.dart';
+import 'package:mobile/core/providers/startup_provider.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -45,37 +44,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _checkStartupState() async {
-    await Future.delayed(const Duration(seconds: 1));
+    debugPrint('[SPLASH] _checkStartupState started');
+    try {
+      // Minimum splash duration + startup decision
+      final minSplash = Future.delayed(const Duration(milliseconds: 1500));
+      final destinationFuture = ref.read(startupDestinationProvider.future);
 
-    if (!mounted) return;
+      await Future.wait([minSplash, destinationFuture]);
+      final destination = await destinationFuture;
 
-    final prefs = await SharedPreferences.getInstance();
-    final onboardingSeen = prefs.getBool(StorageKeys.onboardingSeen) ?? false;
-
-    if (!onboardingSeen) {
       if (!mounted) return;
-      context.go('/onboarding');
-      return;
-    }
 
-    final token = await ref.read(authDataSourceProvider).getToken();
+      debugPrint('[SPLASH] destination: $destination');
 
-    if (token == null || token.isEmpty) {
-      if (!mounted) return;
-      context.go('/login');
-      return;
-    }
-
-    // Token exists — attempt to refresh auth state from API.
-    // refreshAuthState() catches errors internally and keeps existing state.
-    await ref.read(authStateProvider.notifier).refreshAuthState();
-
-    if (!mounted) return;
-    final isAuthenticated = ref.read(authStateProvider).isAuthenticated;
-    if (isAuthenticated) {
-      context.go('/home');
-    } else {
-      context.go('/login');
+      switch (destination) {
+        case StartupDestination.home:
+          debugPrint('[SPLASH] -> /home');
+          await ref.read(authStateProvider.notifier).refreshAuthState();
+          if (!mounted) return;
+          if (ref.read(authStateProvider).isAuthenticated) {
+            context.go('/home');
+          } else {
+            context.go('/login');
+          }
+        case StartupDestination.login:
+          debugPrint('[SPLASH] -> /login');
+          context.go('/login');
+        case StartupDestination.onboarding:
+          debugPrint('[SPLASH] -> /onboarding');
+          context.go('/onboarding');
+      }
+    } catch (e, st) {
+      debugPrint('[SPLASH] ERROR: $e');
+      debugPrint('[SPLASH] STACK: $st');
+      if (mounted) context.go('/login');
     }
   }
 

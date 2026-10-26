@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/core/services/security_service.dart';
@@ -17,9 +18,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 final authDataSourceProvider = Provider<AuthDataSource>((ref) {
   final dio = ref.watch(dioProvider);
-  final storage = ref.watch(flutterSecureStorageProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
   final deviceService = ref.watch(deviceServiceProvider);
-  return AuthDataSourceImpl(dio: dio, storage: storage, deviceService: deviceService);
+  return AuthDataSourceImpl(dio: dio, prefs: prefs, deviceService: deviceService);
 });
 
 class AuthState {
@@ -101,25 +102,86 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> refreshAuthState() async {
     try {
       final authRepo = ref.read(authRepositoryProvider);
+
+      debugPrint('[AUTH] refreshAuthState: reading token+user from storage');
+      final token = await authRepo.getToken();
       final user = await authRepo.getCurrentUser();
-      final menus = await authRepo.getMenus();
-      final permissions = await authRepo.getPermissions();
+      final displayToken = token != null && token.length > 10
+          ? '${token.substring(0, 10)}...'
+          : token ?? 'null';
+      debugPrint('[AUTH] token: $displayToken');
+      debugPrint('[AUTH] user: ${user?.name ?? 'null'}');
+
+      if (token == null || token.isEmpty || user == null) {
+        debugPrint('[AUTH] no token/user found, setting isAuthenticated=false');
+        state = state.copyWith(
+          isAuthenticated: false,
+          token: null,
+          user: null,
+          employee: null,
+          menus: [],
+          permissions: {},
+        );
+        return;
+      }
+
+      // Validate token against backend (distinguish 401 vs offline)
+      debugPrint('[AUTH] validating token against backend');
+      final result = await authRepo.validateToken();
+      if (result == TokenValidationResult.invalid) {
+        debugPrint('[AUTH] token invalid/expired, clearing auth state');
+        await authRepo.logout();
+        state = state.copyWith(
+          isAuthenticated: false,
+          token: null,
+          user: null,
+          employee: null,
+          menus: [],
+          permissions: {},
+        );
+        return;
+      }
+
+      if (result == TokenValidationResult.offline) {
+        debugPrint('[AUTH] offline with token — allowing offline access');
+      } else {
+        debugPrint('[AUTH] token valid, setting isAuthenticated=true');
+      }
 
       state = state.copyWith(
-        isAuthenticated: user != null,
-        token: await authRepo.getToken(),
+        isAuthenticated: true,
+        token: token,
         user: user,
-        employee: user?.employee,
-        menus: menus,
-        permissions: permissions,
+        employee: user.employee,
       );
 
-      // Report security flags to backend (non-blocking)
+      try {
+        final menus = await authRepo.getMenus();
+        state = state.copyWith(menus: menus);
+      } catch (e) {
+        debugPrint('[AUTH] getMenus error: $e');
+      }
+
+      try {
+        final permissions = await authRepo.getPermissions();
+        state = state.copyWith(permissions: permissions);
+      } catch (e) {
+        debugPrint('[AUTH] getPermissions error: $e');
+      }
+
       Future.microtask(
         ref.read(securityServiceWithDioProvider).reportSecurityFlags,
       );
     } catch (e) {
-      // Keep existing state on error
+      debugPrint('[AUTH] refreshAuthState error: $e');
+      state = state.copyWith(
+        isAuthenticated: false,
+        token: null,
+        user: null,
+        employee: null,
+        menus: [],
+        permissions: {},
+      );
     }
   }
 

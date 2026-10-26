@@ -28,9 +28,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final location = state.matchedLocation;
       final loggingIn = location == '/login';
       final isFirst = location == '/splash';
+      final isOnboarding = location == '/onboarding';
 
-      if (isAuthenticated && (loggingIn || isFirst)) return '/home';
-      if (!isAuthenticated && !loggingIn && !isFirst) return '/login';
+      if (isFirst || isOnboarding) return null;
+
+      if (isAuthenticated && loggingIn) return '/home';
+      if (!isAuthenticated && !loggingIn) return '/login';
       return null;
     },
     routes: [

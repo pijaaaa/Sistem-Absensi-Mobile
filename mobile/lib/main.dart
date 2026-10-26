@@ -6,6 +6,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/core/network/providers.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/services/push_notification_service.dart';
 import 'package:mobile/core/theme/app_colors.dart';
@@ -66,6 +68,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize SharedPreferences before app starts (needed for auth session)
+  final prefs = await SharedPreferences.getInstance();
+
   // Initialize Firebase + FCM
   try {
     await _initializeFirebase();
@@ -101,7 +106,14 @@ void main() async {
     );
   };
 
-  runApp(const ProviderScope(child: AbsensiApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const AbsensiApp(),
+    ),
+  );
 }
 
 class AbsensiApp extends ConsumerWidget {

@@ -18,11 +18,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: 'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'absensi-mobile',
-    storageBucket: 'absensi-mobile.appspot.com',
+    apiKey: 'AIzaSyCzGX7dPFLvfvou_DyDwNaXmchCTT7F7M8',
+    appId: '1:424349277679:android:c46e92c663bde194216a1a',
+    messagingSenderId: '424349277679',
+    projectId: 'absensi-mobile-36605',
+    storageBucket: 'absensi-mobile-36605.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

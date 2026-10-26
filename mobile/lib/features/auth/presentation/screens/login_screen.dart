@@ -197,8 +197,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authStateProvider.notifier).refreshAuthState();
 
       if (!mounted) return;
-      debugPrint('[LOGIN] Navigating to /home');
-      context.go('/home');
+      final isAuthenticated = ref.read(authStateProvider).isAuthenticated;
+      debugPrint('[LOGIN] isAuthenticated: $isAuthenticated');
+
+      if (isAuthenticated) {
+        debugPrint('[LOGIN] Navigating to /home');
+        context.go('/home');
+      } else {
+        debugPrint('[LOGIN] Not authenticated after refresh, staying on login');
+      }
     } on TimeoutException catch (e) {
       debugPrint('[LOGIN] Login timed out: $e');
       if (!mounted) return;
