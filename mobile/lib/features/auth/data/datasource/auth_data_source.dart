@@ -67,14 +67,6 @@ class AuthDataSourceImpl implements AuthDataSource {
       await saveUser(user);
     }
 
-    // Fetch menus and permissions after login
-    try {
-      await fetchMenus();
-      await fetchPermissions();
-    } catch (_) {
-      // Ignore errors fetching menus/permissions during login
-    }
-
     return data;
   }
 

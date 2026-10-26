@@ -187,9 +187,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         login: _identifierController.text,
         password: _passwordController.text,
       ).timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 15),
         onTimeout: () {
-          throw TimeoutException('Login timeout after 5 seconds', const Duration(seconds: 5));
+          throw TimeoutException('Login timeout', const Duration(seconds: 15));
         },
       );
 
@@ -204,7 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Login gagal. Server tidak merespon dalam 5 detik.'),
+          content: Text('Login gagal. Server tidak merespon dalam 15 detik. Pastikan backend berjalan.'),
           backgroundColor: Colors.red,
         ),
       );

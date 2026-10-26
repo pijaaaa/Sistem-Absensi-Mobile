@@ -110,7 +110,12 @@ class AttendanceController extends Controller
             // Device not registered yet: auto-bind as primary (first-time / dev)
             $device = $this->devices->bindOnLogin($employee, $deviceUid, 'mobile-app');
             if (! $device) {
-                throw new FaceException('device_error', 'Device tidak terdaftar. Daftarkan device utama/cadangan dulu.', 422);
+                // Employee already has a primary device — try backup registration
+                try {
+                    $device = $this->devices->registerBackup($employee, $deviceUid, 'mobile-app');
+                } catch (ValidationException $e) {
+                    throw new FaceException('device_error', 'Device tidak terdaftar. Daftarkan device utama/cadangan dulu.', 422);
+                }
             }
         }
 
