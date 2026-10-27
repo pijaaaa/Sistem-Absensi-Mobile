@@ -17,10 +17,13 @@ import 'package:mobile/features/onboarding/presentation/screens/onboarding_scree
 import 'package:mobile/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mobile/splash_screen.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshStream = _AppStateRefreshStream(ref);
 
   return GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: '/splash',
     refreshListenable: refreshStream,
     redirect: (context, state) {

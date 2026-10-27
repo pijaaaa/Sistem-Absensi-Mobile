@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:team_stats.view');
 
     Route::post('/push-tokens', [NotificationController::class, 'registerToken']);
+    Route::delete('/push-tokens/{token}', [NotificationController::class, 'deleteToken']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead']);

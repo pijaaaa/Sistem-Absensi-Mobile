@@ -7,4 +7,5 @@ class StorageKeys {
   static const deviceType = 'device_type';
   static const deviceStatus = 'device_status';
   static const onboardingSeen = 'onboarding_seen';
+  static const fcmToken = 'fcm_token';
 }

@@ -46,7 +46,7 @@ class LeaveRequestController extends Controller
             $this->notifier->approversFor($employee),
             'Pengajuan '.$leave->type,
             sprintf('%s mengajukan %s (%s s/d %s).', $employee->name, $leave->type, $leave->start_date->toDateString(), $leave->end_date->toDateString()),
-            ['type' => 'leave_request', 'id' => $leave->id],
+            ['type' => 'leave_request_new', 'id' => $leave->id],
         );
 
         return response()->json([

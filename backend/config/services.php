@@ -42,8 +42,10 @@ return [
     ],
 
     'fcm' => [
-        'server_key' => env('FCM_SERVER_KEY'),
-        'url' => env('FCM_URL', 'https://fcm.googleapis.com/fcm/send'),
+        'project_id' => env('FCM_PROJECT_ID'),
+        'service_account_json' => env('FIREBASE_SERVICE_ACCOUNT_JSON'),
+        // HTTP v1 endpoint (replacing legacy server-key API); %s diisi project_id.
+        'url' => env('FCM_URL', 'https://fcm.googleapis.com/v1/projects/%s/messages:send'),
     ],
 
 ];

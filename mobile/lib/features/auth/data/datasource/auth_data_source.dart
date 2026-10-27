@@ -23,6 +23,7 @@ abstract class AuthDataSource {
   Future<UserModel?> getUser();
   Future<bool> hasOnboardingDone();
   Future<void> logout();
+  Future<void> deleteFcmToken(String token);
 }
 
 class AuthDataSourceImpl implements AuthDataSource {
@@ -72,7 +73,7 @@ class AuthDataSourceImpl implements AuthDataSource {
     return data;
   }
 
-   @override
+  @override
   Future<UserModel> fetchMe() async {
     try {
       final response = await dio.get(ApiConstants.me);
@@ -173,15 +174,38 @@ class AuthDataSourceImpl implements AuthDataSource {
 
   @override
   Future<void> logout() async {
+    await _deleteCurrentFcmToken();
+
     try {
       await dio.post(ApiConstants.logout);
     } catch (_) {
-      // Ignore network errors on logout
+      // Ignore network errors — session clear tetap jalan
     }
     await prefs.remove(StorageKeys.accessToken);
     await prefs.remove(StorageKeys.user);
     await prefs.remove(StorageKeys.menus);
     await prefs.remove(StorageKeys.permissions);
+  }
+
+  @override
+  Future<void> deleteFcmToken(String token) async {
+    try {
+      await dio.delete(ApiConstants.pushTokenDelete(token));
+    } on DioException catch (e) {
+      debugPrint('[AUTH] deleteFcmToken error: ${e.message}, status=${e.response?.statusCode}');
+    }
+  }
+
+  Future<void> _deleteCurrentFcmToken() async {
+    final token = prefs.getString(StorageKeys.fcmToken);
+    if (token == null || token.isEmpty) return;
+
+    try {
+      await dio.delete(ApiConstants.pushTokenDelete(token));
+    } catch (e) {
+      debugPrint('[AUTH] deleteFcmToken (logout) error: $e');
+    }
+    await prefs.remove(StorageKeys.fcmToken);
   }
 
   String _formatError(DioException e) {

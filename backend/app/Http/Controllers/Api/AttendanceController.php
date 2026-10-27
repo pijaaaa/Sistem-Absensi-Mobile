@@ -48,7 +48,7 @@ class AttendanceController extends Controller
                 $this->notifier->approversFor($employee),
                 'Approval kehadiran',
                 $employee->name.' absen dari device cadangan, menunggu approval.',
-                ['type' => 'attendance_pending', 'id' => $attendance->id],
+                ['type' => 'backup_attendance_request', 'id' => $attendance->id],
             );
         }
 

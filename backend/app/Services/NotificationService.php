@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendPushNotification;
 use App\Models\Employee;
 use App\Models\Notification;
 use App\Models\User;
@@ -9,8 +10,6 @@ use Illuminate\Support\Collection;
 
 class NotificationService
 {
-    public function __construct(private FcmService $fcm) {}
-
     /**
      * Approver pengajuan: manager department yang sama untuk karyawan,
      * atau superadmin bila pengaju adalah manager.
@@ -29,17 +28,32 @@ class NotificationService
     }
 
     /**
+     * Simpan notifikasi ke DB + kirim push lewat queue (job per user).
+     *
+     * $data wajib mengandung 'type' (lihat tabel data.type di roadmap) agar
+     * mobile tahu layar tujuan saat notifikasi diketuk. Jika $dedupeKey sudah
+     * ada untuk user yang sama → notifikasi dilewati (anti-duplicate).
+     *
      * @param  array<string, mixed>  $data
      */
-    public function send(User $user, string $title, string $body, array $data = []): Notification
+    public function send(User $user, string $title, string $body, array $data = [], ?string $dedupeKey = null): ?Notification
     {
+        if (empty($data['type'])) {
+            throw new \InvalidArgumentException('NotificationService::send wajib menerima data[type].');
+        }
+
+        if ($dedupeKey !== null && $user->appNotifications()->where('dedupe_key', $dedupeKey)->exists()) {
+            return null;
+        }
+
         $notification = $user->appNotifications()->create([
             'title' => $title,
             'body' => $body,
             'data_json' => $data,
+            'dedupe_key' => $dedupeKey,
         ]);
 
-        $this->fcm->send($user->pushTokens()->pluck('token')->all(), $title, $body, $data);
+        SendPushNotification::dispatch($notification->id, $user->id, $title, $body, $data);
 
         return $notification;
     }
@@ -47,10 +61,10 @@ class NotificationService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function sendMany(iterable $users, string $title, string $body, array $data = []): void
+    public function sendMany(iterable $users, string $title, string $body, array $data = [], ?string $dedupeKey = null): void
     {
         foreach ($users as $user) {
-            $this->send($user, $title, $body, $data);
+            $this->send($user, $title, $body, $data, $dedupeKey);
         }
     }
 }

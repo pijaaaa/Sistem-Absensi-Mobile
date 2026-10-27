@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\WorkSchedule;
+use App\Services\NotificationService;
 use App\Services\ScheduleService;
 use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
@@ -15,7 +16,7 @@ use Illuminate\Console\Command;
 #[Description('Tandai alfa karyawan yang tidak absen dan tidak punya izin di hari kerja lewat.')]
 class MarkAbsentees extends Command
 {
-    public function handle(ScheduleService $schedule): int
+    public function handle(ScheduleService $schedule, NotificationService $notifier): int
     {
         $tz = WorkSchedule::current()?->timezone ?? config('app.timezone');
         $date = $this->option('date')
@@ -32,7 +33,7 @@ class MarkAbsentees extends Command
 
         Employee::where('is_active', true)->whereNotNull('user_id')->with('user')->get()
             ->filter(fn (Employee $employee) => $employee->user && $employee->user->is_active)
-            ->each(function (Employee $employee) use ($date, &$marked) {
+            ->each(function (Employee $employee) use ($date, $notifier, &$marked) {
                 if ($employee->attendances()->whereDate('date', $date->toDateString())->exists()) {
                     return;
                 }
@@ -53,6 +54,15 @@ class MarkAbsentees extends Command
                     'late_minutes' => 0,
                     'early_leave_minutes' => 0,
                 ]);
+
+                // Notifikasi alfi ke karyawan (#17).
+                $notifier->send(
+                    $employee->user,
+                    'Absensi',
+                    "Anda tercatat alfi pada {$date->format('d M Y')}. Jika ada kendala, ajukan izin sesuai batas yang berlaku.",
+                    ['type' => 'absent_marked'],
+                    'absent_marked:'.$employee->id.':'.$date->toDateString(),
+                );
 
                 $marked++;
             });

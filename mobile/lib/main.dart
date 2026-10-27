@@ -19,45 +19,62 @@ import 'package:mobile/core/theme/theme_provider.dart';
 import 'package:mobile/features/attendance/data/local/workmanager_service.dart';
 import 'package:mobile/firebase_options.dart';
 
-Future<void> _initializeFirebase() async {
+Future<RemoteMessage?> _initializeFirebase(SharedPreferences prefs) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   final fcm = FirebaseMessaging.instance;
 
-  // Request notification permission
-  final settings = await fcm.requestPermission();
-  if (settings.authorizationStatus == AuthorizationStatus.denied ||
-      settings.authorizationStatus == AuthorizationStatus.notDetermined) {
-    // permission not granted — still proceed, FCM token may not be available
-  }
+  // Permission diminta setelah login (lihat LoginScreen), bukan di splash.
+  // FCM token dapat didapat & diregister meski belum ada permission.
 
-  // Get and log FCM token (registration on backend deferred to login flow)
+  // Dapatkan token, simpan ke pref, dan sediakan listener refresh.
   try {
     final token = await fcm.getToken();
-    debugPrint('[FCM] Token: $token');
+    if (token != null && token.isNotEmpty) {
+      await prefs.setString(StorageKeys.fcmToken, token);
+      debugPrint('[FCM] Token: $token');
+    }
   } catch (e) {
     debugPrint('[FCM] getToken error: $e');
   }
 
-  // Initialize local notification service for foreground handling
   await PushNotificationService.instance.initialize();
-  await PushNotificationService.instance.requestPermission();
 
-  // Configure message handlers
+  // Token refresh → simpan pref + register ulang ke backend (callback diset HomeScreen).
+  fcm.onTokenRefresh.listen((token) async {
+    if (token.isNotEmpty) {
+      await prefs.setString(StorageKeys.fcmToken, token);
+      PushNotificationService.onTokenRefreshed?.call(token);
+    }
+  });
+
+  // Foreground: FCM tidak menampilkan notifikasi otomatis → tampilkan lokal.
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     debugPrint('[FCM] onMessage: ${message.notification?.title}');
-    final data = message.toMap();
-    PushNotificationService.instance.showFromMap(data);
+    PushNotificationService.instance.showFromMap(message.toMap());
   });
 
+  // Ketuk notifikasi (background/terminated) → navigasi per data.type.
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     debugPrint('[FCM] onMessageOpenedApp: ${message.notification?.title}');
+    PushNotificationService.handleNotificationTap(
+      Map<String, dynamic>.from(message.data),
+    );
   });
 
-  // Handle background/terminated messages via top-level function
+  // Foreground local-notification tap sudah di-handle di PushNotificationService.initialize
+  // (onDidReceiveNotificationResponse → handleNotificationTap).
+
+  // Background/terminated data-only messages (diperlukan agar handler terdaftar).
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Notifikasi yang membuka app dari terminated state (cold start).
+  return fcm.getInitialMessage();
 }
+
+  // (Foreground/local-notif tap & background tap navigation di-handle oleh
+  //  PushNotificationService.handleNotificationTap via navigatorKey.)
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -80,8 +97,9 @@ void main() async {
   final isLoggedInPref = tokenPref != null && tokenPref.isNotEmpty;
 
   SessionManager.setPrefs(prefs);
+   RemoteMessage? initialMessage;
   try {
-    await _initializeFirebase();
+    initialMessage = await _initializeFirebase(prefs);
   } catch (e) {
     debugPrint('[FCM] Initialization error: $e');
   }
@@ -129,6 +147,16 @@ void main() async {
       child: const AbsensiApp(),
     ),
   );
+
+  // Cold-start: app dibuka via notifikasi (terminated state). Jika belum login,
+  // handleNotificationTap menyimpan ke pendingNavigation; Home consume setelah login.
+  if (initialMessage != null) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PushNotificationService.handleNotificationTap(
+        Map<String, dynamic>.from(initialMessage!.data),
+      );
+    });
+  }
 }
 
 class AbsensiApp extends ConsumerWidget {

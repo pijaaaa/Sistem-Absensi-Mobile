@@ -22,8 +22,8 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(FcmService::class, fn () => new FcmService(
-            config('services.fcm.server_key'),
-            config('services.fcm.url'),
+            config('services.fcm.project_id'),
+            config('services.fcm.service_account_json'),
         ));
     }
 

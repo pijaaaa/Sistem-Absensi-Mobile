@@ -33,7 +33,7 @@ class AppStateNotifier extends StateNotifier<AppState> {
 
   AppStateNotifier([this.ref, this.prefs]) : super(const AppState());
 
-  AppStateNotifier.withInitialState({
+   AppStateNotifier.withInitialState({
     required SharedPreferences prefsInstance,
     required bool isLoggedIn,
     required bool onboardingDone,
@@ -43,6 +43,9 @@ class AppStateNotifier extends StateNotifier<AppState> {
           isLoggedIn: isLoggedIn,
           onboardingDone: onboardingDone,
         ));
+
+  /// Diset oleh HomeScreen → panggil DataSource.logout (delete push token + backend).
+  static Future<void> Function()? onLogout;
 
   SharedPreferences _getPrefs() {
     if (prefs != null) return prefs!;
@@ -79,6 +82,8 @@ class AppStateNotifier extends StateNotifier<AppState> {
   Future<void> logout() async {
     // State change synchronous dulu — mencegah race condition di router
     state = state.copyWith(isLoggedIn: false);
+    // Hapus push token device (via callback yang diset HomeScreen) sebelum clear prefs.
+    await onLogout?.call();
     final p = _getPrefs();
     await p.remove(StorageKeys.accessToken);
     await p.remove(StorageKeys.user);

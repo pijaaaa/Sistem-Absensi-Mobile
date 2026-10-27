@@ -21,6 +21,7 @@ class ApiConstants {
   static const faceTemplate = '/face/template';
   static const faceDelete = '/face/template';
   static const fcmToken = '/push-tokens';
+  static String pushTokenDelete(String token) => '/push-tokens/$token';
 
   // Security endpoints
   static const securityReport = '/security/report';

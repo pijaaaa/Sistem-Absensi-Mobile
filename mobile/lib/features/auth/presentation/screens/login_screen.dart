@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/constants/storage_keys.dart';
 import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/network/providers.dart';
+import 'package:mobile/core/services/push_notification_service.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -197,6 +198,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       final token = prefs.getString(StorageKeys.accessToken) ?? '';
       await ref.read(appStateProvider.notifier).loginSuccess(token);
+
+      // Android 13+: minta POST_NOTIFICATIONS setelah login (bukan di splash).
+      if (mounted) {
+        await PushNotificationService.instance.requestPermission(context);
+      }
 
       // Menu & permission akan dimuat di HomeScreen via homeInitProvider
     } on TimeoutException catch (e) {

@@ -69,7 +69,7 @@ class AttendanceApprovalController extends Controller
                 $user,
                 'Kehadiran device cadangan '.$status,
                 'Absensi device cadangan Anda '.($status === 'approved' ? 'disetujui' : 'ditolak').'.',
-                ['type' => 'attendance_decision', 'id' => $attendance->id],
+                ['type' => 'backup_attendance_decision', 'id' => $attendance->id],
             );
         }
 

@@ -12,6 +12,8 @@ import 'package:mobile/core/widgets/stat_tile.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/core/widgets/app_navigation_bar.dart';
 import 'package:mobile/core/widgets/error_state.dart';
+import 'package:mobile/core/providers/app_state_provider.dart';
+import 'package:mobile/core/services/push_notification_service.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
 import 'package:mobile/features/attendance/presentation/widgets/offline_sync_badge.dart';
@@ -40,6 +42,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _now = DateTime.now();
       });
     });
+
+    // Setelah frame pertama (router siap & sudah login): pasang callback
+    // push-token lifecycle, dan konsumsi notifikasi yang mungkin membuka app
+    // dari terminated state (cold start / belum login).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupPushCallbacks();
+    });
+  }
+
+  Future<void> _setupPushCallbacks() async {
+    final isLoggedIn = ref.read(appStateProvider).isLoggedIn;
+    if (!mounted || !isLoggedIn) return;
+
+    // Callback lifecycle (service tidak butuh context/ref).
+    PushNotificationService.isAuthorized = () => ref.read(appStateProvider).isLoggedIn;
+    PushNotificationService.onTokenRefreshed = (token) {
+      ref.read(authDataSourceProvider).updateFcmToken(token);
+    };
+    if (AppStateNotifier.onLogout == null) {
+      AppStateNotifier.onLogout = () => ref.read(authRepositoryProvider).logout();
+    }
+
+    final pending = PushNotificationService.consumePendingNavigation();
+    if (pending != null && mounted) {
+      GoRouter.maybeOf(context)?.go(pending.route);
+    }
   }
 
   @override

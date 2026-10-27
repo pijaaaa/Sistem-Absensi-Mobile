@@ -25,6 +25,20 @@ class NotificationController extends Controller
         return response()->json(['success' => true, 'message' => 'Token tersimpan.', 'data' => null]);
     }
 
+    /**
+     * Hapus token (dipanggil saat logout / token invalid).
+     */
+    public function deleteToken(Request $request, string $token): JsonResponse
+    {
+        $deleted = $request->user()->pushTokens()->where('token', $token)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => $deleted ? 'Token dihapus.' : 'Token tidak ditemukan.',
+            'data' => null,
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $notifications = $request->user()->appNotifications()->latest()->paginate(50);
