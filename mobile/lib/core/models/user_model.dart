@@ -14,11 +14,11 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        email: json['email'] as String,
-        role: json['role'] as String,
-        employee: json['employee'] != null
+        id: json['id'] as int? ?? 0,
+        name: json['name'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        role: json['role'] as String? ?? '',
+        employee: json['employee'] is Map<String, dynamic>
             ? EmployeeModel.fromJson(json['employee'])
             : null,
       );
@@ -50,12 +50,12 @@ class EmployeeModel {
   });
 
   factory EmployeeModel.fromJson(Map<String, dynamic> json) => EmployeeModel(
-        id: json['id'] as int,
-        nip: json['nip'] as String,
-        name: json['name'] as String,
+        id: json['id'] as int? ?? 0,
+        nip: json['nip'] as String? ?? '',
+        name: json['name'] as String? ?? '',
         departmentId: json['department_id'] as int?,
         workLocationId: json['work_location_id'] as int?,
-        workLocation: json['work_location'] != null
+        workLocation: json['work_location'] is Map<String, dynamic>
             ? WorkLocationModel.fromJson(json['work_location'])
             : null,
       );
@@ -96,8 +96,8 @@ class WorkLocationModel {
       id: json['id'] as int?,
       name: json['name'] as String?,
       mode: json['mode'] as String?,
-      lat: rawLat == null ? null : (rawLat is int ? (rawLat).toDouble() : rawLat as double),
-      lng: rawLng == null ? null : (rawLng is int ? (rawLng).toDouble() : rawLng as double),
+      lat: rawLat == null ? null : (rawLat is int ? (rawLat).toDouble() : rawLat as double?),
+      lng: rawLng == null ? null : (rawLng is int ? (rawLng).toDouble() : rawLng as double?),
       radiusM: json['radius_m'] as int?,
       polygonJson: json['polygon_json'] as String?,
     );

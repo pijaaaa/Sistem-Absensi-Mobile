@@ -72,7 +72,7 @@ class AuthDataSourceImpl implements AuthDataSource {
     return data;
   }
 
-  @override
+   @override
   Future<UserModel> fetchMe() async {
     try {
       final response = await dio.get(ApiConstants.me);
@@ -83,6 +83,8 @@ class AuthDataSourceImpl implements AuthDataSource {
       return user;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
+    } catch (e) {
+      throw Exception('Gagal memuat data pengguna: $e');
     }
   }
 
@@ -91,13 +93,14 @@ class AuthDataSourceImpl implements AuthDataSource {
     try {
       final response = await dio.get(ApiConstants.menus);
       final data = response.data as Map<String, dynamic>;
-      final menus = (data['data'] as List? ?? data['menus'] as List? ?? [])
-          .map((e) => e as Map<String, dynamic>)
-          .toList();
+      final rawList = data['data'] as List? ?? data['menus'] as List? ?? [];
+      final menus = rawList.map((e) => e as Map<String, dynamic>).toList();
       await prefs.setString(StorageKeys.menus, _encodeList(menus));
       return menus;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
+    } catch (e) {
+      throw Exception('Gagal memuat menu: $e');
     }
   }
 
@@ -107,15 +110,20 @@ class AuthDataSourceImpl implements AuthDataSource {
       final response = await dio.get(ApiConstants.permissions);
       final data = response.data as Map<String, dynamic>;
       // Backend returns: { "data": { "is_superadmin": bool, "keys": ["perm1", "perm2"] } }
-      final permissionData = data['data'] as Map<String, dynamic>? ?? data;
-      final permissions = (permissionData['keys'] as List? ?? permissionData['permissions'] as List? ?? [])
-          .map((e) => e as String)
-          .toSet();
+      final permissionData = data['data'] is Map<String, dynamic>
+          ? data['data'] as Map<String, dynamic>
+          : data;
+      final rawList = permissionData['keys'] as List? ??
+          permissionData['permissions'] as List? ??
+          [];
+      final permissions = rawList.map((e) => e.toString()).toSet();
       await prefs.setString(
           StorageKeys.permissions, permissions.join(','));
       return permissions;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
+    } catch (e) {
+      throw Exception('Gagal memuat permission: $e');
     }
   }
 

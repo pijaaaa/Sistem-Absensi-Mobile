@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/features/auth/data/datasource/auth_data_source.dart';
 
@@ -16,8 +17,19 @@ class AuthRepository {
   }) async {
     await dataSource.login(login: login, password: password);
     final user = await dataSource.fetchMe();
-    await dataSource.fetchMenus();
-    await dataSource.fetchPermissions();
+
+    // Menu & permission dimuat di Home, bukan di login — 
+    // bila gagal, login tetap berhasil
+    try {
+      await dataSource.fetchMenus();
+    } catch (e) {
+      debugPrint('[AUTH] login fetchMenus ignored: $e');
+    }
+    try {
+      await dataSource.fetchPermissions();
+    } catch (e) {
+      debugPrint('[AUTH] login fetchPermissions ignored: $e');
+    }
 
     // Register FCM token with backend after successful login
     final fcm = FirebaseMessaging.instance;
@@ -76,6 +88,12 @@ class AuthRepository {
       }
       return TokenValidationResult.offline;
     } catch (e) {
+      // fetchMe may wrap DioException as Exception — periksa apakah token
+      // sudah dihapus oleh interceptor (race condition)
+      final token = await dataSource.getToken();
+      if (token == null || token.isEmpty) {
+        return TokenValidationResult.invalid;
+      }
       return TokenValidationResult.offline;
     }
   }

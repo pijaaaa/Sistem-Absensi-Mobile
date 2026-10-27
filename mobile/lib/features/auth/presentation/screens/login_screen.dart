@@ -185,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final authRepo = ref.read(authRepositoryProvider);
       final prefs = ref.read(sharedPreferencesProvider);
-      await authRepo.login(
+       await authRepo.login(
         login: _identifierController.text,
         password: _passwordController.text,
       ).timeout(
@@ -198,9 +198,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final token = prefs.getString(StorageKeys.accessToken) ?? '';
       await ref.read(appStateProvider.notifier).loginSuccess(token);
 
-      // Fetch user/menus/permissions ke authStateProvider untuk UI yang butuh data user
-      await ref.read(authStateProvider.notifier).refreshAuthState();
-
+      // Menu & permission akan dimuat di HomeScreen via homeInitProvider
     } on TimeoutException catch (e) {
       debugPrint('[LOGIN] Login timed out: $e');
       if (!mounted) return;

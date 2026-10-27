@@ -18,12 +18,13 @@ import 'package:mobile/features/profile/presentation/screens/profile_screen.dart
 import 'package:mobile/splash_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final appState = ref.watch(appStateProvider);
+  final refreshStream = _AppStateRefreshStream(ref);
 
   return GoRouter(
     initialLocation: '/splash',
-    refreshListenable: _AppStateRefreshStream(ref),
+    refreshListenable: refreshStream,
     redirect: (context, state) {
+      final appState = refreshStream.currentState;
       final location = state.matchedLocation;
 
       // 1) Splash belum selesai → tetap di splash
@@ -46,8 +47,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // 4) Belum login + sudah onboarding → ke login
-      if (location == '/splash' || location == '/onboarding') return '/login';
+      // 4) Belum login + sudah onboarding → ke login (dari route manapun)
+      if (location != '/login') return '/login';
       return null;
     },
     routes: [
@@ -118,11 +119,16 @@ final routerProvider = Provider<GoRouter>((ref) {
 });
 
 class _AppStateRefreshStream extends ChangeNotifier {
+  final Ref ref;
+  AppState _currentState = const AppState();
+
   _AppStateRefreshStream(this.ref) {
-    ref.listen(appStateProvider, (_, __) {
+    _currentState = ref.read(appStateProvider);
+    ref.listen(appStateProvider, (previous, next) {
+      _currentState = next;
       notifyListeners();
     });
   }
 
-  final Ref ref;
+  AppState get currentState => _currentState;
 }

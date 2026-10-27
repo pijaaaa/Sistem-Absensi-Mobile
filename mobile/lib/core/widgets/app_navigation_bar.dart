@@ -48,7 +48,28 @@ class AppNavigationBar extends ConsumerWidget {
     final menusRaw = ref.watch(currentMenusProvider);
 
     if (menusRaw == null || menusRaw.isEmpty) {
-      return const SizedBox.shrink();
+      // Fallback: NavigationBar butuh minimal 2 destination — 
+      // tampilkan Home + More saat menu kosong (mis. offline / menu gagal load)
+      return NavigationBar(
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          final currentLocation = GoRouterState.of(context).matchedLocation;
+          final target = index == 0 ? '/home' : '/more';
+          if (target != currentLocation) {
+            GoRouter.of(context).go(target);
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home, size: 22),
+            label: 'Beranda',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.menu, size: 22),
+            label: 'Lainnya',
+          ),
+        ],
+      );
     }
 
     final menus =

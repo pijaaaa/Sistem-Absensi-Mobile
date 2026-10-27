@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/theme/app_colors.dart';
-import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -44,31 +43,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
    void _finishSplashAfterMinimum() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (_splashCompleted) return;
+     WidgetsBinding.instance.addPostFrameCallback((_) async {
+       if (_splashCompleted) return;
 
-      await Future.delayed(const Duration(milliseconds: 1500));
+       await Future.delayed(const Duration(milliseconds: 1500));
 
-      if (!mounted || _splashCompleted) return;
+       if (!mounted || _splashCompleted) return;
 
-      final appState = ref.read(appStateProvider);
-      if (appState.isLoggedIn) {
-        try {
-          await ref.read(authStateProvider.notifier).refreshAuthState();
-          final authState = ref.read(authStateProvider);
-          if (!authState.isAuthenticated || authState.token == null) {
-            // Token invalid/expired — sinkronkan appStateProvider
-            await ref.read(appStateProvider.notifier).logout();
-          }
-        } catch (e) {
-          debugPrint('[SPLASH] refreshAuthState error: $e');
-        }
-      }
-
+      // Splash tidak melakukan API call — cukup finishSplash()
       _splashCompleted = true;
       ref.read(appStateProvider.notifier).finishSplash();
-    });
-  }
+     });
+   }
 
   @override
   void dispose() {

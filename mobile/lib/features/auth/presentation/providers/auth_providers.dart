@@ -213,3 +213,14 @@ final canProvider = Provider.family<bool, String>((ref, permissionKey) {
   final permissions = ref.watch(currentPermissionsProvider);
   return permissions.contains(permissionKey);
 });
+
+/// Load auth data (user, menus, permissions) once ketika HomeScreen muncul.
+/// Tidak dipanggil dari splash/redirect — hanya dari Home.
+final homeInitProvider = FutureProvider.autoDispose<AuthState?>((ref) async {
+  try {
+    await ref.read(authStateProvider.notifier).refreshAuthState();
+  } catch (e) {
+    debugPrint('[HOME_INIT] refreshAuthState error: $e');
+  }
+  return ref.read(authStateProvider);
+});

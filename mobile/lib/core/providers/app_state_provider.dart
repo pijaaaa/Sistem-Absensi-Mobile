@@ -77,12 +77,13 @@ class AppStateNotifier extends StateNotifier<AppState> {
   }
 
   Future<void> logout() async {
+    // State change synchronous dulu — mencegah race condition di router
+    state = state.copyWith(isLoggedIn: false);
     final p = _getPrefs();
     await p.remove(StorageKeys.accessToken);
     await p.remove(StorageKeys.user);
     await p.remove(StorageKeys.menus);
     await p.remove(StorageKeys.permissions);
-    state = state.copyWith(isLoggedIn: false);
   }
 }
 

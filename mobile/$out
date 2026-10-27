@@ -1,0 +1,8 @@
+Analyzing mobile...                                             
+
+   info - Use the null-aware operator '?.' rather than an explicit 'null' comparison. Try using '?.' - lib\core\services\push_notification_service.dart:57:16 - prefer_null_aware_operators
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext - lib\features\face\presentation\screens\enrollment_screen.dart:187:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext - lib\features\face\presentation\screens\enrollment_screen.dart:193:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext - lib\features\face\presentation\screens\enrollment_screen.dart:196:39 - use_build_context_synchronously
+
+4 issues found. (ran in 1.9s)

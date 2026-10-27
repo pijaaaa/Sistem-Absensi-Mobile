@@ -491,7 +491,7 @@ tunjukkan hasilnya kepada saya sebelum lanjut.
 ```
 Lanjutan Flutter. Berdasarkan hasil F1 yang sudah saya setujui:
 
-1. Liveness aktif (tantangan acak: kedip atau tengok kiri/kanan) sebelum wajah diterima.
+1. Liveness aktif (tantangan acak: tengok kiri/kanan) sebelum wajah diterima.
 2. Alur daftar wajah wajib sebelum bisa absen: ambil beberapa sampel, kirim ke API enrollment
    (B5). Tampilkan layar persetujuan karyawan untuk data biometrik.
 3. Unduh template milik sendiri dari server dan simpan terenkripsi di HP untuk pencocokan lokal.

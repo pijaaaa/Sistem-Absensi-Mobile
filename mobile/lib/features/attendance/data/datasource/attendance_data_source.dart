@@ -82,9 +82,14 @@ class AttendanceDataSource {
           'month': ?month,
         },
       );
-      return response.data as Map<String, dynamic>;
+      final data = response.data;
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return {'data': data};
     } on DioException catch (e) {
       throw Exception(_formatError(e));
+    } catch (e) {
+      throw Exception('Gagal memuat ringkasan kehadiran: $e');
     }
   }
 
@@ -101,9 +106,14 @@ class AttendanceDataSource {
   Future<Map<String, dynamic>> fetchTeamStats() async {
     try {
       final response = await dio.get('/team-stats');
-      return response.data as Map<String, dynamic>;
+      final data = response.data;
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return {'data': data};
     } on DioException catch (e) {
       throw Exception(_formatError(e));
+    } catch (e) {
+      throw Exception('Gagal memuat statistik tim: $e');
     }
   }
 
@@ -113,7 +123,9 @@ class AttendanceDataSource {
       final response = await dio.get('/time');
       final data = response.data as Map<String, dynamic>;
       final serverTime = data['server_time_millis'] ?? data['data']?['server_time'] ?? 0;
-      return serverTime as int;
+      if (serverTime is int) return serverTime;
+      if (serverTime is double) return serverTime.toInt();
+      return 0;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
     }

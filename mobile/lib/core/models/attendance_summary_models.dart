@@ -37,6 +37,13 @@ class AttendanceSummaryModel {
     required this.calendar,
   });
 
+  static int _toSafeInt(dynamic val, [int fallback = 0]) {
+    if (val is int) return val;
+    if (val is double) return val.toInt();
+    if (val is num) return val.toInt();
+    return fallback;
+  }
+
   factory AttendanceSummaryModel.fromJson(Map<String, dynamic> json) {
     final calendarRaw = json['calendar'];
     final calendar = <String, DayStatus>{};
@@ -59,44 +66,36 @@ class AttendanceSummaryModel {
     }
 
     final lateData = json['telat'] as Map<String, dynamic>?;
-    final lateTotal = lateData?['total'] as int? ??
-        (lateData?['kuning'] as int? ?? 0) +
-            (lateData?['merah'] as int? ?? 0) +
-            (lateData?['toleransi'] as int? ?? 0);
+    final lateTotal = _toSafeInt(lateData?['total'] ??
+        (lateData?['kuning'] ?? 0) +
+            (lateData?['merah'] ?? 0) +
+            (lateData?['toleransi'] ?? 0));
 
-    final totalLateTolerance = lateData?['toleransi'] as int? ??
-        lateData?['green'] as int? ??
-        0;
-    final totalLateYellow = lateData?['kuning'] as int? ?? 0;
-    final totalLateRed = lateData?['merah'] as int? ?? 0;
+    final totalLateTolerance = _toSafeInt(lateData?['toleransi'] ?? lateData?['green'] ?? 0);
+    final totalLateYellow = _toSafeInt(lateData?['kuning'] ?? 0);
+    final totalLateRed = _toSafeInt(lateData?['merah'] ?? 0);
 
     return AttendanceSummaryModel(
-      year: json['year'] ?? DateTime.now().year,
-      month: json['month'] ?? DateTime.now().month,
-      totalPresent: json['hadir'] ??
-          json['total_present'] ??
-          json['total_on_time'] ??
-          0,
+      year: _toSafeInt(json['year'] ?? DateTime.now().year),
+      month: _toSafeInt(json['month'] ?? DateTime.now().month),
+      totalPresent: _toSafeInt(
+          json['hadir'] ?? json['total_present'] ?? json['total_on_time'] ?? 0),
       totalLate: lateTotal,
-      totalOnTime: json['tepat_waktu'] ??
+      totalOnTime: _toSafeInt(json['tepat_waktu'] ??
           json['total_on_time'] ??
-          (json['hadir'] as int? ?? 0) -
-              (lateTotal),
+          (_toSafeInt(json['hadir'] ?? 0) - lateTotal)),
       totalLateTolerance: totalLateTolerance,
       totalLateYellow: totalLateYellow,
       totalLateRed: totalLateRed,
-      totalMinutesLate:
-          json['total_menit_telat'] ?? json['total_minutes_late'] ?? 0,
-      totalLeave: json['cuti'] ?? json['total_leave'] ?? 0,
-      totalSick: json['sakit'] ?? json['total_sick'] ?? 0,
-      totalPermission: json['izin'] ?? json['total_permission'] ?? 0,
-      totalDinas: json['dinas'] ?? json['total_dinas'] ?? 0,
-      totalHoliday: json['libur'] ?? json['total_holiday'] ?? 0,
-      totalAbsent: json['alfa'] ?? json['total_absent'] ?? 0,
-      remainingLeave: json['sisa_cuti'] ??
-          json['remaining_leave'] ??
-          json['remaining_leave'] as int? ??
-          0,
+      totalMinutesLate: _toSafeInt(
+          json['total_menit_telat'] ?? json['total_minutes_late'] ?? 0),
+      totalLeave: _toSafeInt(json['cuti'] ?? json['total_leave'] ?? 0),
+      totalSick: _toSafeInt(json['sakit'] ?? json['total_sick'] ?? 0),
+      totalPermission: _toSafeInt(json['izin'] ?? json['total_permission'] ?? 0),
+      totalDinas: _toSafeInt(json['dinas'] ?? json['total_dinas'] ?? 0),
+      totalHoliday: _toSafeInt(json['libur'] ?? json['total_holiday'] ?? 0),
+      totalAbsent: _toSafeInt(json['alfa'] ?? json['total_absent'] ?? 0),
+      remainingLeave: _toSafeInt(json['sisa_cuti'] ?? json['remaining_leave']),
       calendar: calendar,
     );
   }
@@ -143,10 +142,12 @@ class DayStatus {
       status: json['status'] ?? 'future',
       checkIn: json['check_in'],
       checkOut: json['check_out'],
-      lateMinutes: json['late_minutes'],
+      lateMinutes: json['late_minutes'] is int
+          ? json['late_minutes'] as int
+          : null,
       lateLevel: json['late_level'],
-      isDinas: json['is_dinas'],
-      isOffline: json['is_offline'],
+      isDinas: json['is_dinas'] is bool ? json['is_dinas'] as bool : null,
+      isOffline: json['is_offline'] is bool ? json['is_offline'] as bool : null,
     );
   }
 
@@ -216,7 +217,9 @@ class EmployeeAttendance {
     return EmployeeAttendance(
       name: json['name'] ?? 'Unknown',
       checkIn: json['check_in'],
-      lateMinutes: json['late_minutes'],
+      lateMinutes: json['late_minutes'] is int
+          ? json['late_minutes'] as int
+          : null,
       lateLevel: json['late_level'],
     );
   }

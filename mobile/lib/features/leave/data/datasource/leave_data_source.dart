@@ -9,7 +9,10 @@ class LeaveDataSource {
   Future<Map<String, dynamic>> getLeaveBalance() async {
     try {
       final response = await dio.get('/leave-balance');
-      return response.data as Map<String, dynamic>;
+      final data = response.data;
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return {'data': data};
     } on DioException catch (e) {
       throw Exception(_formatError(e));
     }
@@ -28,10 +31,9 @@ class LeaveDataSource {
           'status': ?status,
         },
       );
-      final data = response.data as Map<String, dynamic>;
-      return (data['data'] as List? ?? [])
-          .map((e) => e as Map<String, dynamic>)
-          .toList();
+      final data = response.data;
+      final list = (data is Map ? (data['data'] as List? ?? []) : (data as List?)) ?? [];
+      return list.map((e) => e as Map<String, dynamic>).toList();
     } on DioException catch (e) {
       throw Exception(_formatError(e));
     }

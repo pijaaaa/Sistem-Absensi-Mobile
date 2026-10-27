@@ -8,10 +8,16 @@ class NotificationDataSource {
   Future<List<Map<String, dynamic>>> getNotifications() async {
     try {
       final response = await dio.get('/notifications');
-      final data = response.data as Map<String, dynamic>;
-      return (data['data'] as List? ?? [])
-          .map((e) => e as Map<String, dynamic>)
-          .toList();
+      final data = response.data;
+      if (data is Map) {
+        return (data['data'] as List? ?? [])
+            .map((e) => e as Map<String, dynamic>)
+            .toList();
+      }
+      if (data is List) {
+        return data.map((e) => e as Map<String, dynamic>).toList();
+      }
+      return [];
     } on DioException catch (e) {
       throw Exception(_formatError(e));
     }
@@ -34,9 +40,13 @@ class NotificationDataSource {
   }
 
   String _formatError(DioException e) {
+    final data = e.response?.data;
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
+    }
     if (e.type == DioExceptionType.connectionError) {
       return 'Tidak dapat terhubung ke server.';
     }
-    return e.response?.data['message'] ?? 'Terjadi kesalahan.';
+    return 'Terjadi kesalahan.';
   }
 }

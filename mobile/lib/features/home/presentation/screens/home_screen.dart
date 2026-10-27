@@ -11,6 +11,7 @@ import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/core/widgets/stat_tile.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/core/widgets/app_navigation_bar.dart';
+import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
 import 'package:mobile/features/attendance/presentation/widgets/offline_sync_badge.dart';
@@ -79,56 +80,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final authState = ref.watch(authStateProvider);
     final isManager = authState.user?.role == 'manager_department';
+    final homeInitAsync = ref.watch(homeInitProvider);
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(homeDataProvider);
-          ref.invalidate(todaySummaryProvider);
-          ref.invalidate(leaveBalanceProvider);
-          if (isManager) ref.invalidate(teamStatsProvider);
-        },
-        child: CustomScrollView(
-          slivers: [
-            _buildHeader(theme, isDark, authState, isManager),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.spacingMD),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const OfflineSyncBadge(),
-                    const SizedBox(height: AppTheme.spacingMD),
-                    const TodayAttendanceCard(isManager: true),
-                    const SizedBox(height: AppTheme.spacingLG),
-                    _buildSummaryStats(context, isManager),
-                    const SizedBox(height: AppTheme.spacingLG),
-                    if (isManager) ...[
-                      const TeamStatsSection(),
+      body: homeInitAsync.when(
+        data: (_) => RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(homeInitProvider);
+            ref.invalidate(homeDataProvider);
+            ref.invalidate(todaySummaryProvider);
+            ref.invalidate(leaveBalanceProvider);
+            if (isManager) ref.invalidate(teamStatsProvider);
+          },
+          child: CustomScrollView(
+            slivers: [
+              _buildHeader(theme, isDark, authState, isManager),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.spacingMD),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const OfflineSyncBadge(),
+                      const SizedBox(height: AppTheme.spacingMD),
+                      TodayAttendanceCard(isManager: isManager),
                       const SizedBox(height: AppTheme.spacingLG),
+                      _buildSummaryStats(context, isManager),
+                      const SizedBox(height: AppTheme.spacingLG),
+                      if (isManager) ...[
+                        const TeamStatsSection(),
+                        const SizedBox(height: AppTheme.spacingLG),
+                      ],
+                      _buildManagerApprovalCard(context),
+                      const SizedBox(height: AppTheme.spacingLG),
+                      _buildSectionWithTitle(
+                        context,
+                        'Aktivitas Terakhir',
+                        () {},
+                      ),
+                      const SizedBox(height: AppTheme.spacingSM),
+                      _buildRecentActivity(context),
+                      const SizedBox(height: AppTheme.spacingLG),
+                      _buildSectionWithTitle(
+                        context,
+                        'Pengajuan Saya',
+                        () {},
+                      ),
+                      const SizedBox(height: AppTheme.spacingSM),
+                      _buildMyRequests(context),
                     ],
-                    _buildManagerApprovalCard(context),
-                    const SizedBox(height: AppTheme.spacingLG),
-                    _buildSectionWithTitle(
-                      context,
-                      'Aktivitas Terakhir',
-                      () {},
-                    ),
-                    const SizedBox(height: AppTheme.spacingSM),
-                    _buildRecentActivity(context),
-                    const SizedBox(height: AppTheme.spacingLG),
-                    _buildSectionWithTitle(
-                      context,
-                      'Pengajuan Saya',
-                      () {},
-                    ),
-                    const SizedBox(height: AppTheme.spacingSM),
-                    _buildMyRequests(context),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => ErrorState(
+          message: 'Gagal memuat data home. Silakan coba lagi.',
+          onRetry: () => ref.invalidate(homeInitProvider),
         ),
       ),
       bottomNavigationBar: const AppNavigationBar(),
