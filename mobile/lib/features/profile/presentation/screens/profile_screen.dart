@@ -7,6 +7,7 @@ import 'package:mobile/core/theme/theme_provider.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/auth/presentation/providers/device_providers.dart';
 import 'package:mobile/features/auth/presentation/widgets/logout_confirmation_dialog.dart';
+import 'package:mobile/features/face/presentation/providers/face_providers.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -82,6 +83,56 @@ class ProfileScreen extends ConsumerWidget {
               trailing: Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () => context.push('/enrollment'),
             ),
+            ListTile(
+              leading: Icon(Icons.face_unlock_outlined, color: theme.colorScheme.error),
+              title: Text('Hapus Data Wajah', style: TextStyle(color: theme.colorScheme.error)),
+              subtitle: Text('Reset atau hapus template wajah terdaftar'),
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Hapus Data Wajah'),
+                    content: const Text('Apakah Anda yakin ingin menghapus data wajah terdaftar? Anda perlu melakukan registrasi ulang.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Batal'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error),
+                        child: const Text('Hapus'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true && context.mounted) {
+                  try {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Center(child: CircularProgressIndicator()),
+                    );
+                    final dataSource = ref.read(faceDataSourceProvider);
+                    await dataSource.deleteFace();
+                    if (context.mounted) {
+                      Navigator.pop(context); // pop loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Data wajah berhasil dihapus')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // pop loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Gagal menghapus data wajah: $e')),
+                      );
+                    }
+                  }
+                }
+              },
+            ),
             _buildSettingItem(context, Icons.info_outline, 'Versi Aplikasi', Text('1.0.0')),
             const SizedBox(height: 24),
 
@@ -108,9 +159,13 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   String _getInitials(String name) {
-    final parts = name.split(' ');
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    return name.substring(0, 1).toUpperCase();
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'U';
+    final parts = trimmed.split(RegExp(r'\s+'));
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return trimmed.substring(0, 1).toUpperCase();
   }
 
   String _getRoleLabel(String? role) {
