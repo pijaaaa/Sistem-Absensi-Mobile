@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\NotificationPreference;
 use App\Models\PushToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -73,5 +74,41 @@ class NotificationController extends Controller
         $request->user()->appNotifications()->whereNull('read_at')->update(['read_at' => now()]);
 
         return response()->json(['success' => true, 'message' => 'Semua notifikasi ditandai dibaca.', 'data' => null]);
+    }
+
+    public function preferences(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $prefs = $user->notificationPreferences()->pluck('enabled', 'type');
+
+        $result = [];
+        foreach (NotificationPreference::$toggleableTypes as $type) {
+            $result[$type] = $prefs[$type] ?? true;
+        }
+
+        return response()->json(['success' => true, 'message' => 'OK', 'data' => $result]);
+    }
+
+    public function updatePreferences(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'preferences' => ['required', 'array'],
+            'preferences.*' => ['boolean'],
+        ]);
+
+        $user = $request->user();
+
+        foreach ($data['preferences'] as $type => $enabled) {
+            if (! in_array($type, NotificationPreference::$toggleableTypes, true)) {
+                continue;
+            }
+
+            NotificationPreference::updateOrCreate(
+                ['user_id' => $user->id, 'type' => $type],
+                ['enabled' => $enabled],
+            );
+        }
+
+        return response()->json(['success' => true, 'message' => 'Preferensi diperbarui.', 'data' => null]);
     }
 }

@@ -56,3 +56,8 @@ class NotificationActionNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 }
+
+final notificationPreferencesProvider = FutureProvider<Map<String, bool>>((ref) async {
+  final dataSource = ref.watch(notificationDataSourceProvider);
+  return dataSource.getPreferences();
+});

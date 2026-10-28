@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\DeviceService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DeviceController extends Controller
 {
-    public function __construct(private DeviceService $devices) {}
+    public function __construct(
+        private DeviceService $devices,
+        private NotificationService $notifier,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -43,6 +47,13 @@ class DeviceController extends Controller
         }
 
         $device = $this->devices->registerBackup($employee, $data['device_uid'], $data['name'] ?? null);
+
+        $this->notifier->send(
+            $request->user(),
+            'Device baru terdaftar',
+            'Device baru didaftarkan di akun Anda. Jika bukan Anda, hubungi admin.',
+            ['type' => 'device_registered', 'id' => $device->id],
+        );
 
         return response()->json([
             'success' => true,

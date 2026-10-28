@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mobile/core/constants/api_constants.dart';
 
 class NotificationDataSource {
   final Dio dio;
@@ -34,6 +35,27 @@ class NotificationDataSource {
   Future<void> markAllAsRead() async {
     try {
       await dio.post('/notifications/read-all');
+    } on DioException catch (e) {
+      throw Exception(_formatError(e));
+    }
+  }
+
+  Future<Map<String, bool>> getPreferences() async {
+    try {
+      final response = await dio.get(ApiConstants.notificationPreferences);
+      final data = response.data as Map<String, dynamic>;
+      final prefs = data['data'] as Map<String, dynamic>? ?? {};
+      return prefs.map((k, v) => MapEntry(k, v == true || v == 1));
+    } on DioException catch (e) {
+      throw Exception(_formatError(e));
+    }
+  }
+
+  Future<void> updatePreferences(Map<String, bool> preferences) async {
+    try {
+      await dio.put(ApiConstants.notificationPreferences, data: {
+        'preferences': preferences,
+      });
     } on DioException catch (e) {
       throw Exception(_formatError(e));
     }

@@ -23,6 +23,8 @@ class ApiConstants {
   static const fcmToken = '/push-tokens';
   static String pushTokenDelete(String token) => '/push-tokens/$token';
 
+  static const notificationPreferences = '/me/notification-preferences';
+
   // Security endpoints
   static const securityReport = '/security/report';
 }

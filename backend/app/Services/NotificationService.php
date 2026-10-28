@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\SendPushNotification;
 use App\Models\Employee;
 use App\Models\Notification;
+use App\Models\NotificationPreference;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -40,6 +41,13 @@ class NotificationService
     {
         if (empty($data['type'])) {
             throw new \InvalidArgumentException('NotificationService::send wajib menerima data[type].');
+        }
+
+        $type = $data['type'];
+
+        if (in_array($type, NotificationPreference::$toggleableTypes, true)
+            && ! NotificationPreference::isEnabled($user->id, $type)) {
+            return null;
         }
 
         if ($dedupeKey !== null && $user->appNotifications()->where('dedupe_key', $dedupeKey)->exists()) {

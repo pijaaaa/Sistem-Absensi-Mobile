@@ -111,8 +111,10 @@ class FcmService
                     'priority' => 'high',
                     'notification' => [
                         'channel_id' => $channelId ?? $this->channelFor($data['type'] ?? null),
-                        'priority' => 'high',
                         'visibility' => 'private',
+                        'sound' => 'default',
+                        'default_sound' => true,
+                        'default_vibrate_timings' => true,
                     ],
                 ],
                 'apns' => ['payload' => ['aps' => ['sound' => 'default']]],

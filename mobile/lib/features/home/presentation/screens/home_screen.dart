@@ -1,6 +1,9 @@
 import 'dart:async';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile/core/constants/storage_keys.dart';
+import 'package:mobile/core/network/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
@@ -55,14 +58,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isLoggedIn = ref.read(appStateProvider).isLoggedIn;
     if (!mounted || !isLoggedIn) return;
 
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken != null && fcmToken.isNotEmpty && mounted) {
+        await ref.read(authDataSourceProvider).updateFcmToken(fcmToken);
+        final prefs = ref.read(sharedPreferencesProvider);
+        await prefs.setString(StorageKeys.fcmToken, fcmToken);
+      }
+    } catch (e) {
+      debugPrint('[HOME] Gagal register FCM token: $e');
+    }
+
+    if (!mounted) return;
+    // Minta izin notifikasi Android 13+
+    await PushNotificationService.instance.requestPermission(context);
+
     // Callback lifecycle (service tidak butuh context/ref).
     PushNotificationService.isAuthorized = () => ref.read(appStateProvider).isLoggedIn;
     PushNotificationService.onTokenRefreshed = (token) {
       ref.read(authDataSourceProvider).updateFcmToken(token);
     };
-    if (AppStateNotifier.onLogout == null) {
-      AppStateNotifier.onLogout = () => ref.read(authRepositoryProvider).logout();
-    }
+    AppStateNotifier.onLogout ??= () => ref.read(authRepositoryProvider).logout();
 
     final pending = PushNotificationService.consumePendingNavigation();
     if (pending != null && mounted) {

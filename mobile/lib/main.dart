@@ -78,11 +78,12 @@ Future<RemoteMessage?> _initializeFirebase(SharedPreferences prefs) async {
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Must call initialize if background isolate runs without it
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   debugPrint('[FCM] background: ${message.notification?.title}');
+  await PushNotificationService.instance.initialize();
+  await PushNotificationService.instance.showFromMap(message.toMap());
 }
 
 void main() async {

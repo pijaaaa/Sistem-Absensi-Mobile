@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\NotificationService;
 use App\Services\OfflineSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AttendanceSyncController extends Controller
 {
-    public function __construct(private OfflineSyncService $sync) {}
+    public function __construct(
+        private OfflineSyncService $sync,
+        private NotificationService $notifier,
+    ) {}
 
     public function serverTime(): JsonResponse
     {
@@ -46,6 +50,27 @@ class AttendanceSyncController extends Controller
         }
 
         $results = $this->sync->sync($employee, $data);
+
+        $created = collect($results)->where('status', 'created');
+        if ($created->isNotEmpty()) {
+            $needsReview = $created->where('review_flag', true)->count();
+            $ok = $created->count() - $needsReview;
+            $parts = [];
+            if ($ok > 0) {
+                $parts[] = "{$ok} berhasil";
+            }
+            if ($needsReview > 0) {
+                $parts[] = "{$needsReview} perlu review";
+            }
+            $body = 'Sinkronisasi selesai: '.implode(', ', $parts).'.';
+
+            $this->notifier->send(
+                $request->user(),
+                'Sinkronisasi absensi',
+                $body,
+                ['type' => 'offline_sync_result'],
+            );
+        }
 
         return response()->json([
             'success' => true,
