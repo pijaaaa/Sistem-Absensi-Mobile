@@ -37,7 +37,8 @@ class CameraFaceScreen extends ConsumerStatefulWidget {
   ConsumerState<CameraFaceScreen> createState() => _CameraFaceScreenState();
 }
 
-class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
+class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
+    with TickerProviderStateMixin {
   CameraController? _controller;
   bool _cameraReady = false;
   bool _faceServiceReady = false;
@@ -56,16 +57,20 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
   bool _analyzing = false;
   int _challengeAttempts = 0;
   bool _showSkip = false;
-  // Sign of the head turn detected in the first challenge ('left' or 'right').
-  // The second challenge requires the opposite turn — this makes liveness
-  // robust to front-camera mirror conventions (sign of yaw flips when mirrored).
+  int? _lockedTrackingId;
+  static const double _centerYawTolerance = 8.0;
+  bool _returningToCenter = false;
   String? _firstTurnDirection;
 
   static const int _maxAttemptsPerChallenge = 10;
   static const _pollInterval = Duration(milliseconds: 700);
-  static const double _yawThreshold = 12.0; // degrees off-center
+  static const double _yawThreshold = 12.0;
 
   late final List<LivenessChallenge> _challenges;
+
+  // Animation controllers for laser scanning & glowing frame
+  late AnimationController _scannerController;
+  late Animation<double> _scannerAnimation;
 
   @override
   void initState() {
@@ -77,11 +82,19 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
 
     _challenges = _buildChallenges();
 
+    _scannerController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _scannerAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _scannerController, curve: Curves.easeInOut),
+    );
+
     _initialize();
   }
 
   List<LivenessChallenge> _buildChallenges() {
-    // Blink challenge removed per requirement — only head turns remain.
     return [
       LivenessChallenge(
         type: LivenessChallengeType.turnLeft,
@@ -110,10 +123,9 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
           ? ImageFormatGroup.yuv420
           : ImageFormatGroup.jpeg;
 
-      // Low resolution keeps ML Kit analysis fast on older devices.
       _controller = CameraController(
         frontCamera,
-        ResolutionPreset.low,
+        ResolutionPreset.medium,
         enableAudio: false,
         imageFormatGroup: imageFormat,
       );
@@ -173,13 +185,13 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
       _progress = 0.0;
       _challengeAttempts = 0;
       _firstTurnDirection = null;
+      _lockedTrackingId = null;
+      _returningToCenter = false;
       _showSkip = false;
     });
 
     _presentChallenge(_currentChallengeIndex);
 
-    // After a grace period, allow skipping liveness so users are never stuck
-    // (e.g. very dim lighting / unsupported device).
     _showSkipTimer?.cancel();
     _showSkipTimer = Timer(const Duration(seconds: 12), () {
       if (mounted && _livenessActive && !_livenessDone && !_showSkip) {
@@ -196,15 +208,6 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
 
       _challengeAttempts++;
       if (_challengeAttempts > _maxAttemptsPerChallenge) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Pastikan wajah terlihat jelas dan cahaya cukup, lalu ikuti instruksi putar kepala.',
-              ),
-            ),
-          );
-        }
         _challengeAttempts = 0;
       }
 
@@ -237,14 +240,20 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
       final analysis = await faceService.analyzeFace(bytes);
       _setFaceDetected(analysis != null);
 
-      // Run head-turn liveness against the detected face.
       if (_livenessActive && !_challengeCompleted && analysis != null) {
-        if (_passLivenessTurn(analysis.yaw)) {
+        if (!analysis.isValid) return;
+
+        if (_lockedTrackingId == null && analysis.trackingId != null) {
+          _lockedTrackingId = analysis.trackingId;
+        } else if (_lockedTrackingId != null && analysis.trackingId != null && analysis.trackingId != _lockedTrackingId) {
+          return;
+        }
+
+        if (_passLivenessTurnWithCenterCheck(analysis.yaw)) {
           _completeChallenge();
         }
       }
     } on CameraException catch (_) {
-      // Camera busy (previous capture not finished) — safe to ignore & retry.
     } catch (e) {
       debugPrint('[CameraFace] analyzeFrame error: $e');
     } finally {
@@ -257,19 +266,24 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
     }
   }
 
-  /// Decide whether the current head-pose [yaw] satisfies the active turn
-  /// challenge. Direction handling is mirror-robust: the first challenge
-  /// accepts a turn in EITHER direction (remembering which one); the second
-  /// challenge requires the OPPOSITE turn, so a mirrored front-camera preview
-  /// still validates genuine back-and-forth head movement.
-  bool _passLivenessTurn(double yaw) {
+  bool _passLivenessTurnWithCenterCheck(double yaw) {
+    if (_returningToCenter) {
+      if (yaw.abs() <= _centerYawTolerance) {
+        _returningToCenter = false;
+        return true;
+      }
+      return false;
+    }
+
     if (yaw.abs() < _yawThreshold) return false;
     final dir = yaw < 0 ? 'left' : 'right';
-    if (_firstTurnDirection == null) {
-      _firstTurnDirection = dir;
-      return true;
+    final targetDir = _challenges[_currentChallengeIndex].type == LivenessChallengeType.turnLeft ? 'left' : 'right';
+
+    if (dir == targetDir) {
+      _returningToCenter = true;
+      return false;
     }
-    return dir != _firstTurnDirection;
+    return false;
   }
 
   void _setFaceDetected(bool detected) {
@@ -311,7 +325,6 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
       _livenessDone = true;
       _showSkip = false;
     });
-    // Brief grace so the user can face forward before the final capture.
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted && !_capturing) _capturePhoto();
     });
@@ -331,15 +344,14 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
       image = await _controller!.takePicture();
       final bytes = await image.readAsBytes();
 
-      // Confirm a face is present in the final frame.
       final faceService = ref.read(faceServiceProvider);
       final analysis = await faceService.analyzeFace(bytes);
       if (!mounted) return;
 
       if (analysis == null || !analysis.isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Wajah tidak terdeteksi. Coba lagi.'),
+          const SnackBar(
+            content: Text('Wajah tidak terdeteksi. Coba lagi.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -369,64 +381,47 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
   }
 
   String _getChallengeInstruction() {
-    if (!_livenessActive) return 'Posisikan wajah Anda di dalam bingkai';
+    if (!_livenessActive) return 'Posisikan wajah Anda di dalam bingkai oval';
     if (_livenessDone) return 'Luruskan wajah ke kamera';
-    if (_challengeCompleted) return 'Selamat!';
+    if (_challengeCompleted) return 'Bagus!';
+    if (_returningToCenter) return 'Kembalikan posisi wajah ke tengah';
 
     final challenge = _challenges[_currentChallengeIndex];
-    final remaining = (_challenges.length - _currentChallengeIndex - 1)
-        .clamp(0, _challenges.length - 1);
-    return '${challenge.instruction}\n($remaining tersisa)';
-  }
-
-  IconData _getChallengeIcon() {
-    final challenge = _challenges[_currentChallengeIndex];
-    switch (challenge.type) {
-      case LivenessChallengeType.turnLeft:
-        return Icons.rotate_left;
-      case LivenessChallengeType.turnRight:
-        return Icons.rotate_right;
-    }
+    return challenge.instruction;
   }
 
   @override
   void dispose() {
     _stopPolling();
     _showSkipTimer?.cancel();
+    _scannerController.dispose();
     SystemChrome.setPreferredOrientations([]);
     _controller?.dispose();
-    // The face service is app-scoped (disposed via its Riverpod provider),
-    // so do NOT dispose it here — callers reuse it after pop.
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     final isReady = _cameraReady && _faceServiceReady;
 
     if (!isReady || _controller == null) {
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
-          title: Text(
-            widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah',
-          ),
+          title: Text(widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah'),
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
         ),
-        body: Center(
+        body: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(color: AppColors.primary),
-              const SizedBox(height: 16),
+              CircularProgressIndicator(color: AppColors.primary),
+              SizedBox(height: 16),
               Text(
-                _faceServiceReady
-                    ? 'Memulai kamera...'
-                    : 'Mempersiapkan deteksi wajah...',
-                style: const TextStyle(color: Colors.white70),
+                'Memuat kamera & AI wajah...',
+                style: TextStyle(color: Colors.white70),
               ),
             ],
           ),
@@ -434,111 +429,154 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
       );
     }
 
-    if (_controller!.value.hasError) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(
-          title: Text(
-            widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah',
-          ),
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(
-              'Kamera tidak dapat diakses: '
-              '${_controller!.value.errorDescription ?? 'silakan cek izin kamera'}',
-              style: const TextStyle(color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      );
-    }
-
-    final borderColor = _faceDetected
-        ? (_challengeCompleted ? AppColors.success : Colors.white)
-        : Colors.white;
-
-    final borderWidth = _faceDetected ? 4.0 : 2.0;
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(
-          widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah',
-        ),
-        backgroundColor: Colors.black,
+        title: Text(widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.white,
-        leading: widget.requireLiveness
-            ? IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: _livenessDone
-                    ? null
-                    : () {
-                        _stopPolling();
-                        Navigator.pop(context, false);
-                      },
-              )
-            : null,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: _livenessDone
+              ? null
+              : () {
+                  _stopPolling();
+                  Navigator.pop(context, false);
+                },
+        ),
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
+        fit: StackFit.expand,
         children: [
+          // Crisp Camera Preview
           Positioned.fill(
-            child: CameraPreview(_controller!),
+            child: AspectRatio(
+              aspectRatio: _controller!.value.aspectRatio,
+              child: CameraPreview(_controller!),
+            ),
           ),
 
+          // Modern Face Scanner UI (Overlay & Glowing Rounded Oval Frame)
           Center(
-            child: Container(
+            child: SizedBox(
               width: 280,
-              height: 350,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: borderColor,
-                  width: borderWidth,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: borderColor.withValues(alpha: 0.5),
-                    blurRadius: 20,
-                    spreadRadius: 4,
+              height: 380,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Glowing Rounded Face Frame
+                  AnimatedBuilder(
+                    animation: _scannerAnimation,
+                    builder: (context, child) {
+                      final activeColor = _faceDetected
+                          ? (_challengeCompleted ? AppColors.success : AppColors.primary)
+                          : Colors.white70;
+
+                      return Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(140),
+                          border: Border.all(
+                            color: activeColor,
+                            width: 3.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: activeColor.withValues(alpha: 0.4),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
+
+                  // Animated Scanning Laser Line
+                  if (_livenessActive && !_challengeCompleted)
+                    AnimatedBuilder(
+                      animation: _scannerAnimation,
+                      builder: (context, child) {
+                        return Positioned(
+                          top: _scannerAnimation.value * 340 + 20,
+                          left: 20,
+                          right: 20,
+                          child: Container(
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.accent.withValues(alpha: 0.8),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                  // Center indicator icon when no face detected
+                  if (!_faceDetected)
+                    const Icon(
+                      Icons.face,
+                      size: 64,
+                      color: Colors.white24,
+                    ),
                 ],
               ),
-              child: Visibility(
-                visible: !_faceDetected,
-                child: const Icon(
-                  Icons.face_retouching_natural,
-                  size: 60,
-                  color: Colors.white30,
+            ),
+          ),
+
+          // Progress Steps Indicator (Front / Left / Right poses)
+          if (_livenessActive)
+            Positioned(
+              top: 110,
+              left: 24,
+              right: 24,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildStepIndicator(1, 'Depan', _currentChallengeIndex >= 0),
+                  _buildStepIndicatorConnector(_currentChallengeIndex >= 1),
+                  _buildStepIndicator(2, 'Kiri', _currentChallengeIndex >= 1),
+                  _buildStepIndicatorConnector(_currentChallengeIndex >= 2),
+                  _buildStepIndicator(3, 'Kanan', _livenessDone),
+                ],
+              ),
+            ),
+
+          // Clear Instruction Text Box
+          Positioned(
+            top: 175,
+            left: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Text(
+                _getChallengeInstruction(),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
                 ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
 
-          if (_livenessActive)
-            Positioned(
-              top: 40,
-              left: 0,
-              right: 0,
-              child: _buildChallengeBanner(theme),
-            ),
-
-          if (_livenessActive)
-            Positioned(
-              top: 140,
-              left: 0,
-              right: 0,
-              child: _buildProgress(),
-            ),
-
-          // Skip fallback (only shown after a grace period with no progress)
+          // Skip button fallback if needed
           if (_showSkip)
             Positioned(
-              bottom: 90,
+              bottom: 40,
               left: 0,
               right: 0,
               child: Center(
@@ -550,105 +588,79 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen> {
                           _finishLiveness();
                         },
                   icon: const Icon(
-                    Icons.face_unlock_rounded,
+                    Icons.skip_next_rounded,
                     color: Colors.white70,
                     size: 20,
                   ),
                   label: const Text(
-                    'Lewati',
-                    style: TextStyle(color: Colors.white70),
+                    'Lewati Liveness',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ),
               ),
             ),
 
-          Positioned(
-            bottom: 40,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: _capturing
-                  ? const SizedBox(
-                      width: 60,
-                      height: 60,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 3,
-                      ),
-                    )
-                  : _buildCaptureFab(theme),
+          // Capturing indicator
+          if (_capturing)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black54,
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildChallengeBanner(ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _challengeCompleted
-            ? AppColors.success.withValues(alpha: 0.9)
-            : AppColors.primary.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            _getChallengeIcon(),
-            size: 32,
-            color: Colors.white,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _getChallengeInstruction(),
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgress() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 60),
-      height: 8,
-      decoration: BoxDecoration(
-        color: Colors.white24,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: AnimatedFractionallySizedBox(
-        widthFactor: _progress,
-        alignment: Alignment.centerLeft,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-        child: Container(
+  Widget _buildStepIndicator(int stepNumber, String label, bool isActive) {
+    return Column(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
           decoration: BoxDecoration(
-            color: AppColors.accent,
-            borderRadius: BorderRadius.circular(4),
+            shape: BoxShape.circle,
+            color: isActive ? AppColors.primary : Colors.white24,
+            border: Border.all(
+              color: isActive ? Colors.white : Colors.white38,
+              width: 2,
+            ),
+          ),
+          child: Center(
+            child: isActive && stepNumber <= (_currentChallengeIndex + 1)
+                ? const Icon(Icons.check, size: 16, color: Colors.white)
+                : Text(
+                    '$stepNumber',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
           ),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.white54,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildCaptureFab(ThemeData theme) {
-    final bool canManualCapture =
-        _faceDetected && !widget.requireLiveness && !_livenessActive;
-
-    return FloatingActionButton(
-      onPressed: canManualCapture ? _capturePhoto : null,
-      backgroundColor: _faceDetected
-          ? AppColors.primary
-          : theme.colorScheme.onSurfaceVariant,
-      foregroundColor: Colors.white,
-      child: const Icon(Icons.camera_alt, size: 32),
+  Widget _buildStepIndicatorConnector(bool isActive) {
+    return Container(
+      width: 40,
+      height: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
+      color: isActive ? AppColors.primary : Colors.white24,
     );
   }
 }

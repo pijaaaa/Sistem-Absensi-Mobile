@@ -107,16 +107,7 @@ class AttendanceController extends Controller
         try {
             $device = $this->devices->resolveForAttendance($employee, $deviceUid);
         } catch (\Throwable) {
-            // Device not registered yet: auto-bind as primary (first-time / dev)
-            $device = $this->devices->bindOnLogin($employee, $deviceUid, 'mobile-app');
-            if (! $device) {
-                // Employee already has a primary device — try backup registration
-                try {
-                    $device = $this->devices->registerBackup($employee, $deviceUid, 'mobile-app');
-                } catch (ValidationException $e) {
-                    throw new FaceException('device_error', 'Device tidak terdaftar. Daftarkan device utama/cadangan dulu.', 422);
-                }
-            }
+            throw new FaceException('device_error', 'Device tidak terdaftar. Daftarkan device utama/cadangan dulu.', 422);
         }
 
         return [$employee, $device];
@@ -127,7 +118,7 @@ class AttendanceController extends Controller
         $templates = $employee->faceTemplates()->get();
 
         if ($templates->isEmpty()) {
-            return $this->autoEnrollFace($employee, $bytes, $name);
+            throw new FaceException('no_template', 'Wajah belum terdaftar.', 422);
         }
 
         $best = null;

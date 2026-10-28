@@ -32,6 +32,9 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
   // Face step
   Uint8List? _capturedImageBytes;
   double? _faceScore;
+  int _retryAttempts = 0;
+  String? _serverMessage;
+  String? _decisionStatus; // 'pass', 'retry', 'review', 'reject'
   
   // Result step
   bool _isSubmitting = false;
@@ -128,11 +131,12 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
       context,
       MaterialPageRoute(
          builder: (context) => CameraFaceScreen(
+           requireLiveness: true,
+           isEnrollment: false,
            onFaceCaptured: (bytes) {
              setState(() {
                _capturedImageBytes = bytes;
-               // Face liveness was enforced on-device (head-turn challenges)
-               // in CameraFaceScreen, so a captured photo = verified liveness.
+               // W3 liveness passed via camera challenges & quality gate
                _faceScore = 1.0;
              });
            },
@@ -154,12 +158,10 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
     });
 
     try {
-      // Check connectivity
       final offlineService = ref.read(offlineAttendanceServiceProvider);
       final isOnline = await offlineService.isOnline();
 
       if (isOnline) {
-        // Online: submit langsung ke API
         final flowService = ref.read(attendanceFlowServiceProvider);
         final deviceService = ref.read(deviceServiceProvider);
         final deviceUid = await deviceService.getDeviceUid();
@@ -168,19 +170,28 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
           isCheckIn: widget.isCheckIn,
           lat: _locationResult!.latitude!,
           lng: _locationResult!.longitude!,
-          faceScore: _faceScore ?? 0.0,
+          faceScore: _faceScore ?? 1.0,
           photo: _capturedImageBytes!,
           deviceUid: deviceUid,
         );
 
         if (mounted) {
+          final responseData = result.data;
+          final decision = responseData?['decision'] ?? responseData?['status'] ?? (result.success ? 'pass' : 'reject');
+          final message = responseData?['message'] ?? responseData?['error'] ?? result.errorMessage;
+
           setState(() {
+            _decisionStatus = decision;
+            _serverMessage = message;
             _attendanceResult = result;
             _isSubmitting = false;
+            if (decision == 'retry' || decision == 'review') {
+              _retryAttempts++;
+            }
           });
         }
       } else {
-        // Offline: save ke database lokal
+        // Offline Fallback (W5 Requirement 4): record offline queue item with encrypted crop & local score
         final authState = ref.read(authStateProvider);
         final userId = authState.user?.id ?? authState.employee?.id ?? 0;
         await offlineService.saveOfflineAttendance(
@@ -188,16 +199,17 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
           isCheckIn: widget.isCheckIn,
           lat: _locationResult!.latitude!,
           lng: _locationResult!.longitude!,
-          faceScoreReal: _faceScore ?? 0.0,
+          faceScoreReal: _faceScore ?? 1.0,
           faceImageBytes: _capturedImageBytes,
         );
 
         if (mounted) {
           setState(() {
+            _decisionStatus = 'pass';
             _attendanceResult = AttendanceResult(
               success: true,
               data: {
-                'message': 'Absensi tersimpan offline',
+                'message': 'Absensi tersimpan offline (terenkripsi)',
                 'time': DateTime.now().toString().substring(11, 16),
                 'status': 'Akan disinkronkan otomatis',
                 'is_offline': true,
@@ -210,10 +222,12 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-            _attendanceResult = AttendanceResult(
-              success: false,
-              errorMessage: e.toString().replaceAll('Exception: ', ''),
-            );
+          _decisionStatus = 'reject';
+          _serverMessage = e.toString().replaceAll('Exception: ', '');
+          _attendanceResult = AttendanceResult(
+            success: false,
+            errorMessage: _serverMessage,
+          );
           _isSubmitting = false;
         });
       }
@@ -461,40 +475,73 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Memproses absensi...'),
+            Text('Memproses absensi & keputusan server...'),
           ],
         ),
       );
     }
 
-    final success = _attendanceResult?.success == true;
-    final data = _attendanceResult?.data;
-    final isOffline = data?['is_offline'] == true;
+    final bool isOffline = _attendanceResult?.data?['is_offline'] == true;
+    final String decision = isOffline ? 'pass' : (_decisionStatus ?? (_attendanceResult?.success == true ? 'pass' : 'reject'));
+    
+    final bool isPass = decision == 'pass' || decision == 'synced' || decision == 'created';
+    final bool isRetryOrReview = decision == 'retry' || decision == 'review';
+    final bool isReject = decision == 'reject';
+
+    IconData iconData = Icons.check_circle;
+    Color iconColor = AppColors.success;
+    String titleText = 'Absensi Berhasil!';
+
+    if (isOffline) {
+      iconData = Icons.cloud_off;
+      iconColor = AppColors.pending;
+      titleText = 'Tersimpan Offline (Terenkripsi)';
+    } else if (isRetryOrReview) {
+      iconData = Icons.warning_amber_rounded;
+      iconColor = AppColors.pending;
+      titleText = 'Verifikasi Perlu Review / Ulang';
+    } else if (isReject || !_attendanceResult!.success) {
+      iconData = Icons.block;
+      iconColor = AppColors.error;
+      titleText = 'Absensi Ditolak & Terkunci';
+    }
 
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           const SizedBox(height: 40),
-          Icon(
-            success ? (isOffline ? Icons.cloud_off : Icons.check_circle) : Icons.error,
-            size: 100,
-            color: success ? (isOffline ? AppColors.pending : AppColors.success) : AppColors.error,
-          ),
+          Icon(iconData, size: 100, color: iconColor),
           const SizedBox(height: 24),
           Text(
-            success 
-                ? (isOffline ? 'Tersimpan offline, menunggu sinkron' : 'Absensi Berhasil!')
-                : 'Absensi Gagal',
+            titleText,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: success ? (isOffline ? AppColors.pending : AppColors.success) : AppColors.error,
+              color: iconColor,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          if (success && data != null) ...[
+          if (isRetryOrReview) ...[
             Text(
-              data['message'] ?? 'Absensi ${widget.isCheckIn ? "masuk" : "pulang"} berhasil dicatat',
+              _serverMessage ?? 'Kualitas wajah kurang atau ragu-ragu. Sisa percobaan: ${3 - _retryAttempts}',
+              style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.pending),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Percobaan ke-$_retryAttempts dari 3',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ] else if (isReject) ...[
+            Text(
+              _serverMessage ?? 'Wajah tidak cocok atau verifikasi liveness gagal. Akses absen dikunci sementara.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
+              textAlign: TextAlign.center,
+            ),
+          ] else ...[
+            Text(
+              _serverMessage ?? _attendanceResult?.data?['message'] ?? 'Absensi ${widget.isCheckIn ? "masuk" : "pulang"} berhasil dicatat',
               style: theme.textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
@@ -509,11 +556,11 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: AppColors.pending, size: 20),
+                    const Icon(Icons.info_outline, color: AppColors.pending, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Data akan disinkronkan otomatis saat terhubung ke internet',
+                        'Crop wajah terenkripsi & skor lokal tersimpan offline. Disinkron otomatis saat online.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.pending,
                         ),
@@ -524,36 +571,38 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
               ),
             ],
             const SizedBox(height: 24),
-            if (data['time'] != null)
-              _buildInfoRow('Waktu', data['time']),
-            if (data['status'] != null && !isOffline)
-              _buildInfoRow('Status', data['status']),
-          ] else if (_attendanceResult?.errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                _attendanceResult!.errorMessage!,
-                style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
-                textAlign: TextAlign.center,
-              ),
-            ),
+            if (_attendanceResult?.data?['time'] != null)
+              _buildInfoRow('Waktu', _attendanceResult!.data!['time']),
+          ],
           const Spacer(),
-          if (!success && _attendanceResult?.errorMessage != null &&
-              (_attendanceResult!.errorMessage!.toLowerCase().contains('wajah') ||
-                  _attendanceResult!.errorMessage!.toLowerCase().contains('face')))
+          if (isRetryOrReview && _retryAttempts < 3) ...[
             AppButton(
-              text: 'Daftar Wajah',
+              text: 'Coba Ambil Foto Ulang',
+              onPressed: () {
+                setState(() {
+                  _currentStep = 1;
+                  _capturedImageBytes = null;
+                });
+                _openCamera();
+              },
+              icon: Icons.camera_alt,
+            ),
+            const SizedBox(height: 12),
+          ] else if (isReject) ...[
+            AppButton(
+              text: 'Daftar Ulang Wajah',
               onPressed: () {
                 context.go('/enrollment');
               },
               icon: Icons.face_retouching_natural,
               outline: true,
             ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
           AppButton(
             text: 'Selesai',
             onPressed: () {
-              Navigator.pop(context, success);
+              Navigator.pop(context, isPass || isOffline);
             },
           ),
         ],

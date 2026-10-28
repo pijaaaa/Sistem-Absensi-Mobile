@@ -18,6 +18,7 @@ import 'package:mobile/features/notification/presentation/screens/notification_p
 import 'package:mobile/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:mobile/features/profile/presentation/screens/profile_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/time_anchor_debug_screen.dart';
+import 'package:mobile/features/attendance/presentation/screens/liveness_debug_screen.dart';
 import 'package:mobile/splash_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -128,6 +129,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/time-anchor-debug',
         builder: (context, state) => const TimeAnchorDebugScreen(),
+      ),
+      GoRoute(
+        path: '/liveness-debug',
+        builder: (context, state) => const LivenessDebugScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

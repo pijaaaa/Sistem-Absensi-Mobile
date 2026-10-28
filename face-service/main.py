@@ -65,12 +65,40 @@ def _detect_single_face(img: np.ndarray):
     return faces[0]
 
 
-def _embedding_from_file(image_bytes: bytes) -> list[float]:
+def _compute_quality(img: np.ndarray, face: np.ndarray) -> dict:
+    # face[0:4] = x, y, w, h
+    x, y, w, h = map(int, face[:4])
+    h_img, w_img = img.shape[:2]
+    x1, y1 = max(0, x), max(0, y)
+    x2, y2 = min(w_img, x + w), min(h_img, y + h)
+    
+    crop = img[y1:y2, x1:x2]
+    if crop.size == 0:
+        return {"sharpness": 0.0, "size": 0.0, "brightness": 0.0}
+
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+    brightness = float(gray.mean())
+    size_ratio = float((w * h) / (w_img * h_img))
+
+    return {
+        "sharpness": sharpness,
+        "size": size_ratio,
+        "brightness": brightness,
+    }
+
+
+def _embedding_from_file(image_bytes: bytes) -> dict:
     img = _decode(image_bytes)
     face = _detect_single_face(img)
+    quality = _compute_quality(img, face)
     aligned = recognizer().alignCrop(img, face)
     feature = recognizer().feature(aligned)
-    return feature.flatten().astype(float).tolist()
+    embedding = feature.flatten().astype(float).tolist()
+    return {
+        "embedding": embedding,
+        "quality": quality,
+    }
 
 
 @app.get("/health")
@@ -86,11 +114,13 @@ async def embed(
 ):
     _check_secret(x_face_secret)
     data = await image.read()
-    embedding = _embedding_from_file(data)
+    res = _embedding_from_file(data)
+    embedding = res["embedding"]
     return {
         "model_version": MODEL_VERSION,
         "embedding": embedding,
         "dimension": len(embedding),
+        "quality": res["quality"],
     }
 
 
@@ -110,6 +140,7 @@ async def verify(
     data = await image.read()
     img = _decode(data)
     face = _detect_single_face(img)
+    quality = _compute_quality(img, face)
     aligned = recognizer().alignCrop(img, face)
     feature = recognizer().feature(aligned)
     live = feature.flatten().astype(np.float32).reshape(1, -1)
@@ -121,4 +152,5 @@ async def verify(
         "score": score,
         "threshold": COSINE_THRESHOLD,
         "match": score >= COSINE_THRESHOLD,
+        "quality": quality,
     }

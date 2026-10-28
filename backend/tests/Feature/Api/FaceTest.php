@@ -52,7 +52,7 @@ class FaceTest extends TestCase
         $user = $this->employee();
 
         $this->actingAs($user, 'sanctum')->post('/api/face/enroll', [
-            'embeddings' => [$this->fakeEmbed(), $this->fakeEmbed(array_fill(0, 128, 0.6))],
+            'embeddings' => json_encode([$this->fakeEmbed(), $this->fakeEmbed(array_fill(0, 128, 0.6))]),
             'model_version' => 'sface-2021dec+yunet-2023mar',
         ])->assertOk()->assertJsonPath('data.count', 2);
 
@@ -86,7 +86,7 @@ class FaceTest extends TestCase
         $user = $this->employee();
 
         $this->actingAs($user, 'sanctum')->post('/api/face/enroll', [
-            'embeddings' => [$this->fakeEmbed()],
+            'embeddings' => json_encode([$this->fakeEmbed()]),
             'model_version' => 'sface-2021dec+yunet-2023mar',
         ])->assertOk();
 
@@ -98,12 +98,30 @@ class FaceTest extends TestCase
         $this->assertCount(128, $this->actingAs($user, 'sanctum')->getJson('/api/face/template')->json('data.embeddings.0'));
     }
 
+    public function test_delete_face_template(): void
+    {
+        $user = $this->employee();
+
+        $this->actingAs($user, 'sanctum')->post('/api/face/enroll', [
+            'embeddings' => json_encode([$this->fakeEmbed()]),
+            'model_version' => 'sface-2021dec+yunet-2023mar',
+        ])->assertOk();
+
+        $this->assertSame(1, DB::table('face_templates')->where('employee_id', $user->employee->id)->count());
+
+        $this->actingAs($user, 'sanctum')->deleteJson('/api/face/template')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame(0, DB::table('face_templates')->where('employee_id', $user->employee->id)->count());
+    }
+
     public function test_verify_uses_face_service_and_returns_best_score(): void
     {
         $user = $this->employee();
 
         $this->actingAs($user, 'sanctum')->post('/api/face/enroll', [
-            'embeddings' => [$this->fakeEmbed()],
+            'embeddings' => json_encode([$this->fakeEmbed()]),
             'model_version' => 'sface-2021dec+yunet-2023mar',
         ]);
 
@@ -134,7 +152,7 @@ class FaceTest extends TestCase
 
     public function test_enroll_requires_authentication(): void
     {
-        $this->postJson('/api/face/enroll', ['embeddings' => [$this->fakeEmbed()]])
+        $this->postJson('/api/face/enroll', ['embeddings' => json_encode([$this->fakeEmbed()])])
             ->assertStatus(401);
     }
 }

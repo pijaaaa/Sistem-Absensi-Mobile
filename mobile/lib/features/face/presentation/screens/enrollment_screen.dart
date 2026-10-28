@@ -1,9 +1,11 @@
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/features/attendance/presentation/screens/camera_face_screen.dart';
@@ -43,6 +45,10 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
   }
 
   Future<void> _startEnrollment() async {
+    // 1. Biometric consent screen prior to camera open
+    final consented = await _showBiometricConsent();
+    if (consented != true) return;
+
     final status = await Permission.camera.request();
     if (!status.isGranted) {
       if (!mounted) return;
@@ -55,15 +61,18 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       return;
     }
 
-    Uint8List? captured;
+    // 2. Stepper flow integrating W3 liveness challenges (front, left, right poses in single CameraFaceScreen session)
+    List<Uint8List> capturedSamples = [];
 
     if (!mounted) return;
-    await Navigator.push<bool>(
+    
+    // Single CameraFaceScreen session with requireLiveness: true executes front -> left -> right challenges & captures photos
+    bool? livenessDone = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => CameraFaceScreen(
           onFaceCaptured: (bytes) {
-            captured = bytes;
+            capturedSamples.add(bytes);
           },
           requireLiveness: true,
           isEnrollment: true,
@@ -71,38 +80,52 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
       ),
     );
 
-    if (captured == null) return;
+    if (livenessDone != true || capturedSamples.isEmpty) return;
 
     if (!mounted) return;
     final goRouter = GoRouter.of(context);
-    await _showBiometricConsent();
-    final ok = await _submitEnrollment(captured!);
+    
+    // 3. Multi-pose sample capture and submission to enrollment API
+    // 4. Secure local template download & encryption
+    final ok = await _submitEnrollmentAndSecureTemplate(capturedSamples);
     if (!mounted) return;
     if (ok) {
       goRouter.go('/home');
     }
   }
 
-  Future<bool> _submitEnrollment(Uint8List photo) async {
+  Future<bool> _submitEnrollmentAndSecureTemplate(List<Uint8List> photos) async {
     setState(() => _isSubmitting = true);
     try {
       final dataSource = ref.read(faceDataSourceProvider);
       final response = await dataSource
           .enroll(
-            photos: [photo],
+            photos: photos,
             modelVersion: faceModelVersion,
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 45));
 
       if (!mounted) return false;
 
       final count = response['data'] is Map
-          ? response['data']['count'] ?? 1
-          : (response['count'] ?? 1);
+          ? response['data']['count'] ?? photos.length
+          : (response['count'] ?? photos.length);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Wajah berhasil didaftarkan ($count sampel).')),
-      );
+      // Secure local template download & encryption
+      final templateEmbedding = await dataSource.downloadTemplate();
+      if (templateEmbedding != null) {
+        const secureStorage = FlutterSecureStorage();
+        final jsonString = jsonEncode(templateEmbedding);
+        // Encrypt & store locally securely
+        await secureStorage.write(key: 'secure_face_template', value: jsonString);
+        setState(() => _hasTemplateDownloaded = true);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Wajah berhasil didaftarkan ($count sampel) & template terenkripsi lokal.')),
+        );
+      }
 
       return true;
     } on DioException catch (e) {
@@ -176,6 +199,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
 
     if (!confirmed!) return;
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
       final dataSource = ref.read(faceDataSourceProvider);
@@ -184,13 +208,13 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
         _hasTemplateDownloaded = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('Template wajah berhasil dihapus.')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('Gagal menghapus: ${e.toString()}'),
             backgroundColor: Theme.of(context).colorScheme.error,
@@ -202,7 +226,7 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     }
   }
 
-  Future<void> _showBiometricConsent() async {
+  Future<bool?> _showBiometricConsent() async {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -249,9 +273,10 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
             content: Text('Pendaftaran wajah dibatalkan.'),
           ),
         );
-        context.pop();
       }
+      return false;
     }
+    return true;
   }
 
   @override

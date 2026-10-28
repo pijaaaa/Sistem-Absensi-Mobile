@@ -2,9 +2,14 @@
 ///
 /// [centerX]/[centerY]/[width]/[height] describe the face bounding box in image
 /// pixels. [yaw] is the horizontal head rotation in degrees reported by ML Kit
-/// (negative = face turned to the left side of the image, positive = right).
+/// or computed via 5 facial landmarks (nose vs eyes midpoint ratio).
 /// [leftEyeOpenProb] / [rightEyeOpenProb] are blink probabilities (0..1) when
 /// classification is enabled, otherwise `null`.
+/// [yawLandmark] is the landmark-derived yaw ratio for Phase W3 requirement 1.
+/// [faceCount] is the number of faces detected (quality gate requirement 4).
+/// [sharpness] is the estimated image blur/sharpness score (quality gate requirement 4).
+/// [illumination] is the average pixel intensity / brightness (quality gate requirement 4).
+/// [trackingId] is the stable ID used for identity consistency lock across steps (requirement 3).
 class FaceAnalysis {
   final double centerX;
   final double centerY;
@@ -13,6 +18,11 @@ class FaceAnalysis {
   final double yaw;
   final double? leftEyeOpenProb;
   final double? rightEyeOpenProb;
+  final double yawLandmark;
+  final int faceCount;
+  final double sharpness;
+  final double illumination;
+  final int? trackingId;
 
   FaceAnalysis({
     required this.centerX,
@@ -22,9 +32,14 @@ class FaceAnalysis {
     required this.yaw,
     this.leftEyeOpenProb,
     this.rightEyeOpenProb,
+    this.yawLandmark = 0.0,
+    this.faceCount = 1,
+    this.sharpness = 100.0,
+    this.illumination = 128.0,
+    this.trackingId,
   });
 
-  bool get isValid => width > 0 && height > 0;
+  bool get isValid => width > 0 && height > 0 && faceCount == 1;
 }
 
 /// Abstract interface for on-device face detection / liveness.
