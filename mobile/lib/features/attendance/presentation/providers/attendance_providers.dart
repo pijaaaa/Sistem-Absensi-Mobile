@@ -10,6 +10,7 @@ import 'package:mobile/features/attendance/data/local/offline_database.dart';
 import 'package:mobile/features/attendance/data/local/elapsed_time_service.dart';
 import 'package:mobile/features/attendance/data/local/offline_attendance_service.dart';
 import 'package:mobile/features/face/presentation/providers/face_providers.dart';
+import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 
 final attendanceLocationServiceProvider = Provider<AttendanceLocationService>((ref) {
   return AttendanceLocationService();
@@ -66,14 +67,16 @@ final offlineAttendanceServiceProvider = Provider<OfflineAttendanceService>((ref
 // Pending count stream provider
 final pendingCountProvider = StreamProvider<int>((ref) async* {
   final offlineService = ref.watch(offlineAttendanceServiceProvider);
+  final authState = ref.watch(authStateProvider);
+  final userId = authState.user?.id ?? authState.employee?.id ?? 0;
   
   // Initial count
-  yield await offlineService.getPendingCount();
+  yield await offlineService.getPendingCount(userId);
   
   // Listen to connectivity changes and update count
   final connectivity = ref.watch(connectivityProvider);
   await for (final _ in connectivity.onConnectivityChanged) {
-    yield await offlineService.getPendingCount();
+    yield await offlineService.getPendingCount(userId);
   }
 });
 

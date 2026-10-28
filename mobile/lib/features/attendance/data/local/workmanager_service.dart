@@ -45,10 +45,17 @@ void callbackDispatcher() {
           connectivity: connectivity,
         );
 
-        // Sync pending attendances
-        final syncResult = await offlineService.syncPendingAttendances();
+        // Sync pending attendances for all users in background task or skip if userId not bound
+        // Background sync can loop through distinct user IDs present in un-synced items
+        final pendingItems = await database.select(database.offlineAttendances).get();
+        final userIds = pendingItems.map((e) => e.userId).toSet();
+        bool allSuccess = true;
+        for (final uid in userIds) {
+          final res = await offlineService.syncPendingAttendances(uid);
+          if (!res.success) allSuccess = false;
+        }
 
-        return syncResult.success;
+        return allSuccess;
       }
 
       return true;

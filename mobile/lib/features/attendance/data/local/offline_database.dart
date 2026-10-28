@@ -9,6 +9,7 @@ part 'offline_database.g.dart';
 /// Offline attendance queue table
 class OfflineAttendances extends Table {
   IntColumn get id => integer().autoIncrement()();
+  IntColumn get userId => integer()();
   TextColumn get clientUuid => text().unique()();
   BoolColumn get isCheckIn => boolean()();
   
@@ -61,11 +62,19 @@ class OfflineDatabase extends _$OfflineDatabase {
     return into(offlineAttendances).insert(attendance);
   }
 
-  /// Get all pending (not synced) attendances
-  Future<List<OfflineAttendance>> getPendingAttendances() {
+  /// Get all pending (not synced) attendances for specific user
+  Future<List<OfflineAttendance>> getPendingAttendances(int userId) {
     return (select(offlineAttendances)
-          ..where((tbl) => tbl.isSynced.equals(false))
+          ..where((tbl) => tbl.isSynced.equals(false) & tbl.userId.equals(userId))
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.createdAt)]))
+        .get();
+  }
+
+  /// Get all attendances for specific user
+  Future<List<OfflineAttendance>> getAllAttendances(int userId) {
+    return (select(offlineAttendances)
+          ..where((tbl) => tbl.userId.equals(userId))
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]))
         .get();
   }
 
@@ -103,12 +112,12 @@ class OfflineDatabase extends _$OfflineDatabase {
     );
   }
 
-  /// Get count of pending attendances
-  Future<int> getPendingCount() async {
+  /// Get count of pending attendances for specific user
+  Future<int> getPendingCount(int userId) async {
     final count = countAll();
     final query = selectOnly(offlineAttendances)
       ..addColumns([count])
-      ..where(offlineAttendances.isSynced.equals(false));
+      ..where(offlineAttendances.isSynced.equals(false) & offlineAttendances.userId.equals(userId));
     
     final result = await query.getSingleOrNull();
     return result?.read(count) ?? 0;

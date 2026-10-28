@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 
+import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
+
 /// Helper function to handle logout with pending offline items warning dialog (Requirement #4)
 Future<void> handleLogoutWithOfflineCheck(BuildContext context, WidgetRef ref, VoidCallback onConfirmLogout) async {
   final offlineService = ref.read(offlineAttendanceServiceProvider);
-  final pendingCount = await offlineService.getPendingCount();
+  final authState = ref.read(authStateProvider);
+  final userId = authState.user?.id ?? authState.employee?.id ?? 0;
+  final pendingCount = await offlineService.getPendingCount(userId);
 
   if (pendingCount == 0) {
     onConfirmLogout();
@@ -30,7 +34,7 @@ Future<void> handleLogoutWithOfflineCheck(BuildContext context, WidgetRef ref, V
           builder: (_) => const Center(child: CircularProgressIndicator()),
         );
 
-        final result = await offlineService.syncPendingAttendances();
+        final result = await offlineService.syncPendingAttendances(userId);
         if (context.mounted) {
           Navigator.pop(context); // Pop loading
           ScaffoldMessenger.of(context).showSnackBar(
@@ -41,7 +45,7 @@ Future<void> handleLogoutWithOfflineCheck(BuildContext context, WidgetRef ref, V
           );
 
           // Re-check pending count
-          final remaining = await offlineService.getPendingCount();
+          final remaining = await offlineService.getPendingCount(userId);
           if (remaining == 0) {
             onConfirmLogout();
           } else {

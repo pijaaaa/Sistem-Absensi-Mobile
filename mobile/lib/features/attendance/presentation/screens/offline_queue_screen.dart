@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 import 'package:mobile/features/attendance/data/local/offline_database.dart';
+import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:intl/intl.dart';
 
 class OfflineQueueScreen extends ConsumerStatefulWidget {
@@ -22,7 +24,9 @@ class _OfflineQueueScreenState extends ConsumerState<OfflineQueueScreen> {
     setState(() => _isSyncing = true);
     try {
       final service = ref.read(offlineAttendanceServiceProvider);
-      final result = await service.syncPendingAttendances();
+      final authState = ref.read(authStateProvider);
+      final userId = authState.user?.id ?? authState.employee?.id ?? 0;
+      final result = await service.syncPendingAttendances(userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -122,7 +126,12 @@ class _OfflineQueueScreenState extends ConsumerState<OfflineQueueScreen> {
 
 final offlineQueueProvider = FutureProvider<List<OfflineAttendance>>((ref) async {
   final db = ref.watch(offlineDatabaseProvider);
-  return await (db.select(db.offlineAttendances)).get();
+  final authState = ref.watch(authStateProvider);
+  final userId = authState.user?.id ?? authState.employee?.id ?? 0;
+  return await (db.select(db.offlineAttendances)
+        ..where((tbl) => tbl.userId.equals(userId))
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]))
+      .get();
 });
 
 class _OfflineItemCard extends StatelessWidget {

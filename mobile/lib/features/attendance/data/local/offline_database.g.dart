@@ -18,6 +18,11 @@ class $OfflineAttendancesTable extends OfflineAttendances
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<int> userId = GeneratedColumn<int>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
   static const VerificationMeta _clientUuidMeta =
       const VerificationMeta('clientUuid');
   @override
@@ -140,6 +145,7 @@ class $OfflineAttendancesTable extends OfflineAttendances
   @override
   List<GeneratedColumn> get $columns => [
         id,
+        userId,
         clientUuid,
         isCheckIn,
         latitude,
@@ -170,6 +176,12 @@ class $OfflineAttendancesTable extends OfflineAttendances
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
     }
     if (data.containsKey('client_uuid')) {
       context.handle(
@@ -288,6 +300,8 @@ class $OfflineAttendancesTable extends OfflineAttendances
     return OfflineAttendance(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}user_id'])!,
       clientUuid: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}client_uuid'])!,
       isCheckIn: attachedDatabase.typeMapping
@@ -335,6 +349,7 @@ class $OfflineAttendancesTable extends OfflineAttendances
 class OfflineAttendance extends DataClass
     implements Insertable<OfflineAttendance> {
   final int id;
+  final int userId;
   final String clientUuid;
   final bool isCheckIn;
   final double latitude;
@@ -354,6 +369,7 @@ class OfflineAttendance extends DataClass
   final String? syncError;
   const OfflineAttendance(
       {required this.id,
+      required this.userId,
       required this.clientUuid,
       required this.isCheckIn,
       required this.latitude,
@@ -375,6 +391,7 @@ class OfflineAttendance extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<int>(userId);
     map['client_uuid'] = Variable<String>(clientUuid);
     map['is_check_in'] = Variable<bool>(isCheckIn);
     map['latitude'] = Variable<double>(latitude);
@@ -406,6 +423,7 @@ class OfflineAttendance extends DataClass
   OfflineAttendancesCompanion toCompanion(bool nullToAbsent) {
     return OfflineAttendancesCompanion(
       id: Value(id),
+      userId: Value(userId),
       clientUuid: Value(clientUuid),
       isCheckIn: Value(isCheckIn),
       latitude: Value(latitude),
@@ -439,6 +457,7 @@ class OfflineAttendance extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return OfflineAttendance(
       id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<int>(json['userId']),
       clientUuid: serializer.fromJson<String>(json['clientUuid']),
       isCheckIn: serializer.fromJson<bool>(json['isCheckIn']),
       latitude: serializer.fromJson<double>(json['latitude']),
@@ -466,6 +485,7 @@ class OfflineAttendance extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<int>(userId),
       'clientUuid': serializer.toJson<String>(clientUuid),
       'isCheckIn': serializer.toJson<bool>(isCheckIn),
       'latitude': serializer.toJson<double>(latitude),
@@ -488,6 +508,7 @@ class OfflineAttendance extends DataClass
 
   OfflineAttendance copyWith(
           {int? id,
+          int? userId,
           String? clientUuid,
           bool? isCheckIn,
           double? latitude,
@@ -507,6 +528,7 @@ class OfflineAttendance extends DataClass
           Value<String?> syncError = const Value.absent()}) =>
       OfflineAttendance(
         id: id ?? this.id,
+        userId: userId ?? this.userId,
         clientUuid: clientUuid ?? this.clientUuid,
         isCheckIn: isCheckIn ?? this.isCheckIn,
         latitude: latitude ?? this.latitude,
@@ -533,6 +555,7 @@ class OfflineAttendance extends DataClass
   OfflineAttendance copyWithCompanion(OfflineAttendancesCompanion data) {
     return OfflineAttendance(
       id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
       clientUuid:
           data.clientUuid.present ? data.clientUuid.value : this.clientUuid,
       isCheckIn: data.isCheckIn.present ? data.isCheckIn.value : this.isCheckIn,
@@ -574,6 +597,7 @@ class OfflineAttendance extends DataClass
   String toString() {
     return (StringBuffer('OfflineAttendance(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('clientUuid: $clientUuid, ')
           ..write('isCheckIn: $isCheckIn, ')
           ..write('latitude: $latitude, ')
@@ -598,6 +622,7 @@ class OfflineAttendance extends DataClass
   @override
   int get hashCode => Object.hash(
       id,
+      userId,
       clientUuid,
       isCheckIn,
       latitude,
@@ -620,6 +645,7 @@ class OfflineAttendance extends DataClass
       identical(this, other) ||
       (other is OfflineAttendance &&
           other.id == this.id &&
+          other.userId == this.userId &&
           other.clientUuid == this.clientUuid &&
           other.isCheckIn == this.isCheckIn &&
           other.latitude == this.latitude &&
@@ -641,6 +667,7 @@ class OfflineAttendance extends DataClass
 
 class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
   final Value<int> id;
+  final Value<int> userId;
   final Value<String> clientUuid;
   final Value<bool> isCheckIn;
   final Value<double> latitude;
@@ -660,6 +687,7 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
   final Value<String?> syncError;
   const OfflineAttendancesCompanion({
     this.id = const Value.absent(),
+    this.userId = const Value.absent(),
     this.clientUuid = const Value.absent(),
     this.isCheckIn = const Value.absent(),
     this.latitude = const Value.absent(),
@@ -680,6 +708,7 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
   });
   OfflineAttendancesCompanion.insert({
     this.id = const Value.absent(),
+    required int userId,
     required String clientUuid,
     required bool isCheckIn,
     required double latitude,
@@ -697,7 +726,8 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
     this.createdAt = const Value.absent(),
     this.lastSyncAttempt = const Value.absent(),
     this.syncError = const Value.absent(),
-  })  : clientUuid = Value(clientUuid),
+  })  : userId = Value(userId),
+        clientUuid = Value(clientUuid),
         isCheckIn = Value(isCheckIn),
         latitude = Value(latitude),
         longitude = Value(longitude),
@@ -708,6 +738,7 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
         bootCount = Value(bootCount);
   static Insertable<OfflineAttendance> custom({
     Expression<int>? id,
+    Expression<int>? userId,
     Expression<String>? clientUuid,
     Expression<bool>? isCheckIn,
     Expression<double>? latitude,
@@ -728,6 +759,7 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       if (clientUuid != null) 'client_uuid': clientUuid,
       if (isCheckIn != null) 'is_check_in': isCheckIn,
       if (latitude != null) 'latitude': latitude,
@@ -753,6 +785,7 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
 
   OfflineAttendancesCompanion copyWith(
       {Value<int>? id,
+      Value<int>? userId,
       Value<String>? clientUuid,
       Value<bool>? isCheckIn,
       Value<double>? latitude,
@@ -772,6 +805,7 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
       Value<String?>? syncError}) {
     return OfflineAttendancesCompanion(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       clientUuid: clientUuid ?? this.clientUuid,
       isCheckIn: isCheckIn ?? this.isCheckIn,
       latitude: latitude ?? this.latitude,
@@ -799,6 +833,9 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<int>(userId.value);
     }
     if (clientUuid.present) {
       map['client_uuid'] = Variable<String>(clientUuid.value);
@@ -860,6 +897,7 @@ class OfflineAttendancesCompanion extends UpdateCompanion<OfflineAttendance> {
   String toString() {
     return (StringBuffer('OfflineAttendancesCompanion(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('clientUuid: $clientUuid, ')
           ..write('isCheckIn: $isCheckIn, ')
           ..write('latitude: $latitude, ')
@@ -1213,6 +1251,7 @@ abstract class _$OfflineDatabase extends GeneratedDatabase {
 typedef $$OfflineAttendancesTableCreateCompanionBuilder
     = OfflineAttendancesCompanion Function({
   Value<int> id,
+  required int userId,
   required String clientUuid,
   required bool isCheckIn,
   required double latitude,
@@ -1234,6 +1273,7 @@ typedef $$OfflineAttendancesTableCreateCompanionBuilder
 typedef $$OfflineAttendancesTableUpdateCompanionBuilder
     = OfflineAttendancesCompanion Function({
   Value<int> id,
+  Value<int> userId,
   Value<String> clientUuid,
   Value<bool> isCheckIn,
   Value<double> latitude,
@@ -1264,6 +1304,9 @@ class $$OfflineAttendancesTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get clientUuid => $composableBuilder(
       column: $table.clientUuid, builder: (column) => ColumnFilters(column));
@@ -1334,6 +1377,9 @@ class $$OfflineAttendancesTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get clientUuid => $composableBuilder(
       column: $table.clientUuid, builder: (column) => ColumnOrderings(column));
@@ -1406,6 +1452,9 @@ class $$OfflineAttendancesTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<String> get clientUuid => $composableBuilder(
       column: $table.clientUuid, builder: (column) => column);
@@ -1489,6 +1538,7 @@ class $$OfflineAttendancesTableTableManager extends RootTableManager<
                   $db: db, $table: table),
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            Value<int> userId = const Value.absent(),
             Value<String> clientUuid = const Value.absent(),
             Value<bool> isCheckIn = const Value.absent(),
             Value<double> latitude = const Value.absent(),
@@ -1509,6 +1559,7 @@ class $$OfflineAttendancesTableTableManager extends RootTableManager<
           }) =>
               OfflineAttendancesCompanion(
             id: id,
+            userId: userId,
             clientUuid: clientUuid,
             isCheckIn: isCheckIn,
             latitude: latitude,
@@ -1529,6 +1580,7 @@ class $$OfflineAttendancesTableTableManager extends RootTableManager<
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            required int userId,
             required String clientUuid,
             required bool isCheckIn,
             required double latitude,
@@ -1549,6 +1601,7 @@ class $$OfflineAttendancesTableTableManager extends RootTableManager<
           }) =>
               OfflineAttendancesCompanion.insert(
             id: id,
+            userId: userId,
             clientUuid: clientUuid,
             isCheckIn: isCheckIn,
             latitude: latitude,

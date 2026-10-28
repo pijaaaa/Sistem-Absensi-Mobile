@@ -133,7 +133,12 @@ void main() async {
           ],
         );
         final offlineService = container.read(offlineAttendanceServiceProvider);
-        await offlineService.syncPendingAttendances();
+        final database = container.read(offlineDatabaseProvider);
+        final pendingItems = await database.select(database.offlineAttendances).get();
+        final userIds = pendingItems.map((e) => e.userId).toSet();
+        for (final uid in userIds) {
+          await offlineService.syncPendingAttendances(uid);
+        }
       } catch (_) {}
     }
   });

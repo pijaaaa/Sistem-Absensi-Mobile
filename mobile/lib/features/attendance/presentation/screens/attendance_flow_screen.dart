@@ -181,7 +181,10 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
         }
       } else {
         // Offline: save ke database lokal
+        final authState = ref.read(authStateProvider);
+        final userId = authState.user?.id ?? authState.employee?.id ?? 0;
         await offlineService.saveOfflineAttendance(
+          userId: userId,
           isCheckIn: widget.isCheckIn,
           lat: _locationResult!.latitude!,
           lng: _locationResult!.longitude!,

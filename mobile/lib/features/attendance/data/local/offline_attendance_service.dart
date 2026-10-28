@@ -97,6 +97,7 @@ class OfflineAttendanceService {
 
   /// Save attendance offline
   Future<String> saveOfflineAttendance({
+    required int userId,
     required bool isCheckIn,
     required double lat,
     required double lng,
@@ -123,6 +124,7 @@ class OfflineAttendanceService {
     // Save to database
     await database.addOfflineAttendance(
       OfflineAttendancesCompanion(
+        userId: Value(userId),
         clientUuid: Value(clientUuid),
         isCheckIn: Value(isCheckIn),
         latitude: Value(lat),
@@ -142,7 +144,7 @@ class OfflineAttendanceService {
   }
 
   /// Sync all pending attendances with mutex lock and exponential backoff retry for network/5xx errors
-  Future<SyncResult> syncPendingAttendances() async {
+  Future<SyncResult> syncPendingAttendances(int userId) async {
     // 4. Mutex lock preventing concurrent sync executions
     if (_isSyncing) {
       return SyncResult(success: false, message: 'Sync sedang berjalan');
@@ -154,7 +156,7 @@ class OfflineAttendanceService {
         return SyncResult(success: false, message: 'Tidak ada koneksi internet');
       }
 
-      final pending = await database.getPendingAttendances();
+      final pending = await database.getPendingAttendances(userId);
       
       if (pending.isEmpty) {
         return SyncResult(success: true, synced: 0, message: 'Tidak ada data offline');
@@ -266,9 +268,9 @@ class OfflineAttendanceService {
     return 300;
   }
 
-  /// Get pending attendance count
-  Future<int> getPendingCount() async {
-    return await database.getPendingCount();
+  /// Get pending attendance count for specific user
+  Future<int> getPendingCount(int userId) async {
+    return await database.getPendingCount(userId);
   }
 
   /// Save face image to local storage (encrypted)
