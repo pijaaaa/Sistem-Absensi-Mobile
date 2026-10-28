@@ -69,6 +69,11 @@ class DeviceService
             ->first();
 
         if (! $device) {
+            $hasActive = $employee->devices()->where('status', 'active')->exists();
+            if (! $hasActive) {
+                return $this->bindOnLogin($employee, $deviceUid, 'Auto Device');
+            }
+
             throw ValidationException::withMessages([
                 'device_uid' => 'Device tidak terdaftar. Daftarkan device utama/cadangan dulu.',
             ]);

@@ -107,7 +107,14 @@ class AttendanceController extends Controller
         try {
             $device = $this->devices->resolveForAttendance($employee, $deviceUid);
         } catch (\Throwable) {
-            throw new FaceException('device_error', 'Device tidak terdaftar. Daftarkan device utama/cadangan dulu.', 422);
+            $device = $this->devices->bindOnLogin($employee, $deviceUid, 'mobile-device');
+            if (! $device) {
+                try {
+                    $device = $this->devices->registerBackup($employee, $deviceUid, 'mobile-device');
+                } catch (\Throwable) {
+                    throw new FaceException('device_error', 'Device tidak terdaftar. Daftarkan device utama/cadangan dulu.', 422);
+                }
+            }
         }
 
         return [$employee, $device];
