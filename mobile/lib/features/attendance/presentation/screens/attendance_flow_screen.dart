@@ -185,7 +185,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
           isCheckIn: widget.isCheckIn,
           lat: _locationResult!.latitude!,
           lng: _locationResult!.longitude!,
-          faceScore: _faceScore ?? 0.0,
+          faceScoreReal: _faceScore ?? 0.0,
           faceImageBytes: _capturedImageBytes,
         );
 
@@ -481,7 +481,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
           const SizedBox(height: 24),
           Text(
             success 
-                ? (isOffline ? 'Tersimpan Offline' : 'Absensi Berhasil!')
+                ? (isOffline ? 'Tersimpan offline, menunggu sinkron' : 'Absensi Berhasil!')
                 : 'Absensi Gagal',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,

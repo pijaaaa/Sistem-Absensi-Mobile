@@ -5,6 +5,8 @@ import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
+import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
+import 'package:mobile/features/attendance/data/local/offline_database.dart';
 import 'package:mobile/core/models/attendance_summary_models.dart';
 import 'package:intl/intl.dart';
 
@@ -25,6 +27,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         MonthYearParams(year: _currentMonth.year, month: _currentMonth.month),
       ),
     );
+    final offlineQueueAsync = ref.watch(offlineQueueListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -41,29 +44,51 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           // Content
           Expanded(
             child: summaryAsync.when(
-              data: (summary) => RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(monthlySummaryProvider);
-                },
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    children: [
-                      // Calendar Grid
-                      _CalendarGrid(
-                        month: _currentMonth,
-                        calendar: summary.calendar,
-                        onDateSelected: (date, status) {
-                          _showAttendanceDetail(context, date, status);
-                        },
+              data: (summary) => offlineQueueAsync.when(
+                data: (offlineItems) {
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(monthlySummaryProvider);
+                      ref.invalidate(offlineQueueListProvider);
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Offline Queue integration section if any pending/recent items exist
+                          if (offlineItems.isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                              child: Text(
+                                'Antrean & Riwayat Offline',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ...offlineItems.map((item) => _OfflineHistoryCard(item: item)),
+                            const SizedBox(height: 8),
+                          ],
+
+                          // Calendar Grid
+                          _CalendarGrid(
+                            month: _currentMonth,
+                            calendar: summary.calendar,
+                            onDateSelected: (date, status) {
+                              _showAttendanceDetail(context, date, status);
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          // Month Summary Card
+                          _MonthSummaryCard(summary: summary),
+                          const SizedBox(height: 24),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      // Month Summary Card
-                      _MonthSummaryCard(summary: summary),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, e) => _buildSummaryContent(context, summary),
               ),
               loading: () => Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -86,11 +111,115 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
+  Widget _buildSummaryContent(BuildContext context, AttendanceSummaryModel summary) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(monthlySummaryProvider);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          children: [
+            _CalendarGrid(
+              month: _currentMonth,
+              calendar: summary.calendar,
+              onDateSelected: (date, status) {
+                _showAttendanceDetail(context, date, status);
+              },
+            ),
+            const SizedBox(height: 16),
+            _MonthSummaryCard(summary: summary),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showAttendanceDetail(BuildContext context, DateTime date, DayStatus? status) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => _AttendanceDetailSheet(date: date, status: status),
+    );
+  }
+}
+
+final offlineQueueListProvider = FutureProvider<List<OfflineAttendance>>((ref) async {
+  final db = ref.watch(offlineDatabaseProvider);
+  return await (db.select(db.offlineAttendances)).get();
+});
+
+class _OfflineHistoryCard extends StatelessWidget {
+  final OfflineAttendance item;
+  const _OfflineHistoryCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSynced = item.isSynced;
+    final hasError = item.syncError != null && item.syncError!.isNotEmpty;
+
+    String label;
+    StatusType type;
+    Color color;
+
+    if (isSynced) {
+      label = 'Tersinkron (Offline)';
+      type = StatusType.approved;
+      color = AppColors.success;
+    } else if (hasError && item.syncError!.contains('Rejected')) {
+      label = 'Ditolak (Offline)';
+      type = StatusType.rejected;
+      color = AppColors.error;
+    } else {
+      label = 'Menunggu Sync';
+      type = StatusType.pending;
+      color = AppColors.pending;
+    }
+
+    final dateStr = DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.createdAt);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  item.isCheckIn ? Icons.login : Icons.logout,
+                  color: item.isCheckIn ? AppColors.success : AppColors.info,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.isCheckIn ? 'Absen Masuk' : 'Absen Pulang',
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      dateStr,
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            StatusChip(
+              label: label,
+              type: type,
+              customColor: color,
+              outline: true,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

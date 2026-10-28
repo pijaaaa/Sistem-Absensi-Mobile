@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
-import 'package:mobile/core/widgets/confirm_dialog.dart';
+import 'package:mobile/features/auth/presentation/widgets/logout_confirmation_dialog.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/notification/presentation/providers/notification_providers.dart';
 
@@ -85,16 +85,9 @@ class MoreScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(24),
             child: FilledButton.icon(
               onPressed: () async {
-                final confirmed = await ConfirmDialog.show(
-                  context: context,
-                  title: 'Keluar',
-                  content: 'Anda yakin ingin keluar dari aplikasi?',
-                  confirmText: 'Keluar',
-                  isDestructive: true,
-                );
-                if (confirmed == true && context.mounted) {
+                await handleLogoutWithOfflineCheck(context, ref, () {
                   ref.read(appStateProvider.notifier).logout();
-                }
+                });
               },
               icon: const Icon(Icons.logout),
               label: const Text('Keluar'),

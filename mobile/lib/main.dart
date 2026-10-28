@@ -16,7 +16,9 @@ import 'package:mobile/core/services/session_manager.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:mobile/features/attendance/data/local/workmanager_service.dart';
+import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 import 'package:mobile/firebase_options.dart';
 
 Future<RemoteMessage?> _initializeFirebase(SharedPreferences prefs) async {
@@ -115,6 +117,26 @@ void main() async {
   } catch (e) {
     // ignore — bg sync optional, must not crash app startup
   }
+
+  // 1. Connectivity monitoring using connectivity_plus to trigger sync when network returns
+  Connectivity().onConnectivityChanged.listen((results) async {
+    final isOnline = results.any((result) => 
+      result == ConnectivityResult.mobile || 
+      result == ConnectivityResult.wifi || 
+      result == ConnectivityResult.ethernet
+    );
+    if (isOnline) {
+      try {
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+        );
+        final offlineService = container.read(offlineAttendanceServiceProvider);
+        await offlineService.syncPendingAttendances();
+      } catch (_) {}
+    }
+  });
 
   // Catch-all: avoid black screen on unexpected widget errors, log to console
   ErrorWidget.builder = (FlutterErrorDetails details) {

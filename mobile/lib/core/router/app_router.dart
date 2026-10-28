@@ -5,6 +5,7 @@ import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/features/approval/presentation/screens/approval_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/attendance_flow_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/history_screen.dart';
+import 'package:mobile/features/attendance/presentation/screens/offline_queue_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/device_registration_screen.dart';
 import 'package:mobile/features/design_showcase/design_showcase_screen.dart';
@@ -16,6 +17,7 @@ import 'package:mobile/features/notification/presentation/screens/notification_s
 import 'package:mobile/features/notification/presentation/screens/notification_preferences_screen.dart';
 import 'package:mobile/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:mobile/features/profile/presentation/screens/profile_screen.dart';
+import 'package:mobile/features/attendance/presentation/screens/time_anchor_debug_screen.dart';
 import 'package:mobile/splash_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -88,6 +90,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const HistoryScreen(),
       ),
       GoRoute(
+        path: '/offline-queue',
+        builder: (context, state) => const OfflineQueueScreen(),
+      ),
+      GoRoute(
         path: '/leave',
         builder: (context, state) => const LeaveScreen(),
       ),
@@ -118,6 +124,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/design-showcase',
         builder: (context, state) => const DesignShowcaseScreen(),
+      ),
+      GoRoute(
+        path: '/time-anchor-debug',
+        builder: (context, state) => const TimeAnchorDebugScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

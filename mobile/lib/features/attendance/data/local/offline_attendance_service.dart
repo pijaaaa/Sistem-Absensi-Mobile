@@ -16,6 +16,8 @@ class OfflineAttendanceService {
   final AttendanceRepository repository;
   final Connectivity connectivity;
 
+  bool _isSyncing = false;
+
   OfflineAttendanceService({
     required this.database,
     required this.elapsedTimeService,
@@ -98,7 +100,7 @@ class OfflineAttendanceService {
     required bool isCheckIn,
     required double lat,
     required double lng,
-    required double faceScore,
+    required double faceScoreReal,
     required Uint8List? faceImageBytes,
     String? deviceUid,
     bool isBackupDevice = false,
@@ -125,7 +127,7 @@ class OfflineAttendanceService {
         isCheckIn: Value(isCheckIn),
         latitude: Value(lat),
         longitude: Value(lng),
-        faceScoreLocal: Value(faceScore),
+        faceScoreLocal: Value(faceScoreReal),
         faceImagePath: Value(faceImagePath),
         elapsedRealtimeMillis: Value(elapsedMillis),
         anchorServerTimeMillis: Value(anchor.serverTimeMillis),
@@ -139,70 +141,129 @@ class OfflineAttendanceService {
     return clientUuid;
   }
 
-  /// Sync all pending attendances
+  /// Sync all pending attendances with mutex lock and exponential backoff retry for network/5xx errors
   Future<SyncResult> syncPendingAttendances() async {
-    if (!await isOnline()) {
-      return SyncResult(success: false, message: 'Tidak ada koneksi internet');
+    // 4. Mutex lock preventing concurrent sync executions
+    if (_isSyncing) {
+      return SyncResult(success: false, message: 'Sync sedang berjalan');
     }
 
-    final pending = await database.getPendingAttendances();
-    
-    if (pending.isEmpty) {
-      return SyncResult(success: true, synced: 0, message: 'Tidak ada data offline');
-    }
+    _isSyncing = true;
+    try {
+      if (!await isOnline()) {
+        return SyncResult(success: false, message: 'Tidak ada koneksi internet');
+      }
 
-    int synced = 0;
-    int failed = 0;
+      final pending = await database.getPendingAttendances();
+      
+      if (pending.isEmpty) {
+        return SyncResult(success: true, synced: 0, message: 'Tidak ada data offline');
+      }
 
-    for (final attendance in pending) {
-      try {
-        // Calculate server time from elapsed-realtime
-        final timeResult = await elapsedTimeService.calculateServerTime(
-          anchorServerTimeMillis: attendance.anchorServerTimeMillis,
-          anchorElapsedMillis: attendance.anchorElapsedMillis,
-          anchorBootCount: attendance.bootCount,
-        );
+      int synced = 0;
+      int failed = 0;
 
-        // Call sync API (backend B7)
-        await repository.syncOfflineAttendance(
-          clientUuid: attendance.clientUuid,
-          isCheckIn: attendance.isCheckIn,
-          lat: attendance.latitude,
-          lng: attendance.longitude,
-          faceScoreLocal: attendance.faceScoreLocal,
-          calculatedServerTimeMillis: timeResult.calculatedServerTimeMillis,
-          isSuspect: timeResult.isSuspect,
-          deviceUid: attendance.deviceUid,
-          isBackupDevice: attendance.isBackupDevice,
-        );
-
-        // Mark as synced
-        await database.markAsSynced(attendance.clientUuid);
-        synced++;
-
-        // Delete face image after successful sync
-        if (attendance.faceImagePath != null) {
-          await _deleteFaceImage(attendance.faceImagePath!);
+      for (final attendance in pending) {
+        // Exponential backoff check based on sync attempts
+        if (attendance.syncAttempts > 0 && attendance.lastSyncAttempt != null) {
+          final backoffSeconds = _calculateBackoffSeconds(attendance.syncAttempts);
+          final nextAllowedTime = attendance.lastSyncAttempt!.add(Duration(seconds: backoffSeconds));
+          if (DateTime.now().isBefore(nextAllowedTime)) {
+            continue; // Skip for now due to exponential backoff
+          }
         }
-      } catch (e) {
-        failed++;
-        await database.updateSyncAttempt(attendance.clientUuid, e.toString());
-        
-        if (kDebugMode) {
-          print('Failed to sync ${attendance.clientUuid}: $e');
+
+        try {
+          // Calculate server time from elapsed-realtime
+          final timeResult = await elapsedTimeService.calculateServerTime(
+            anchorServerTimeMillis: attendance.anchorServerTimeMillis,
+            anchorElapsedMillis: attendance.anchorElapsedMillis,
+            anchorBootCount: attendance.bootCount,
+          );
+
+          // Call sync API (backend B7)
+          final response = await repository.syncOfflineAttendance(
+            clientUuid: attendance.clientUuid,
+            isCheckIn: attendance.isCheckIn,
+            lat: attendance.latitude,
+            lng: attendance.longitude,
+            faceScoreLocal: attendance.faceScoreLocal,
+            anchorServerTimeMillis: attendance.anchorServerTimeMillis,
+            anchorElapsedMillis: attendance.anchorElapsedMillis,
+            anchorBootCount: attendance.bootCount,
+            currentElapsedMillis: timeResult.currentElapsedMillis,
+            currentBootCount: timeResult.currentBootCount,
+            deviceUid: attendance.deviceUid,
+            photoPath: attendance.faceImagePath,
+          );
+
+          // 3. Handling response status ('synced', 'needs_review', 'rejected', duplicate)
+          final status = response['status'] ?? 'synced';
+          final message = response['message']?.toString();
+          if (status == 'synced' || status == 'needs_review' || status == 'duplicate' || status == 'created' || response['success'] == true) {
+            await database.markAsSynced(attendance.clientUuid);
+            synced++;
+
+            // Delete face image after successful sync
+            if (attendance.faceImagePath != null) {
+              await _deleteFaceImage(attendance.faceImagePath!);
+            }
+
+            // 3. Updating anchor time on success
+            try {
+              final serverTimeMillis = await repository.getServerTime();
+              final elapsedMillis = await elapsedTimeService.getElapsedRealtimeMillis();
+              final bootCount = await elapsedTimeService.getBootCount();
+
+              await database.saveServerTimeAnchor(
+                ServerTimeAnchorsCompanion(
+                  serverTimeMillis: Value(serverTimeMillis),
+                  elapsedRealtimeMillis: Value(elapsedMillis),
+                  bootCount: Value(bootCount),
+                ),
+              );
+              await database.cleanOldAnchors();
+            } catch (_) {}
+          } else if (status == 'rejected') {
+            failed++;
+            await database.updateSyncAttempt(attendance.clientUuid, message ?? 'Rejected by server');
+          } else {
+            failed++;
+            await database.updateSyncAttempt(attendance.clientUuid, message ?? status);
+          }
+        } catch (e) {
+          failed++;
+          // Extract message cleanly if Exception was thrown from DataSource
+          final errStr = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+          await database.updateSyncAttempt(attendance.clientUuid, errStr);
+          
+          if (kDebugMode) {
+            print('Failed to sync ${attendance.clientUuid}: $e');
+          }
         }
       }
+
+      // Clean old synced data (>7 days)
+      await database.deleteSyncedOlderThan(7);
+
+      return SyncResult(
+        success: failed == 0,
+        synced: synced,
+        failed: failed,
+        message: 'Berhasil sync $synced, gagal $failed',
+      );
+    } finally {
+      _isSyncing = false;
     }
+  }
 
-    // Clean old synced data (>7 days)
-    await database.deleteSyncedOlderThan(7);
-
-    return SyncResult(
-      success: failed == 0,
-      synced: synced,
-      failed: failed,
-      message: 'Berhasil sync $synced, gagal $failed',
-    );
+  int _calculateBackoffSeconds(int attempts) {
+    // Exponential backoff: 5s, 15s, 30s, 60s, max 300s
+    if (attempts <= 1) return 5;
+    if (attempts == 2) return 15;
+    if (attempts == 3) return 30;
+    if (attempts == 4) return 60;
+    return 300;
   }
 
   /// Get pending attendance count

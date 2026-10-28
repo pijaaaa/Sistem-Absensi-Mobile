@@ -96,8 +96,8 @@ class WorkLocationModel {
       id: json['id'] as int?,
       name: json['name'] as String?,
       mode: json['mode'] as String?,
-      lat: rawLat == null ? null : (rawLat is int ? (rawLat).toDouble() : rawLat as double?),
-      lng: rawLng == null ? null : (rawLng is int ? (rawLng).toDouble() : rawLng as double?),
+      lat: rawLat == null ? null : double.tryParse(rawLat.toString()),
+      lng: rawLng == null ? null : double.tryParse(rawLng.toString()),
       radiusM: json['radius_m'] as int?,
       polygonJson: json['polygon_json'] as String?,
     );

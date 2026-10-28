@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 /// Elapsed-realtime: waktu sejak device boot (tidak terpengaruh perubahan waktu sistem)
 class ElapsedTimeService {
   static const MethodChannel _channel = MethodChannel('com.bsp.absensi/elapsed_time');
+  
+  // Fallback stopwatch untuk uptime lokal yang aman dari perubahan jam sistem
+  static final Stopwatch _fallbackStopwatch = Stopwatch()..start();
 
   /// Get elapsed realtime in milliseconds (Android: SystemClock.elapsedRealtime())
   /// Returns milliseconds since device boot
@@ -14,12 +17,12 @@ class ElapsedTimeService {
         final int elapsedMillis = await _channel.invokeMethod('getElapsedRealtime');
         return elapsedMillis;
       } catch (e) {
-        // Fallback: gunakan DateTime (kurang akurat)
-        return DateTime.now().millisecondsSinceEpoch;
+        // Fallback: gunakan Stopwatch uptime (TIDAK terpengaruh perubahan jam sistem)
+        return _fallbackStopwatch.elapsedMilliseconds;
       }
     } else {
-      // iOS/other: gunakan DateTime
-      return DateTime.now().millisecondsSinceEpoch;
+      // iOS/other: gunakan Stopwatch uptime
+      return _fallbackStopwatch.elapsedMilliseconds;
     }
   }
 

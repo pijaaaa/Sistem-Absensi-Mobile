@@ -60,10 +60,13 @@ class AttendanceRepository {
     required double lat,
     required double lng,
     required double faceScoreLocal,
-    required int calculatedServerTimeMillis,
-    required bool isSuspect,
+    required int anchorServerTimeMillis,
+    required int anchorElapsedMillis,
+    required int anchorBootCount,
+    required int currentElapsedMillis,
+    required int currentBootCount,
     String? deviceUid,
-    bool isBackupDevice = false,
+    String? photoPath,
   }) async {
     return await dataSource.syncOfflineAttendance(
       clientUuid: clientUuid,
@@ -71,10 +74,13 @@ class AttendanceRepository {
       lat: lat,
       lng: lng,
       faceScoreLocal: faceScoreLocal,
-      calculatedServerTimeMillis: calculatedServerTimeMillis,
-      isSuspect: isSuspect,
+      anchorServerTimeMillis: anchorServerTimeMillis,
+      anchorElapsedMillis: anchorElapsedMillis,
+      anchorBootCount: anchorBootCount,
+      currentElapsedMillis: currentElapsedMillis,
+      currentBootCount: currentBootCount,
       deviceUid: deviceUid,
-      isBackupDevice: isBackupDevice,
+      photoPath: photoPath,
     );
   }
 }

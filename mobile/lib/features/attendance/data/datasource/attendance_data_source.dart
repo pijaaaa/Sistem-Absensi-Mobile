@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
@@ -138,27 +140,65 @@ class AttendanceDataSource {
     required double lat,
     required double lng,
     required double faceScoreLocal,
-    required int calculatedServerTimeMillis,
-    required bool isSuspect,
+    required int anchorServerTimeMillis,
+    required int anchorElapsedMillis,
+    required int anchorBootCount,
+    required int currentElapsedMillis,
+    required int currentBootCount,
     String? deviceUid,
-    bool isBackupDevice = false,
+    String? photoPath,
   }) async {
+    String? base64Photo;
+    if (photoPath != null) {
+      try {
+        final file = File(photoPath);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          base64Photo = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        }
+      } catch (_) {}
+    }
+
+    final anchorServerTime = DateTime.fromMillisecondsSinceEpoch(anchorServerTimeMillis).toIso8601String();
+
     try {
       final response = await dio.post(
         '/attendance/sync',
         data: {
-          'client_uuid': clientUuid,
-          'is_check_in': isCheckIn,
-          'lat': lat,
-          'lng': lng,
-          'face_score_local': faceScoreLocal,
-          'calculated_server_time_millis': calculatedServerTimeMillis,
-          'is_suspect': isSuspect,
-          'device_uid': deviceUid,
-          'is_backup_device': isBackupDevice,
+          'anchor': {
+            'server_time': anchorServerTime,
+            'elapsed_realtime': anchorElapsedMillis,
+            'boot_count': anchorBootCount,
+          },
+          'boot_count': currentBootCount,
+          'items': [
+            {
+              'client_uuid': clientUuid,
+              'type': isCheckIn ? 'in' : 'out',
+              'lat': lat,
+              'lng': lng,
+              'elapsed_realtime': currentElapsedMillis,
+              'device_uid': deviceUid ?? 'mobile-device',
+              'face_score_local': faceScoreLocal,
+              if (base64Photo != null) 'photo': base64Photo,
+            }
+          ]
         },
       );
-      return response.data as Map<String, dynamic>;
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        // Backend returns array of results: { success: true, data: [ { client_uuid, status, message, ... } ] }
+        final results = data['data'];
+        if (results is List && results.isNotEmpty) {
+          final itemResult = results.first;
+          if (itemResult is Map<String, dynamic>) {
+            return itemResult;
+          }
+          return {'status': 'synced'};
+        }
+        return data;
+      }
+      return {'status': 'synced'};
     } on DioException catch (e) {
       throw Exception(_formatError(e));
     }
