@@ -408,28 +408,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildRecentActivity(BuildContext context) {
     return Consumer(
       builder: (context, ref, _) {
-        final items = ref.watch(recentActivityProvider);
-        if (items.isEmpty) {
-          return const Center(
-            child: Text('Belum ada aktivitas absensi.'),
-          );
-        }
-        return Column(
-          children:
-              items.asMap().entries.map((entry) {
-                final item = entry.value;
+        final recentAsync = ref.watch(recentActivityProvider);
+
+        return recentAsync.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text('Belum ada aktivitas absensi.'),
+                ),
+              );
+            }
+            return Column(
+              children: items.map((item) {
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                     child: Icon(
-                      Icons.history,
+                      item.isCheckedOut ? Icons.logout : Icons.login,
                       color: AppColors.primary,
                       size: 20,
                     ),
                   ),
                   title: Text(item.status),
-                  subtitle:
-                      Text('${item.date} • ${item.time}'),
+                  subtitle: Text('${item.date} • ${item.time}'),
                   trailing: StatusChip(
                     label: item.status,
                     type: item.type,
@@ -437,6 +440,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 );
               }).toList(),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          error: (error, stack) => const Text('Gagal memuat aktivitas.'),
         );
       },
     );

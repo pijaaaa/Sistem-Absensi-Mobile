@@ -117,59 +117,26 @@ class RecentActivityItem {
   });
 }
 
-final recentActivityProvider = Provider<List<RecentActivityItem>>((ref) {
-  final summaryAsync = ref.watch(todaySummaryProvider);
-  final calendar = summaryAsync.asData?.value.calendar;
-  if (calendar == null) return [];
+final recentActivityProvider = FutureProvider<List<RecentActivityItem>>((ref) async {
+  final dataSource = ref.watch(attendanceDataSourceProvider);
+  final rawLogs = await dataSource.fetchLogs();
 
-  final sortedDates = calendar.keys.toList()..sort((a, b) => b.compareTo(a));
-  final items = <RecentActivityItem>[];
-
-  for (final date in sortedDates) {
-    if (items.length >= 5) break;
-    final day = calendar[date];
-    if (day == null || day.checkIn == null) continue;
-
-    final parsed = DateTime.tryParse(date);
-    final formattedDate = parsed != null
-        ? '${parsed.day} ${_monthName(parsed.month)}'
-        : date;
-
-    final checkInTime = day.checkIn ?? '';
-    final checkOutTime = day.checkOut;
-    final isLate = day.isLate;
-    final status = isLate
-        ? 'Telat ${day.lateMinutes ?? 0}m'
-        : (checkOutTime != null ? 'Pulang' : 'Hadir');
-
-    items.add(RecentActivityItem(
-      date: formattedDate,
-      status: status,
-      time: checkOutTime ?? checkInTime,
-      type: checkOutTime != null
-          ? StatusType.present
-          : (isLate ? StatusType.lateYellow : StatusType.present),
-      isCheckedOut: checkOutTime != null,
-    ));
-
-    if (checkOutTime != null && checkInTime.isNotEmpty) {
-      final checkoutItem = RecentActivityItem(
-        date: formattedDate,
-        status: 'Pulang',
-        time: checkOutTime,
-        type: StatusType.present,
-        isCheckedOut: true,
-      );
-      if (items.length < 5) items.add(checkoutItem);
+  return rawLogs.map((item) {
+    final typeStr = item['type'] ?? 'present';
+    StatusType statusType = StatusType.present;
+    if (typeStr == 'lateYellow' || typeStr.toString().contains('Telat')) {
+      statusType = StatusType.lateYellow;
     }
-  }
-  return items;
-});
 
-String _monthName(int month) {
-  const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return months[month];
-}
+    return RecentActivityItem(
+      date: item['date'] ?? '',
+      status: item['status'] ?? 'Hadir',
+      time: item['time'] ?? '',
+      type: statusType,
+      isCheckedOut: item['is_checkout'] ?? false,
+    );
+  }).toList();
+});
 
 final myRequestsProvider = Provider<List<LeaveRequestModel>>((ref) {
   final requestsAsync = ref.watch(leaveRequestsProvider(LeaveRequestsParams()));

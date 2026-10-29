@@ -51,4 +51,46 @@ class SummaryController extends Controller
             'data' => $this->summary->teamStats($employee, $day),
         ]);
     }
+
+    public function logs(Request $request): JsonResponse
+    {
+        $employee = $request->user()->employee;
+        if (! $employee) {
+            return response()->json(['success' => false, 'message' => 'Profil karyawan tidak ditemukan.', 'errors' => (object) []], 422);
+        }
+
+        $attendances = $employee->attendances()
+            ->orderBy('date', 'desc')
+            ->limit(10)
+            ->get();
+
+        $items = [];
+        foreach ($attendances as $att) {
+            if ($att->check_out_at) {
+                $items[] = [
+                    'date' => $att->date?->format('d M Y') ?? (is_string($att->date) ? $att->date : now()->format('d M Y')),
+                    'status' => 'Pulang',
+                    'time' => $att->check_out_at?->format('H:i') ?? '',
+                    'type' => 'present',
+                    'is_checkout' => true,
+                ];
+            }
+            if ($att->check_in_at) {
+                $isLate = ($att->late_minutes ?? 0) > 0;
+                $items[] = [
+                    'date' => $att->date?->format('d M Y') ?? (is_string($att->date) ? $att->date : now()->format('d M Y')),
+                    'status' => $isLate ? "Telat {$att->late_minutes}m" : 'Masuk',
+                    'time' => $att->check_in_at?->format('H:i') ?? '',
+                    'type' => $isLate ? 'lateYellow' : 'present',
+                    'is_checkout' => false,
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OK',
+            'data' => $items,
+        ]);
+    }
 }

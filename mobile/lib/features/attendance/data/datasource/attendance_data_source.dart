@@ -75,6 +75,21 @@ class AttendanceDataSource {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchLogs() async {
+    try {
+      final response = await dio.get('/attendance/logs');
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['data'] is List) {
+        return (data['data'] as List).map((e) => e as Map<String, dynamic>).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(_formatError(e));
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<Map<String, dynamic>> fetchSummary({int? year, int? month}) async {
     try {
       final response = await dio.get(

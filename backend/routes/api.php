@@ -66,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/attendance/summary', [SummaryController::class, 'self'])
         ->middleware('permission:attendance.view');
+    Route::get('/attendance/logs', [SummaryController::class, 'logs'])
+        ->middleware('permission:attendance.view');
     Route::get('/team-stats', [SummaryController::class, 'team'])
         ->middleware('permission:team_stats.view');
 
