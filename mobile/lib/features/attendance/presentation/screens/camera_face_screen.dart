@@ -98,12 +98,12 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
     return [
       LivenessChallenge(
         type: LivenessChallengeType.turnLeft,
-        instruction: 'Putar kepala ke kiri',
+        instruction: 'Putar kepala ke Kanan',
         semanticLabel: 'Tantangan putar kepala ke kiri',
       ),
       LivenessChallenge(
         type: LivenessChallengeType.turnRight,
-        instruction: 'Putar kepala ke kanan',
+        instruction: 'Putar kepala ke Kiri',
         semanticLabel: 'Tantangan putar kepala ke kanan',
       ),
     ];
@@ -542,9 +542,9 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
                 children: [
                   _buildStepIndicator(1, 'Depan', _currentChallengeIndex >= 0),
                   _buildStepIndicatorConnector(_currentChallengeIndex >= 1),
-                  _buildStepIndicator(2, 'Kiri', _currentChallengeIndex >= 1),
+                  _buildStepIndicator(2, 'Kanan', _currentChallengeIndex >= 1),
                   _buildStepIndicatorConnector(_currentChallengeIndex >= 2),
-                  _buildStepIndicator(3, 'Kanan', _livenessDone),
+                  _buildStepIndicator(3, 'Kiri', _livenessDone),
                 ],
               ),
             ),

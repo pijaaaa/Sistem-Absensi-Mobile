@@ -28,6 +28,16 @@ final faceServiceInitProvider = FutureProvider<bool>((ref) async {
   return await service.initialize();
 });
 
+final hasFaceTemplateProvider = FutureProvider<bool>((ref) async {
+  try {
+    final dataSource = ref.watch(faceDataSourceProvider);
+    final template = await dataSource.downloadTemplate();
+    return template != null;
+  } catch (_) {
+    return false;
+  }
+});
+
 /// Face enrollment state
 class FaceEnrollmentState {
   final bool isInitialized;
