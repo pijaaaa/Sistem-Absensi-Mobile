@@ -56,12 +56,19 @@ class TodayAttendanceCard extends ConsumerWidget {
   Widget _buildStatus(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final summaryAsync = ref.watch(todaySummaryProvider);
+    final recentAsync = ref.watch(recentActivityProvider);
 
     return summaryAsync.when(
       data: (summary) {
         final today = summary.today;
-        final isCheckedIn = summary.isCheckedInToday;
-        final isCheckedOut = summary.isCheckedOutToday;
+        
+        // Cek apakah ada record "Masuk" atau "Pulang" di log aktivitas terbaru hari ini
+        final recentItems = recentAsync.valueOrNull ?? [];
+        final hasCheckedInLog = recentItems.any((item) => !item.isCheckedOut);
+        final hasCheckedOutLog = recentItems.any((item) => item.isCheckedOut);
+
+        final isCheckedIn = summary.isCheckedInToday || (today?.checkIn != null) || hasCheckedInLog;
+        final isCheckedOut = summary.isCheckedOutToday || (today?.checkOut != null) || hasCheckedOutLog;
 
         String statusText = 'Belum absen hari ini';
         StatusType statusType = StatusType.pending;
