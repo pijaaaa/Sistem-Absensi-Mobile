@@ -17,18 +17,14 @@ class AppNavigationBar extends ConsumerWidget {
 
   static const _iconMap = <String, IconData>{
     'home': Icons.home,
-    'fingerprint': Icons.fingerprint,
-    'calendar': Icons.calendar_today,
-    'document': Icons.document_scanner,
-    'person': Icons.person,
-    'check_circle': Icons.check_circle,
-    'bar_chart': Icons.bar_chart,
-    'bell': Icons.notifications,
+    'attendance': Icons.fingerprint,
     'history': Icons.history,
     'leave': Icons.calendar_today,
+    'profile': Icons.person,
     'approval': Icons.check_circle,
     'team_stats': Icons.bar_chart,
     'notifications': Icons.notifications,
+    'more': Icons.menu,
   };
 
   static const _routeMap = <String, String>{
@@ -74,8 +70,13 @@ class AppNavigationBar extends ConsumerWidget {
 
     final menus =
         menusRaw.map((e) => MenuItemModel.fromJson(e)).toList();
-    final visibleMenus = menus.where((e) => e.featureKey != 'notifications').take(5).toList();
-    final hasMore = menus.where((e) => e.featureKey != 'notifications').length > 5;
+    final visibleMenus = menus
+        .where((e) => e.featureKey != 'notifications' && e.featureKey != 'attendance')
+        .take(5)
+        .toList();
+    final hasMore = menus
+        .where((e) => e.featureKey != 'notifications' && e.featureKey != 'attendance')
+        .length > 5;
 
     if (hasMore) {
       visibleMenus.add(MenuItemModel(
@@ -101,7 +102,7 @@ class AppNavigationBar extends ConsumerWidget {
       indicatorColor: _getIndicatorColor(context),
       destinations: visibleMenus.asMap().entries.map((entry) {
         final item = entry.value;
-        final icon = _iconMap[item.icon] ?? Icons.menu;
+        final icon = _iconMap[item.featureKey] ?? _iconMap[item.icon] ?? Icons.widgets;
         final label = item.label;
 
         return NavigationDestination(
