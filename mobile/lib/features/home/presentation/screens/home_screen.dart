@@ -59,8 +59,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _refreshData() {
+    final now = DateTime.now();
     ref.invalidate(todaySummaryProvider);
+    ref.invalidate(monthlySummaryProvider(MonthYearParams(year: now.year, month: now.month)));
     ref.invalidate(homeDataProvider);
+    ref.invalidate(recentActivityProvider);
   }
 
   Future<void> _setupPushCallbacks() async {
@@ -139,9 +142,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: homeInitAsync.when(
         data: (_) => RefreshIndicator(
           onRefresh: () async {
+            final now = DateTime.now();
             ref.invalidate(homeInitProvider);
             ref.invalidate(homeDataProvider);
             ref.invalidate(todaySummaryProvider);
+            ref.invalidate(monthlySummaryProvider(MonthYearParams(year: now.year, month: now.month)));
+            ref.invalidate(recentActivityProvider);
             ref.invalidate(leaveBalanceProvider);
             if (isManager) ref.invalidate(teamStatsProvider);
           },
