@@ -168,41 +168,30 @@ class TodayAttendanceCard extends ConsumerWidget {
 
   Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(todaySummaryProvider);
-    final hasCheckedIn = summaryAsync.valueOrNull?.isCheckedInToday ?? false;
-    final hasCheckedOut = summaryAsync.valueOrNull?.isCheckedOutToday ?? false;
+    final summary = summaryAsync.valueOrNull;
+    final today = summary?.today;
+    
+    // Jika today sudah checkIn atau status menunjukkan sudah masuk, izinkan absen pulang
+    final hasCheckedIn = (summary?.isCheckedInToday ?? false) || (today?.checkIn != null);
+    final hasCheckedOut = (summary?.isCheckedOutToday ?? false) || (today?.checkOut != null);
 
     return Row(
       children: [
         Expanded(
           child: FilledButton.icon(
-            onPressed: (hasCheckedIn && !hasCheckedOut)
-                ? () => context.push('/attendance-flow?isCheckIn=false')
-                : (hasCheckedIn && hasCheckedOut)
-                    ? null
-                    : () => context.push('/attendance-flow?isCheckIn=true'),
-            icon: Icon(
-              hasCheckedIn
-                  ? (hasCheckedOut
-                      ? Icons.login
-                      : Icons.logout)
-                  : Icons.login,
-              size: 18,
-            ),
-            label: Text(
-              hasCheckedOut
-                  ? 'Sudah Pulang'
-                  : hasCheckedIn
-                      ? 'Pulang'
-                      : 'Masuk',
-            ),
+            onPressed: hasCheckedIn ? null : () => context.push('/attendance-flow?isCheckIn=true'),
+            icon: const Icon(Icons.login, size: 18),
+            label: Text(hasCheckedIn ? 'Sudah Masuk' : 'Masuk'),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => context.push('/history'),
-            icon: const Icon(Icons.history, size: 16),
-            label: const Text('Riwayat'),
+          child: FilledButton.icon(
+            onPressed: hasCheckedOut
+                ? null
+                : () => context.push('/attendance-flow?isCheckIn=false'),
+            icon: const Icon(Icons.logout, size: 18),
+            label: Text(hasCheckedOut ? 'Sudah Pulang' : 'Pulang'),
           ),
         ),
       ],

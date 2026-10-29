@@ -46,12 +46,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
     });
 
-    // Setelah frame pertama (router siap & sudah login): pasang callback
-    // push-token lifecycle, dan konsumsi notifikasi yang mungkin membuka app
-    // dari terminated state (cold start / belum login).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupPushCallbacks();
+      _refreshData();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshData();
+  }
+
+  void _refreshData() {
+    ref.invalidate(todaySummaryProvider);
+    ref.invalidate(homeDataProvider);
   }
 
   Future<void> _setupPushCallbacks() async {
@@ -137,6 +146,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             if (isManager) ref.invalidate(teamStatsProvider);
           },
           child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               _buildHeader(theme, isDark, authState, isManager),
               SliverToBoxAdapter(
