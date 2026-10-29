@@ -43,6 +43,9 @@ class OfflineSyncService
         $tz = $schedule?->timezone ?? config('app.timezone');
         $anchor = $payload['anchor'];
         $anchorServer = Carbon::parse($anchor['server_time']);
+        if ($anchorServer->year < 2024) {
+            $anchorServer = Carbon::now($tz);
+        }
         $bootChanged = (int) $payload['boot_count'] !== (int) $anchor['boot_count'];
 
         $results = [];

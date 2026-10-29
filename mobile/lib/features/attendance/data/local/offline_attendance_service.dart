@@ -38,7 +38,7 @@ class OfflineAttendanceService {
     // Try to get latest anchor
     final anchor = await database.getLatestAnchor();
     
-    if (anchor != null) {
+    if (anchor != null && anchor.serverTimeMillis > 1700000000000) {
       // Check if boot count changed (device restarted)
       final currentBootCount = await elapsedTimeService.getBootCount();
       if (currentBootCount == anchor.bootCount) {
