@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/devices', [DeviceController::class, 'index']);
+    Route::get('/devices/status', [DeviceController::class, 'status']);
     Route::post('/devices/register-backup', [DeviceController::class, 'registerBackup']);
 
     Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn'])

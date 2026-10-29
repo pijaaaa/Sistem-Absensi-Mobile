@@ -71,11 +71,11 @@ class AppNavigationBar extends ConsumerWidget {
     final menus =
         menusRaw.map((e) => MenuItemModel.fromJson(e)).toList();
     final visibleMenus = menus
-        .where((e) => e.featureKey != 'notifications' && e.featureKey != 'attendance')
+        .where((e) => e.featureKey != 'notifications' && e.featureKey != 'attendance' && e.featureKey != 'team_stats')
         .take(5)
         .toList();
     final hasMore = menus
-        .where((e) => e.featureKey != 'notifications' && e.featureKey != 'attendance')
+        .where((e) => e.featureKey != 'notifications' && e.featureKey != 'attendance' && e.featureKey != 'team_stats')
         .length > 5;
 
     if (hasMore) {

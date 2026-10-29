@@ -33,6 +33,32 @@ class DeviceController extends Controller
         ]);
     }
 
+    public function status(Request $request): JsonResponse
+    {
+        $deviceUid = $request->query('device_uid');
+        $employee = $request->user()->employee;
+
+        if (! $employee || ! $deviceUid) {
+            return response()->json(['success' => true, 'device' => null]);
+        }
+
+        $device = $employee->devices()
+            ->where('device_uid', $deviceUid)
+            ->where('status', 'active')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'device' => $device ? [
+                'id' => $device->id,
+                'device_uid' => $device->device_uid,
+                'name' => $device->name,
+                'type' => $device->type,
+                'status' => $device->status,
+            ] : null,
+        ]);
+    }
+
     public function registerBackup(Request $request): JsonResponse
     {
         $data = $request->validate([
