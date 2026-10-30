@@ -84,8 +84,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   debugPrint('[FCM] background: ${message.notification?.title}');
-  await PushNotificationService.instance.initialize();
-  await PushNotificationService.instance.showFromMap(message.toMap());
+  // Hapus pemanggilan showFromMap di background handler agar OS Android / FCM native
+  // tidak menampilkan duplikasi notifikasi (karena FCM menampilkan payload notification secara otomatis).
 }
 
 void main() async {
