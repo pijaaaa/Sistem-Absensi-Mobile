@@ -47,6 +47,7 @@ class LeaveRequestController extends Controller
             'Pengajuan '.$leave->type,
             sprintf('%s mengajukan %s (%s s/d %s).', $employee->name, $leave->type, $leave->start_date->toDateString(), $leave->end_date->toDateString()),
             ['type' => 'leave_request_new', 'id' => $leave->id],
+            'leave_request_new_' . $leave->id,
         );
 
         return response()->json([

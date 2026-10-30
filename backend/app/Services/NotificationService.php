@@ -71,7 +71,9 @@ class NotificationService
      */
     public function sendMany(iterable $users, string $title, string $body, array $data = [], ?string $dedupeKey = null): void
     {
-        foreach ($users as $user) {
+        // Pastikan list user unique untuk mencegah duplikasi kirim ke user yang sama (misal role tumpang tindih)
+        $uniqueUsers = collect($users)->unique('id');
+        foreach ($uniqueUsers as $user) {
             $this->send($user, $title, $body, $data, $dedupeKey);
         }
     }
