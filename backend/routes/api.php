@@ -71,6 +71,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:attendance.view');
     Route::get('/team-stats', [SummaryController::class, 'team'])
         ->middleware('permission:team_stats.view');
+    Route::get('/team-attendance/detail', [SummaryController::class, 'teamAttendanceDetail'])
+        ->middleware('permission:team_stats.view');
 
     Route::post('/push-tokens', [NotificationController::class, 'registerToken']);
     Route::delete('/push-tokens/{token}', [NotificationController::class, 'deleteToken']);

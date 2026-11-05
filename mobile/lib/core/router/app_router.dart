@@ -6,6 +6,7 @@ import 'package:mobile/features/approval/presentation/screens/approval_screen.da
 import 'package:mobile/features/attendance/presentation/screens/attendance_flow_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/history_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/offline_queue_screen.dart';
+import 'package:mobile/features/attendance/presentation/screens/team_attendance_monitoring_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/device_registration_screen.dart';
 import 'package:mobile/features/design_showcase/design_showcase_screen.dart';
@@ -101,6 +102,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/approval',
         builder: (context, state) => const ApprovalScreen(),
+      ),
+      GoRoute(
+        path: '/team-attendance-monitoring',
+        builder: (context, state) => const TeamAttendanceMonitoringScreen(),
       ),
       GoRoute(
         path: '/notifications',

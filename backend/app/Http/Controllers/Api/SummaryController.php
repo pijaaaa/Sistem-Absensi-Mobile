@@ -93,4 +93,61 @@ class SummaryController extends Controller
             'data' => $items,
         ]);
     }
+
+    public function teamAttendanceDetail(Request $request): JsonResponse
+    {
+        $employee = $request->user()->employee;
+
+        if (! $employee) {
+            return response()->json(['success' => false, 'message' => 'Profil karyawan tidak ditemukan.', 'errors' => (object) []], 422);
+        }
+
+        $date = $request->input('date', now()->toDateString());
+        $search = $request->input('search');
+
+        $employeesQuery = \App\Models\Employee::where('department_id', $employee->department_id)
+            ->where('is_active', true)
+            ->whereHas('user', fn ($q) => $q->where('role', 'karyawan'));
+
+        if ($search) {
+            $employeesQuery->where('name', 'like', "%{$search}%");
+        }
+
+        $employees = $employeesQuery->orderBy('name')->get();
+
+        $attendances = \App\Models\Attendance::whereIn('employee_id', $employees->pluck('id'))
+            ->whereDate('date', $date)
+            ->with(['location', 'employee'])
+            ->get()
+            ->keyBy('employee_id');
+
+        $result = [];
+        foreach ($employees as $emp) {
+            $att = $attendances->get($emp->id);
+
+            $result[] = [
+                'employee_id' => $emp->id,
+                'name' => $emp->name,
+                'check_in_at' => $att?->check_in_at?->format('H:i:s'),
+                'check_out_at' => $att?->check_out_at?->format('H:i:s'),
+                'in_lat' => $att?->in_lat,
+                'in_lng' => $att?->in_lng,
+                'out_lat' => $att?->out_lat,
+                'out_lng' => $att?->out_lng,
+                'location_name' => $att?->location?->name,
+                'is_backup_device' => $att?->is_backup_device ?? false,
+                'late_minutes' => $att?->late_minutes ?? 0,
+                'approval_status' => $att?->approval_status,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OK',
+            'data' => [
+                'date' => $date,
+                'employees' => $result,
+            ],
+        ]);
+    }
 }

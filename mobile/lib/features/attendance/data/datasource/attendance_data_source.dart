@@ -134,6 +134,30 @@ class AttendanceDataSource {
     }
   }
 
+  /// Get team attendance detail (for manager)
+  Future<Map<String, dynamic>> fetchTeamAttendanceDetail({
+    required String date,
+    String? search,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/team-attendance/detail',
+        queryParameters: {
+          'date': date,
+          if (search != null && search.isNotEmpty) 'search': search,
+        },
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return {'data': data};
+    } on DioException catch (e) {
+      throw Exception(_formatError(e));
+    } catch (e) {
+      throw Exception('Gagal memuat detail kehadiran tim: $e');
+    }
+  }
+
   /// Get server time (B7 - for elapsed-realtime anchor)
   Future<int> fetchServerTime() async {
     try {
