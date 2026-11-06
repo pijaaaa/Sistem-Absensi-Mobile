@@ -139,6 +139,41 @@ class LeaveRequestController extends Controller
         return response()->json(['success' => true, 'message' => 'Pengajuan ditolak.', 'data' => $this->payload($leave->fresh())]);
     }
 
+    public function destroy(Request $request, LeaveRequest $leave): JsonResponse
+    {
+        // Authorization: user hanya bisa cancel pengajuan sendiri
+        if ($leave->employee_id !== $request->user()->employee?->id) {
+            return $this->error('Anda tidak berhak membatalkan pengajuan ini.');
+        }
+
+        // Validation: hanya pending yang bisa di-cancel
+        if ($leave->status !== 'pending') {
+            $message = match ($leave->status) {
+                'approved' => 'Pengajuan tidak dapat dibatalkan karena sudah disetujui oleh manager.',
+                'rejected' => 'Pengajuan tidak dapat dibatalkan karena sudah ditolak.',
+                default => 'Hanya pengajuan yang berstatus pending yang dapat dibatalkan.',
+            };
+            
+            return $this->error($message);
+        }
+
+        // Audit log sebelum delete
+        AuditLogger::record('leave.cancelled', $leave, null, [
+            'type' => $leave->type,
+            'start_date' => $leave->start_date->toDateString(),
+            'end_date' => $leave->end_date->toDateString(),
+            'reason' => $leave->reason,
+        ]);
+
+        // Hard delete
+        $leave->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengajuan berhasil dibatalkan.',
+        ]);
+    }
+
     private function notifyRequester(LeaveRequest $leave): void
     {
         if ($user = $leave->employee?->user) {

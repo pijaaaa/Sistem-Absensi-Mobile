@@ -312,10 +312,7 @@ class _LeaveRequestCard extends ConsumerWidget {
           },
           loading: () {},
           error: (error, _) {
-            final errorStr = error.toString();
-            final message = (errorStr.contains('Data tidak ditemukan') || errorStr.contains('404'))
-                ? 'Pengajuan cuti tidak dapat dibatalkan karena sudah disetujui oleh manager.'
-                : errorStr;
+            final message = error.toString().replaceAll('Exception: ', '');
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(message),

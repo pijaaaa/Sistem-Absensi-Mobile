@@ -56,6 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:leave_requests.create');
     Route::get('/leave-requests', [LeaveRequestController::class, 'index'])
         ->middleware('permission:leave_requests.view');
+    Route::delete('/leave-requests/{leave}', [LeaveRequestController::class, 'destroy'])
+        ->middleware('permission:leave_requests.create');
     Route::get('/leave-balance', [LeaveRequestController::class, 'balance'])
         ->middleware('permission:leave_requests.view');
     Route::get('/leave-approval', [LeaveRequestController::class, 'inbox'])
