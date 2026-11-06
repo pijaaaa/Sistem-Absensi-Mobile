@@ -278,31 +278,15 @@ class _FormTabState extends ConsumerState<_FormTab> {
               ),
             if (_startDate != null && _endDate != null) const SizedBox(height: 20),
 
-            submissionState.when(
-              data: (_) => AppButton(
-                text: 'Kirim Pengajuan',
-                onPressed: _submit,
-              ),
+            submissionState.maybeWhen(
               loading: () => AppButton(
                 text: 'Mengirim...',
                 onPressed: null,
                 isLoading: true,
               ),
-              error: (error, _) => Column(
-                children: [
-                  Text(
-                    error.toString().replaceAll('Exception: ', ''),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  AppButton(
-                    text: 'Kirim Pengajuan',
-                    onPressed: _submit,
-                  ),
-                ],
+              orElse: () => AppButton(
+                text: 'Kirim Pengajuan',
+                onPressed: _submit,
               ),
             ),
           ],
@@ -424,22 +408,32 @@ class _FormTabState extends ConsumerState<_FormTab> {
         );
 
     final state = ref.read(leaveSubmissionProvider);
-    if (mounted && state.hasValue) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pengajuan berhasil dikirim')),
-      );
+    if (mounted) {
+      if (state.hasValue) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pengajuan berhasil dikirim')),
+        );
 
-      // Reset form
-      _formKey.currentState?.reset();
-      setState(() {
-        _startDate = null;
-        _endDate = null;
-        _attachmentPath = null;
-        _selectedType = 'cuti';
-      });
-      _reasonController.clear();
-      _startDateController.clear();
-      _endDateController.clear();
+        // Reset form
+        _formKey.currentState?.reset();
+        setState(() {
+          _startDate = null;
+          _endDate = null;
+          _attachmentPath = null;
+          _selectedType = 'cuti';
+        });
+        _reasonController.clear();
+        _startDateController.clear();
+        _endDateController.clear();
+      } else if (state.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.error.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
 }

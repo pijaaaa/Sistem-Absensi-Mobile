@@ -28,9 +28,16 @@ class LeaveRequestService
 
         if ($data['type'] === 'cuti') {
             $days = $this->workingDays($start, $end);
+            $available = $this->availableBalance($employee);
 
-            if ($this->availableBalance($employee) < $days) {
-                throw ValidationException::withMessages(['start_date' => 'Saldo cuti tidak mencukupi.']);
+            if ($available < $days) {
+                throw ValidationException::withMessages([
+                    'start_date' => sprintf(
+                        'Pengajuan melebihi sisa kuota cuti Anda (%d hari tersisa, diminta %d hari).',
+                        $available,
+                        $days
+                    )
+                ]);
             }
         }
 

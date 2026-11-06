@@ -45,9 +45,11 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson()
         );
 
-        $exceptions->render(fn (ValidationException $e, Request $request) => $apiError(
-            $request, 422, 'Validasi gagal.', $e->errors()
-        ));
+        $exceptions->render(function (ValidationException $e, Request $request) use ($apiError) {
+            $errors = $e->errors();
+            $firstMessage = !empty($errors) ? reset($errors)[0] : 'Validasi gagal.';
+            return $apiError($request, 422, $firstMessage, $errors);
+        });
 
         $exceptions->render(fn (AuthenticationException $e, Request $request) => $apiError(
             $request, 401, 'Tidak terautentikasi.'
