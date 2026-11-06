@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
@@ -56,19 +57,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Offline Queue integration section if any pending/recent items exist
-                          if (offlineItems.isNotEmpty) ...[
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                              child: Text(
-                                'Antrean & Riwayat Offline',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            ...offlineItems.map((item) => _OfflineHistoryCard(item: item)),
-                            const SizedBox(height: 8),
-                          ],
+                          // Offline Queue Navigation Card
+                          _OfflineQueueNavigationCard(count: offlineItems.length),
 
                           // Calendar Grid
                           _CalendarGrid(
@@ -150,74 +140,65 @@ final offlineQueueListProvider = FutureProvider<List<OfflineAttendance>>((ref) a
   return await (db.select(db.offlineAttendances)).get();
 });
 
-class _OfflineHistoryCard extends StatelessWidget {
-  final OfflineAttendance item;
-  const _OfflineHistoryCard({required this.item});
+class _OfflineQueueNavigationCard extends ConsumerWidget {
+  final int count;
+  
+  const _OfflineQueueNavigationCard({required this.count});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isSynced = item.isSynced;
-    final hasError = item.syncError != null && item.syncError!.isNotEmpty;
-
-    String label;
-    StatusType type;
-    Color color;
-
-    if (isSynced) {
-      label = 'Tersinkron (Offline)';
-      type = StatusType.approved;
-      color = AppColors.success;
-    } else if (hasError && item.syncError!.contains('Rejected')) {
-      label = 'Ditolak (Offline)';
-      type = StatusType.rejected;
-      color = AppColors.error;
-    } else {
-      label = 'Menunggu Sync';
-      type = StatusType.pending;
-      color = AppColors.pending;
-    }
-
-    final dateStr = DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.createdAt);
+    final hasPending = count > 0;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  item.isCheckIn ? Icons.login : Icons.logout,
-                  color: item.isCheckIn ? AppColors.success : AppColors.info,
-                  size: 20,
+      margin: const EdgeInsets.all(16),
+      child: InkWell(
+        onTap: () => context.push('/offline-history'),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: hasPending 
+                      ? AppColors.warningYellow.withValues(alpha: 0.15) 
+                      : AppColors.success.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 12),
-                Column(
+                child: Icon(
+                  hasPending ? Icons.cloud_queue : Icons.cloud_done,
+                  color: hasPending ? AppColors.warningYellow : AppColors.success,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.isCheckIn ? 'Absen Masuk' : 'Absen Pulang',
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                      'Antrean & Riwayat Offline',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      dateStr,
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      hasPending 
+                          ? '$count antrean menunggu sinkronisasi' 
+                          : 'Semua tersinkron',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
-            StatusChip(
-              label: label,
-              type: type,
-              customColor: color,
-              outline: true,
-            ),
-          ],
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -387,50 +368,34 @@ class _CalendarGrid extends StatelessWidget {
               final dateStr = '${month.year}-${month.month.toString().padLeft(2, '0')}-${dayNumber.toString().padLeft(2, '0')}';
               final status = calendar[dateStr];
               final statusColor = _getStatusColor(status?.status);
+              final hasStatus = statusColor != null;
               final isToday = dayNumber == DateTime.now().day && month.month == DateTime.now().month && month.year == DateTime.now().year;
 
               return GestureDetector(
                 onTap: () => onDateSelected(DateTime(month.year, month.month, dayNumber), status),
                 child: Container(
                   alignment: Alignment.center,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: isToday
-                              ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                              : Colors.transparent,
-                          shape: BoxShape.circle,
-                          border: isToday
-                              ? Border.all(color: theme.colorScheme.primary, width: 2)
-                              : null,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$dayNumber',
-                            style: TextStyle(
-                              color: isToday ? theme.colorScheme.primary : theme.colorScheme.onSurface,
-                              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: hasStatus ? statusColor : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: isToday
+                          ? Border.all(color: theme.colorScheme.primary, width: 2)
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$dayNumber',
+                        style: TextStyle(
+                          color: hasStatus 
+                              ? Colors.white 
+                              : (isToday ? theme.colorScheme.primary : theme.colorScheme.onSurface),
+                          fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
-                      if (statusColor != null)
-                        Positioned(
-                          bottom: 4,
-                          child: Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: statusColor,
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
               );
@@ -443,23 +408,31 @@ class _CalendarGrid extends StatelessWidget {
 
   Color? _getStatusColor(String? status) {
     switch (status) {
+      case 'hadir':
       case 'present':
       case 'late_tolerance':
         return AppColors.success;
+      case 'telat_kuning':
       case 'late_yellow':
         return AppColors.warningYellow;
+      case 'telat_merah':
       case 'late_red':
         return AppColors.error;
+      case 'cuti':
       case 'leave':
         return AppColors.info;
+      case 'sakit':
       case 'sick':
         return AppColors.purple;
+      case 'izin':
       case 'permission':
         return AppColors.cyan;
       case 'dinas':
         return AppColors.teal;
+      case 'libur':
       case 'holiday':
         return AppColors.grey;
+      case 'alfa':
       case 'absent':
         return AppColors.alpha;
       default:

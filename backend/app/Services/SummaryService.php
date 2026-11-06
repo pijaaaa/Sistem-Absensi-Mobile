@@ -35,6 +35,74 @@ class SummaryService
             ->whereDate('end_date', '>=', $start)
             ->get();
 
+        $autoAlfa = 0;
+
+        try {
+            $workSchedule = \App\Models\WorkSchedule::current();
+
+            if ($workSchedule && $workSchedule->end_time) {
+                $timezone = $workSchedule->timezone ?: config('app.timezone', 'Asia/Jakarta');
+                $now = Carbon::now($timezone);
+
+                $cursor = $start->copy();
+                $attendanceByDate = $attendances->keyBy(fn($a) => $a->date->toDateString());
+
+                $maxIterations = 31;
+                $iterations = 0;
+
+                while ($cursor->lessThanOrEqualTo($end) && $iterations < $maxIterations) {
+                    $iterations++;
+
+                    if ($cursor->isAfter($now->copy()->startOfDay())) {
+                        $cursor->addDay();
+                        continue;
+                    }
+
+                    $dateKey = $cursor->toDateString();
+                    $att = $attendanceByDate->get($dateKey);
+
+                    if ($this->schedule->isWorkday($cursor) &&
+                        (!$att || !$att->check_in_at) &&
+                        !$att?->is_absent) {
+
+                        $hasLeave = $leaves->first(fn($l) =>
+                            $cursor->betweenIncluded($l->start_date, $l->end_date)
+                        );
+
+                        if (!$hasLeave) {
+                            $isPast = $cursor->isBefore($now->copy()->startOfDay());
+
+                            if ($isPast) {
+                                $autoAlfa++;
+                            } elseif ($cursor->isToday()) {
+                                try {
+                                    $endTime = Carbon::parse($cursor->toDateString() . ' ' . $workSchedule->end_time, $timezone);
+                                    if ($now->isAfter($endTime)) {
+                                        $autoAlfa++;
+                                    }
+                                } catch (\Exception $e) {
+                                    \Log::warning('Failed to parse end_time in monthly', [
+                                        'date' => $cursor->toDateString(),
+                                        'error' => $e->getMessage()
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+
+                    $cursor->addDay();
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Auto-alfa calculation failed in monthly', [
+                'employee_id' => $employee->id,
+                'year' => $year,
+                'month' => $month,
+                'error' => $e->getMessage()
+            ]);
+            $autoAlfa = 0;
+        }
+
         $lateCount = ['green' => 0, 'yellow' => 0, 'red' => 0];
 
         foreach ($present as $attendance) {
@@ -72,7 +140,7 @@ class SummaryService
             'izin' => $leaveDays['izin'],
             'dinas' => $leaveDays['dinas'],
             'libur' => $this->nonWorkingDays($start, $end),
-            'alfa' => $absents->count(),
+            'alfa' => $absents->count() + $autoAlfa,
             'sisa_cuti' => $this->leave->availableBalance($employee),
             'calendar' => $this->calendar($employee, $start, $end, $attendances, $leaves),
         ];
@@ -124,6 +192,38 @@ class SummaryService
 
         if (! $this->schedule->isWorkday($day)) {
             return 'libur';
+        }
+
+        try {
+            $workSchedule = \App\Models\WorkSchedule::current();
+
+            if ($workSchedule && $workSchedule->end_time) {
+                $timezone = $workSchedule->timezone ?: config('app.timezone', 'Asia/Jakarta');
+                $now = Carbon::now($timezone);
+
+                if ($day->isBefore($now->copy()->startOfDay())) {
+                    return 'alfa';
+                }
+
+                if ($day->isToday()) {
+                    try {
+                        $endTime = Carbon::parse($day->toDateString() . ' ' . $workSchedule->end_time, $timezone);
+                        if ($now->isAfter($endTime)) {
+                            return 'alfa';
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to parse work schedule end_time', [
+                            'end_time' => $workSchedule->end_time,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Auto-alfa detection failed in dayStatus', [
+                'date' => $day->toDateString(),
+                'error' => $e->getMessage()
+            ]);
         }
 
         return 'kosong';

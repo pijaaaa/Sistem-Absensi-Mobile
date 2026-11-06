@@ -6,6 +6,7 @@ import 'package:mobile/features/approval/presentation/screens/approval_screen.da
 import 'package:mobile/features/attendance/presentation/screens/attendance_flow_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/history_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/offline_queue_screen.dart';
+import 'package:mobile/features/attendance/presentation/screens/offline_history_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/team_attendance_monitoring_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/device_registration_screen.dart';
@@ -94,6 +95,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/offline-queue',
         builder: (context, state) => const OfflineQueueScreen(),
+      ),
+      GoRoute(
+        path: '/offline-history',
+        builder: (context, state) => const OfflineHistoryScreen(),
       ),
       GoRoute(
         path: '/leave',
