@@ -271,7 +271,7 @@ class _FormTabState extends ConsumerState<_FormTab> {
                     _buildInfoRow(
                       context,
                       'Durasi',
-                      '${_endDate!.difference(_startDate!).inDays + 1} hari',
+                      '${_calculateWorkingDays()} hari kerja',
                     ),
                   ],
                 ),
@@ -332,6 +332,23 @@ class _FormTabState extends ConsumerState<_FormTab> {
         ),
       ),
     );
+  }
+
+  int _calculateWorkingDays() {
+    if (_startDate == null || _endDate == null) return 0;
+    
+    int count = 0;
+    DateTime current = _startDate!;
+    
+    while (current.isBefore(_endDate!) || current.isAtSameMomentAs(_endDate!)) {
+      // Skip weekend (Saturday=6, Sunday=7)
+      if (current.weekday != DateTime.saturday && current.weekday != DateTime.sunday) {
+        count++;
+      }
+      current = current.add(const Duration(days: 1));
+    }
+    
+    return count;
   }
 
   Widget _buildInfoRow(BuildContext context, String label, String value) {
