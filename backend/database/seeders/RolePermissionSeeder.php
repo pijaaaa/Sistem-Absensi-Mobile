@@ -18,6 +18,7 @@ class RolePermissionSeeder extends Seeder
         'manager_department' => [
             'home', 'attendance', 'history', 'profile', 'notifications', 'team_stats',
         ],
+        'hr' => ['dashboard', 'attendance_monitoring', 'employees', 'departments', 'attendance_reports', 'leave_requests', 'attendance_approval', 'review', 'audit_logs', 'profile', 'notifications'],
     ];
 
     private const EXTRA = [
@@ -26,6 +27,12 @@ class RolePermissionSeeder extends Seeder
             'leave_requests.view', 'leave_requests.create', 'leave_requests.approve',
             'attendance.create',
             'attendance_approval.view', 'attendance_approval.approve',
+        ],
+        'hr' => [
+            'leave_requests.view', 'leave_requests.approve',
+            'attendance_approval.view', 'attendance_approval.approve',
+            'attendance_reports.view', 'attendance_reports.export',
+            'review.view', 'review.update',
         ],
     ];
 

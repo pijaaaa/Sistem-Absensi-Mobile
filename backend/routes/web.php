@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\AccessController;
+use App\Http\Controllers\Web\AttendanceMonitoringController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DashboardController;
@@ -32,6 +33,7 @@ Route::middleware(['auth', 'superadmin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permission:dashboard.view')->name('dashboard');
 
     // Laporan & dashboard
+    Route::get('/attendance-monitoring', [AttendanceMonitoringController::class, 'index'])->middleware('permission:attendance_monitoring.view')->name('attendance-monitoring.index');
     Route::get('/reports', [ReportController::class, 'index'])->middleware('permission:attendance_reports.view')->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])->middleware('permission:attendance_reports.export')->name('reports.export');
 

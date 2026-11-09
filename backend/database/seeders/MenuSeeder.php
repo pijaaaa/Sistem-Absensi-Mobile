@@ -10,6 +10,7 @@ class MenuSeeder extends Seeder
 {
     private const WEB = [
         ['dashboard', 'Dashboard', 'dashboard', 'home'],
+         ['attendance_monitoring', 'Monitoring Absensi', 'attendance-monitoring.index', 'activity'],
         ['employees', 'Karyawan', 'employees.index', 'users'],
         ['departments', 'Department', 'departments.index', 'building'],
         ['locations', 'Lokasi Absen', 'locations.index', 'map-pin'],

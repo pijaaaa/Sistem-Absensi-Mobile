@@ -20,7 +20,7 @@ class NotificationService
     public function approversFor(Employee $requester): Collection
     {
         if ($requester->user?->role->value === 'manager_department') {
-            return User::where('role', 'superadmin')->get();
+            return User::where('role', 'hr')->get();
         }
 
         return User::where('role', 'manager_department')

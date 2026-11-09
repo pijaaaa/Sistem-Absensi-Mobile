@@ -23,6 +23,7 @@ class ModulePermissionSeeder extends Seeder
         'leave_quota' => ['Jatah Cuti', 'web', []],
         'leave_requests' => ['Pengajuan', 'both', ['approve']],
         'attendance_approval' => ['Approval Kehadiran', 'both', ['approve']],
+        'attendance_monitoring' => ['Monitoring Absensi', 'web', []],
         'attendance_reports' => ['Laporan Absensi', 'web', ['export']],
         'review' => ['Perlu Review', 'web', []],
         'devices' => ['Device', 'web', []],

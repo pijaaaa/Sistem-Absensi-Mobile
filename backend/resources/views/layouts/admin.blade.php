@@ -11,7 +11,7 @@
         </div>
         <nav class="flex-1 space-y-1 overflow-y-auto p-3">
             @foreach ($sidebar as $menu)
-                @php($href = \Illuminate\Support\Facades\Route::has($menu->route_or_feature_key) ? route($menu->route_or_feature_key) : '#')
+                @php($href = \Illuminate\Support\Facades\Route::has($menu->route_or_feature_key) ? route($menu->route_or_feature_key) : ($menu->route_or_feature_key === 'attendance-monitoring.index' ? url('/attendance-monitoring') : '#'))
                 <a href="{{ $href }}"
                     class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm {{ request()->routeIs($menu->route_or_feature_key) ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100' }}">
                     <span class="text-xs uppercase text-gray-400">{{ Str::substr($menu->icon ?? '', 0, 2) }}</span>

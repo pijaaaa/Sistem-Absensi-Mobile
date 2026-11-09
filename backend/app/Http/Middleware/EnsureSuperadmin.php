@@ -11,8 +11,8 @@ class EnsureSuperadmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() || ! $request->user()->isSuperadmin()) {
-            throw new AccessDeniedHttpException('Hanya superadmin yang boleh mengakses.');
+        if (! $request->user() || ! in_array($request->user()->role->value, ['superadmin', 'hr'], true)) {
+            throw new AccessDeniedHttpException('Hanya superadmin atau HR yang boleh mengakses.');
         }
 
         return $next($request);

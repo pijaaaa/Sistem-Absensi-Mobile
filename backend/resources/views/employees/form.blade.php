@@ -20,6 +20,7 @@
             <select name="role" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                 <option value="karyawan" @selected(old('role', $employee->user?->role?->value) === 'karyawan')>Karyawan</option>
                 <option value="manager_department" @selected(old('role', $employee->user?->role?->value) === 'manager_department')>Manager Department</option>
+                <option value="hr" @selected(old('role', $employee->user?->role?->value) === 'hr')>HR</option>
             </select>
             @error('role') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>

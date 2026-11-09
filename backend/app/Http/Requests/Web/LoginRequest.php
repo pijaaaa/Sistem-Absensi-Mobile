@@ -34,11 +34,11 @@ class LoginRequest extends FormRequest
 
         $user = Auth::user();
 
-        if (! $user->isSuperadmin()) {
+        if (! in_array($user->role->value, ['superadmin', 'hr'], true)) {
             Auth::guard('web')->logout();
 
             throw ValidationException::withMessages([
-                'email' => 'Web admin hanya untuk superadmin.',
+                'email' => 'Web admin hanya untuk superadmin atau HR.',
             ]);
         }
 
