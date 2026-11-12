@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             ScheduleSeeder::class,
             LocationSeeder::class,
             UserSeeder::class,
+            DemoDataSeeder::class,
         ]);
     }
 }

@@ -14,9 +14,13 @@ class HolidayController extends Controller
     public function index(Request $request): View
     {
         $year = (int) $request->input('year', now()->year);
-        $holidays = Holiday::whereYear('date', $year)->orderBy('date')->get();
+        $search = trim((string) $request->input('search', ''));
+        $holidays = Holiday::whereYear('date', $year)
+            ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
+            ->orderBy('date')
+            ->get();
 
-        return view('holidays.index', compact('holidays', 'year'));
+        return view('holidays.index', compact('holidays', 'year', 'search'));
     }
 
     public function store(Request $request): RedirectResponse

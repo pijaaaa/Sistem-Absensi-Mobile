@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\AccessController;
+use App\Http\Controllers\Web\AttendanceApprovalController;
 use App\Http\Controllers\Web\AttendanceMonitoringController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\AuthController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Web\LeaveBalanceController;
 use App\Http\Controllers\Web\LeaveRequestController;
 use App\Http\Controllers\Web\LocationController;
 use App\Http\Controllers\Web\MenuController;
+use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\ReviewController;
 use App\Http\Controllers\Web\ScheduleController;
@@ -27,8 +29,16 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 });
 
+Route::middleware('auth')->group(function () {
+    Route::get('/attendance-approval', [AttendanceApprovalController::class, 'index'])->middleware('permission:attendance_approval.view')->name('attendance-approval.index');
+    Route::post('/attendance-approval/{attendance}/approve', [AttendanceApprovalController::class, 'approve'])->middleware('permission:attendance_approval.approve')->name('attendance-approval.approve');
+    Route::post('/attendance-approval/{attendance}/reject', [AttendanceApprovalController::class, 'reject'])->middleware('permission:attendance_approval.approve')->name('attendance-approval.reject');
+});
+
 Route::middleware(['auth', 'superadmin'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permission:dashboard.view')->name('dashboard');
 

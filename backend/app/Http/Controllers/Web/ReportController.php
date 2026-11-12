@@ -52,7 +52,6 @@ class ReportController extends Controller
             $e->workLocation?->name,
             $e->stats['hadir'],
             $e->stats['telat'],
-            $e->stats['total_menit_telat'],
             $e->stats['alfa'],
             $e->stats['cuti'],
             $e->stats['sakit'],

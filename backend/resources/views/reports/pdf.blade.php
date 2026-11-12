@@ -19,7 +19,7 @@
         <thead>
             <tr>
                 <th>Nama</th><th>NIP</th><th>Department</th><th>Lokasi</th>
-                <th>Hadir</th><th>Telat</th><th>Menit Telat</th><th>Alfa</th>
+                <th>Hadir</th><th>Telat</th><th>Alfa</th>
                 <th>Cuti</th><th>Sakit</th><th>Izin</th><th>Dinas</th>
             </tr>
         </thead>
@@ -32,7 +32,6 @@
                     <td>{{ $employee->workLocation?->name }}</td>
                     <td>{{ $employee->stats['hadir'] }}</td>
                     <td>{{ $employee->stats['telat'] }}</td>
-                    <td>{{ $employee->stats['total_menit_telat'] }}</td>
                     <td>{{ $employee->stats['alfa'] }}</td>
                     <td>{{ $employee->stats['cuti'] }}</td>
                     <td>{{ $employee->stats['sakit'] }}</td>
@@ -40,7 +39,7 @@
                     <td>{{ $employee->stats['dinas'] }}</td>
                 </tr>
             @empty
-                <tr><td colspan="12">Tidak ada data.</td></tr>
+                <tr><td colspan="11">Tidak ada data.</td></tr>
             @endforelse
         </tbody>
     </table>

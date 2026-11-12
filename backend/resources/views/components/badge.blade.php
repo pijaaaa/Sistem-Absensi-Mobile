@@ -1,13 +1,13 @@
 @props(['color' => 'gray', 'label' => null])
 
 @php($colors = [
-    'green' => 'bg-green-100 text-green-800',
-    'yellow' => 'bg-yellow-100 text-yellow-800',
-    'red' => 'bg-red-100 text-red-800',
-    'gray' => 'bg-gray-100 text-gray-600',
-    'blue' => 'bg-blue-100 text-blue-800',
+    'green' => 'bg-[#e4f3e9] text-primary',
+    'yellow' => 'bg-[#fff3d6] text-[#9a5b00]',
+    'red' => 'bg-[#fde8e7] text-[#b42318]',
+    'gray' => 'bg-[#eef2ef] text-[#52645a]',
+    'blue' => 'bg-[#e4f0f5] text-[#23627a]',
 ])
 @php($cls = $colors[$color] ?? $colors['gray'])
-<span class="inline-flex items-center rounded px-2.5 py-0.5 text-xs font-medium {{ $cls }}">
+<span class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide {{ $cls }}">
     {{ $label ?? $slot }}
 </span>

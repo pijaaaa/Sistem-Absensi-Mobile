@@ -21,12 +21,13 @@ class AttendanceMonitoringController extends Controller
             ->when($departmentId, fn ($query) => $query->where('department_id', $departmentId))
             ->orderBy('name')
             ->get();
-        $attendances = Attendance::whereDate('date', $date)->get()->keyBy('employee_id');
+        $attendances = Attendance::with('device')->whereDate('date', $date)->get()->keyBy('employee_id');
         $departmentSummaries = $employees->groupBy('department_id')->map(function ($departmentEmployees) use ($attendances) {
             return [
                 'department' => $departmentEmployees->first()->department?->name ?? 'Tanpa department',
                 'total' => $departmentEmployees->count(),
                 'present' => $departmentEmployees->filter(fn ($employee) => $attendances->get($employee->id)?->check_in_at)->count(),
+                'employees' => $departmentEmployees->values(),
                 'missing' => $departmentEmployees->filter(fn ($employee) => ! $attendances->get($employee->id)?->check_in_at)->values(),
             ];
         })->values();

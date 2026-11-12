@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\WorkSchedule;
+use App\Models\LatenessRule;
 use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +30,16 @@ class SettingController extends Controller
             'notif_retention_days' => (int) Setting::get('notif_retention_days', 90),
         ];
 
-        return view('settings.edit', compact('settings'));
+        $schedule = WorkSchedule::current() ?? new WorkSchedule([
+            'work_days' => [1, 2, 3, 4, 5],
+            'start_time' => '08:00',
+            'end_time' => '17:00',
+            'timezone' => config('app.timezone'),
+        ]);
+
+        $latenessRules = LatenessRule::orderBy('from_minute')->get();
+
+        return view('settings.edit', compact('settings', 'schedule', 'latenessRules'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -46,6 +57,17 @@ class SettingController extends Controller
             'notif_summary_hour' => ['integer', 'min:0', 'max:23'],
             'notif_summary_minute' => ['integer', 'min:0', 'max:59'],
             'notif_retention_days' => ['integer', 'min:1', 'max:365'],
+            'work_days' => ['required', 'array', 'min:1'],
+            'work_days.*' => ['integer', 'between:0,6'],
+            'start_time' => ['required', 'date_format:H:i'],
+            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'timezone' => ['required', 'timezone'],
+            'rules' => ['required', 'array'],
+            'rules.*.label' => ['required', 'string', 'max:50'],
+            'rules.*.from_minute' => ['required', 'integer', 'min:0'],
+            'rules.*.to_minute' => ['nullable', 'integer', 'min:0'],
+            'rules.*.color' => ['required', 'string', 'max:20'],
+            'rules.*.is_counted_late' => ['nullable'],
         ], [
             'max_backdated_days.required' => 'Batas hari pengajuan mundur wajib diisi.',
         ]);
@@ -89,7 +111,27 @@ class SettingController extends Controller
             }
         }
 
+        $schedule = WorkSchedule::current();
+        $scheduleData = $request->only(['work_days', 'start_time', 'end_time', 'timezone']);
+        if ($schedule) {
+            $schedule->update($scheduleData);
+        } else {
+            WorkSchedule::create($scheduleData);
+        }
+
+        $oldRules = LatenessRule::query()->get()->toArray();
+        foreach ($data['rules'] as $id => $rule) {
+            LatenessRule::whereKey($id)->update([
+                'label' => $rule['label'],
+                'from_minute' => $rule['from_minute'],
+                'to_minute' => $rule['to_minute'] ?? null,
+                'color' => $rule['color'],
+                'is_counted_late' => ! empty($rule['is_counted_late']),
+            ]);
+        }
+
         AuditLogger::record('settings.updated', null, $old, $new);
+        AuditLogger::record('lateness.updated', null, ['rules' => $oldRules], ['rules' => LatenessRule::query()->get()->toArray()]);
 
         return back()->with('status', 'Pengaturan disimpan.');
     }

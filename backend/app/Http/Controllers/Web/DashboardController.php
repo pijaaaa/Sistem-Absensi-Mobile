@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\WorkSchedule;
@@ -22,6 +23,10 @@ class DashboardController extends Controller
 
         $data = Cache::remember("dashboard:$today", 60, function () use ($now, $today) {
             $activeEmployees = Employee::where('is_active', true)->count();
+
+            $pendingApprovals = Attendance::where('approval_status', 'pending')
+                ->where('is_backup_device', true)
+                ->count();
 
             $todayAttendances = Attendance::whereDate('date', $today)->get();
             $present = $todayAttendances->whereNotNull('check_in_at');
@@ -60,6 +65,15 @@ class DashboardController extends Controller
                 ->groupBy('departments.id', 'departments.name')
                 ->get();
 
+            $attendanceRate = $activeEmployees > 0
+                ? round(($present->count() / $activeEmployees) * 100)
+                : 0;
+
+            $activities = AuditLog::with('actor:id,name')
+                ->latest()
+                ->limit(5)
+                ->get();
+
             $perLocation = DB::table('attendances')
                 ->join('work_locations', 'work_locations.id', '=', 'attendances.location_id')
                 ->whereDate('attendances.date', $today)
@@ -70,6 +84,9 @@ class DashboardController extends Controller
 
             return [
                 'active' => $activeEmployees,
+                'pendingApprovals' => $pendingApprovals,
+                'attendanceRate' => $attendanceRate,
+                'activities' => $activities,
                 'hadir' => $present->count(),
                 'telat' => $late->count(),
                 'belum' => $notYet,

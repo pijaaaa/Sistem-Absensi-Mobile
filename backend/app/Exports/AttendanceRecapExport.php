@@ -21,7 +21,7 @@ class AttendanceRecapExport implements FromArray, WithHeadings
     {
         return [
             'Nama', 'NIP', 'Department', 'Lokasi', 'Hadir', 'Telat',
-            'Total Menit Telat', 'Alfa', 'Cuti', 'Sakit', 'Izin', 'Dinas',
+            'Alfa', 'Cuti', 'Sakit', 'Izin', 'Dinas',
         ];
     }
 }
