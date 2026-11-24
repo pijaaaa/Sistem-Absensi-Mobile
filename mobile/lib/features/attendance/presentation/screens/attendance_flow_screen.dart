@@ -60,8 +60,11 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
       final targetLng = workLocation?.lng;
       final radius = (workLocation?.radiusM ?? 100).toDouble();
 
-      // Mode 'off' or no coordinates → geofence bypass (backend also skips it)
-      if (workLocation?.mode == 'off' || targetLat == null || targetLng == null) {
+      // Mode 'off'/'polygon' or no coordinates → skip circle pre-check (backend validates polygon)
+      if (workLocation?.mode == 'off' ||
+          workLocation?.mode == 'polygon' ||
+          targetLat == null ||
+          targetLng == null) {
         final position = await ref.read(attendanceFlowServiceProvider).locationService.getCurrentPosition();
         setState(() {
           _locationResult = LocationCheckResult(

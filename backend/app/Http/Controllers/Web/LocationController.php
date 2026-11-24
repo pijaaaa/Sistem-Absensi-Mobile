@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\LocationRequest;
 use App\Models\WorkLocation;
+use App\Services\GeofenceService;
 use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -61,14 +62,46 @@ class LocationController extends Controller
     {
         $data = $request->validated();
 
-        if ($data['mode'] !== 'point') {
-            $data['lat'] = $data['lng'] = $data['radius_m'] = null;
-        }
+        if ($data['mode'] === 'polygon') {
+            $derived = $this->polygonCircle($data['polygon_json']);
+            $data['lat'] = $derived['lat'];
+            $data['lng'] = $derived['lng'];
+            $data['radius_m'] = $derived['radius_m'];
+        } else {
+            if ($data['mode'] !== 'point') {
+                $data['lat'] = $data['lng'] = $data['radius_m'] = null;
+            }
 
-        if ($data['mode'] !== 'polygon') {
             $data['polygon_json'] = null;
         }
 
         return $data;
+    }
+
+    /**
+     * @param array<int, array<int, mixed>> $polygon
+     * @return array{lat: float, lng: float, radius_m: int}
+     */
+    private function polygonCircle(array $polygon): array
+    {
+        $lat = array_sum(array_column($polygon, 0)) / count($polygon);
+        $lng = array_sum(array_column($polygon, 1)) / count($polygon);
+        $service = new GeofenceService();
+        $radius = 0;
+
+        foreach ($polygon as $point) {
+            $radius = max($radius, $service->haversineMeters(
+                (float) $lat,
+                (float) $lng,
+                (float) $point[0],
+                (float) $point[1]
+            ));
+        }
+
+        return [
+            'lat' => round($lat, 6),
+            'lng' => round($lng, 6),
+            'radius_m' => max(1, (int) ceil($radius)),
+        ];
     }
 }

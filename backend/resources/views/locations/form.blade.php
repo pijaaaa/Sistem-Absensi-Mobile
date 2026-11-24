@@ -62,7 +62,7 @@
     </div>
 
     <div x-show="mode === 'polygon'" class="mb-4">
-        <input type="hidden" name="polygon_json" x-model="polygonJson">
+        <input type="hidden" name="polygon_json" :value="polygonJson">
         <p class="mb-1 text-sm text-gray-500">Gambar polygon minimal 3 titik di peta.</p>
         @error('polygon_json') <p class="mb-1 text-xs text-red-500">{{ $message }}</p> @enderror
     </div>
@@ -78,34 +78,17 @@
 
 @push('scripts')
      <script>
-         document.addEventListener('DOMContentLoaded', () => {
-             const form = document.querySelector('[name="polygon_json"]')?.closest('form');
-             const element = document.getElementById('map');
-             if (!form || !element || typeof L === 'undefined' || element.dataset.initialized === 'true') return;
-             element.dataset.initialized = 'true';
-             const lat = Number(form.querySelector('[name="lat"]')?.value || -6.2);
-             const lng = Number(form.querySelector('[name="lng"]')?.value || 106.8);
-             const mode = form.querySelector('[name="mode"]');
-             const polygonInput = form.querySelector('[name="polygon_json"]');
-             const map = L.map(element).setView([lat, lng], 13);
-             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>',
-                 maxZoom: 19
-             }).addTo(map);
-             const layers = new L.FeatureGroup().addTo(map);
-             map.addControl(new L.Control.Draw({
-                 edit: { featureGroup: layers },
-                 draw: { polygon: {}, marker: false, polyline: false, circle: false, rectangle: false, circlemarker: false }
-             }));
-             map.on(L.Draw.Event.CREATED, event => {
-                 layers.clearLayers();
-                 layers.addLayer(event.layer);
-                 polygonInput.value = JSON.stringify(event.layer.getLatLngs()[0].map(point => [Number(point.lat.toFixed(6)), Number(point.lng.toFixed(6))]));
-             });
-             setTimeout(() => map.invalidateSize(), 300);
-         });
-
         function locationForm(config) {
+            const haversine = (a, b) => {
+                const rad = value => value * Math.PI / 180;
+                const dLat = rad(b[0] - a[0]);
+                const dLng = rad(b[1] - a[1]);
+                const h = Math.sin(dLat / 2) ** 2
+                    + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLng / 2) ** 2;
+
+                return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
+            };
+
             return {
                 mode: config.mode,
                 lat: config.lat,
@@ -113,7 +96,19 @@
                 radius: config.radius,
                 polygon: config.polygon,
                 get polygonJson() { return JSON.stringify(this.polygon || []); },
-                 init() {
+                applyPolygon(points) {
+                    if (!Array.isArray(points) || points.length < 3) return;
+                    const lat = points.reduce((sum, p) => sum + Number(p[0]), 0) / points.length;
+                    const lng = points.reduce((sum, p) => sum + Number(p[1]), 0) / points.length;
+                    const center = [lat, lng];
+                    const radius = Math.ceil(Math.max(...points.map(p => haversine(center, [Number(p[0]), Number(p[1])]))));
+
+                    this.polygon = points;
+                    this.lat = +lat.toFixed(6);
+                    this.lng = +lng.toFixed(6);
+                    this.radius = Math.max(1, radius);
+                },
+                init() {
                      const self = this;
                      if (typeof L === 'undefined') {
                          if (!document.getElementById('map').dataset.waiting) {
@@ -145,18 +140,19 @@
                     function redrawPoint() {
                         if (marker) map.removeLayer(marker);
                         if (circle) map.removeLayer(circle);
+                        marker = null;
+                        circle = null;
+                        if (self.mode !== 'point') return;
                         marker = L.marker([self.lat, self.lng]).addTo(map);
                         circle = L.circle([self.lat, self.lng], { radius: self.radius }).addTo(map);
                     }
 
-                    if (self.mode === 'point') {
-                        redrawPoint();
-                        map.on('click', e => {
-                            self.lat = +e.latlng.lat.toFixed(6);
-                            self.lng = +e.latlng.lng.toFixed(6);
-                            redrawPoint();
-                        });
-                    }
+                    if (self.mode === 'point') redrawPoint();
+                    map.on('click', e => {
+                        if (self.mode !== 'point') return;
+                        self.lat = +e.latlng.lat.toFixed(6);
+                        self.lng = +e.latlng.lng.toFixed(6);
+                    });
 
                     this.$watch('mode', (m) => {
                         if (m === 'point') { drawLayer.clearLayers(); redrawPoint(); }
@@ -167,13 +163,21 @@
                     this.$watch('lng', redrawPoint);
                     this.$watch('radius', redrawPoint);
 
+                    const syncPolygon = layer => {
+                        self.applyPolygon(layer.getLatLngs()[0].map(p => [+p.lat.toFixed(6), +p.lng.toFixed(6)]));
+                    };
+
                     map.on(L.Draw.Event.CREATED, e => {
                         drawLayer.clearLayers();
                         drawLayer.addLayer(e.layer);
-                        self.polygon = e.layer.getLatLngs()[0].map(p => [+p.lat.toFixed(6), +p.lng.toFixed(6)]);
+                        syncPolygon(e.layer);
+                    });
+                    map.on(L.Draw.Event.EDITED, e => {
+                        e.layers.eachLayer(syncPolygon);
                     });
 
                     if (self.mode === 'polygon' && self.polygon.length >= 3) {
+                        self.applyPolygon(self.polygon);
                         const poly = L.polygon(self.polygon.map(p => [p[0], p[1]])).addTo(drawLayer);
                         map.fitBounds(poly.getBounds());
                     }

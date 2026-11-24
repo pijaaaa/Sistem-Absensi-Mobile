@@ -150,6 +150,11 @@ class AdminCrudTest extends TestCase
         ])->assertRedirect(route('locations.index'));
 
         $this->assertDatabaseHas('work_locations', ['name' => 'Pol2', 'mode' => 'polygon']);
+
+        $location = WorkLocation::where('name', 'Pol2')->firstOrFail();
+        $this->assertSame(1.666667, round((float) $location->lat, 6));
+        $this->assertSame(1.666667, round((float) $location->lng, 6));
+        $this->assertGreaterThanOrEqual(1, $location->radius_m);
     }
 
     public function test_location_off_mode_without_coordinates(): void
