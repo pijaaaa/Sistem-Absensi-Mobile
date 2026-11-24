@@ -53,7 +53,7 @@
                                 <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#dceee2] text-[10px] font-bold text-primary">{{ Str::substr($employee->name, 0, 2) }}</span>
                                 <span class="truncate font-semibold text-neutral-dark">{{ $employee->name }}</span>
                             </span>
-                            <span class="ml-2 shrink-0 rounded bg-{{ $attendance?->check_in_at ? '[#e4f3e9]' : '[#fde8e7]' }} px-2 py-1 font-mono text-[9px] {{ $attendance?->check_in_at ? 'text-primary' : 'text-[#b42318]' }}">{{ $attendance?->check_in_at ? 'Hadir' : 'Belum absen' }}</span>
+                            <span class="ml-2 shrink-0 rounded px-2 py-1 font-mono text-[9px] {{ $attendance?->check_in_at ? 'bg-[#e4f3e9] text-primary' : 'bg-[#fde8e7] text-[#b42318]' }}">{{ $attendance?->check_in_at ? 'Hadir' : 'Belum absen' }}</span>
                         </summary>
                         <div class="mt-2 grid grid-cols-2 gap-2 rounded-lg bg-[#f8fbf9] p-2 text-[10px] text-gray-500">
                             <span>Masuk <strong class="block text-neutral-dark">{{ $attendance?->check_in_at?->format('H:i') ?? '-' }}</strong></span>

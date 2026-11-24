@@ -6,7 +6,7 @@
 
 - PHP **8.3+** (cek `php -v`)
 - Composer
-- Node.js + npm
+- Node.js **20.19+ atau 22.12+** + npm (cek `node -v`; Vite 7 tidak jalan di versi lebih lama)
 - Python 3.11+ + pip
 - Laragon (Apache + MySQL), atau sertelar MySQL host lain
 
@@ -30,8 +30,7 @@ copy .env.example .env     (atau pastikan .env ada)
 edit .env: DB_CONNECTION=mysql, DB_DATABASE=absensi_db, FACE_SERVICE_SECRET=<sama dengan face-service>
 php artisan key:generate
 php artisan migrate        (konfirmasi "yes" untuk membuat DB)
-npm install
-npm run build
+npm ci         (postinstall otomatis menjalankan vite build)
 php artisan serve
 ```
 
