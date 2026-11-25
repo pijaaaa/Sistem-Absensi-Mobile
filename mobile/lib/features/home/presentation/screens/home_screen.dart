@@ -8,8 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_theme.dart';
+import 'package:mobile/core/widgets/app_avatar.dart';
+import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/core/widgets/gradient_header.dart';
 import 'package:mobile/core/models/leave_models.dart';
+import 'package:mobile/core/widgets/section_header.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/core/widgets/stat_tile.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
@@ -157,7 +160,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _buildHeader(theme, isDark, authState, isManager),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.spacingMD),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTheme.spacingMD,
+                    AppTheme.spacingMD,
+                    AppTheme.spacingMD,
+                    AppTheme.spacingXL,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -175,18 +183,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                       _buildManagerApprovalCard(context),
                       const SizedBox(height: AppTheme.spacingLG),
-                      _buildSectionWithTitle(
-                        context,
-                        'Aktivitas Terakhir',
-                        () {},
+                      SectionHeader(
+                        title: 'Aktivitas Terakhir',
+                        actionLabel: 'Lihat Semua',
+                        onAction: () => context.push('/history'),
                       ),
                       const SizedBox(height: AppTheme.spacingSM),
                       _buildRecentActivity(context),
                       const SizedBox(height: AppTheme.spacingLG),
-                      _buildSectionWithTitle(
-                        context,
-                        'Pengajuan Saya',
-                        () {},
+                      SectionHeader(
+                        title: 'Pengajuan Saya',
+                        actionLabel: 'Lihat Semua',
+                        onAction: () => context.push('/leave'),
                       ),
                       const SizedBox(height: AppTheme.spacingSM),
                       _buildMyRequests(context),
@@ -223,72 +231,100 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return SliverToBoxAdapter(
       child: GradientHeader(
-        height: 200,
+        height: 212,
         child: SafeArea(
-          child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  greeting,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w300,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppAvatar(
+                    name: userName,
+                    size: 44,
+                    backgroundColor: Colors.white.withValues(alpha: 0.16),
+                    foregroundColor: Colors.white,
                   ),
-                ),
-                Text(
-                  userName,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  department,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${_now.day} ${_monthName(_now.month)} ${_now.year}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          greeting,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                        ),
+                        Text(
+                          userName,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          department,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Builder(
-                  builder: (context) {
-                    final unreadCount = ref.watch(unreadNotificationsCountProvider);
-                    return _NotificationIconButton(unreadCount: unreadCount);
-                  },
-                ),
+                  ),
+                  _NotificationIconButton(
+                    unreadCount: ref.watch(unreadNotificationsCountProvider),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_now.day} ${_monthName(_now.month)} ${_now.year}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.schedule,
+                          size: 14,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')} WIB',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildSummaryStats(BuildContext context, bool isManager) {
@@ -318,7 +354,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: StatTile(
                     title: 'Telat',
                     value: '$totalLate',
-                    icon: Icons.warning,
+                    icon: Icons.warning_amber_rounded,
                     iconColor: AppColors.warningYellow,
                   ),
                 ),
@@ -339,18 +375,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: List.generate(
                 3,
                 (i) => Expanded(
-                  child: SkeletonLoader(
-                    height: 80,
-                    borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: i == 2 ? 0 : AppTheme.spacingSM,
+                    ),
+                    child: SkeletonLoader(
+                      height: 120,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                    ),
                   ),
                 ),
               ),
             ),
-          error: (e, _) => StatTile(
-              title: 'Gagal memuat',
-              value: '0',
-              icon: Icons.error,
-              iconColor: AppColors.error,
+          error: (e, _) => AppCard(
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: AppColors.error),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Gagal memuat ringkasan kehadiran',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
             ),
         );
       },
@@ -365,47 +414,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (!isManager) return const SizedBox.shrink();
 
         return ref.watch(todaySummaryProvider).when(
-          data: (_) => Card(
-              child: InkWell(
-                onTap: () => context.push('/approval'),
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          data: (_) => AppCard(
+            onTap: () => context.push('/approval'),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.fact_check_outlined,
+                    color: AppColors.warningYellow,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Perlu Persetujuan',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            '3 pengajuan menunggu persetujuan',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                          ),
-                        ],
+                      Text(
+                        'Approval',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
-                      const Icon(Icons.arrow_forward_ios, size: 16),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Pengajuan menunggu keputusan Anda',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
                     ],
                   ),
                 ),
-              ),
+                const Icon(Icons.chevron_right, size: 20),
+              ],
             ),
+          ),
           loading: () => SkeletonLoader(
-              height: 60,
-              borderRadius: BorderRadius.circular(20),
+              height: 80,
+              borderRadius: BorderRadius.circular(AppTheme.radiusLG),
             ),
           error: (_, _) => const SizedBox.shrink(),
         );
@@ -421,40 +480,104 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return recentAsync.when(
           data: (items) {
             if (items.isEmpty) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text('Belum ada aktivitas absensi.'),
+              return AppCard(
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Belum ada aktivitas absensi.'),
+                  ],
                 ),
               );
             }
-            return Column(
-              children: items.map((item) {
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                    child: Icon(
-                      item.isCheckedOut ? Icons.logout : Icons.login,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(item.status),
-                  subtitle: Text('${item.date} • ${item.time}'),
-                  trailing: StatusChip(
-                    label: item.status,
-                    type: item.type,
-                    outline: true,
-                  ),
-                );
-              }).toList(),
+            return AppCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: items.asMap().entries.map((entry) {
+                  final item = entry.value;
+                  final isLast = entry.key == items.length - 1;
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(AppTheme.spacingMD),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                item.isCheckedOut
+                                    ? Icons.logout_rounded
+                                    : Icons.login_rounded,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.status,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${item.date} • ${item.time}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            StatusChip(
+                              label: item.status,
+                              type: item.type,
+                              outline: true,
+                              showDot: false,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (!isLast)
+                        Divider(
+                          height: 1,
+                          indent: AppTheme.spacingMD,
+                          endIndent: AppTheme.spacingMD,
+                          color: Theme.of(context)
+                              .dividerColor
+                              .withValues(alpha: 0.5),
+                        ),
+                    ],
+                  );
+                }).toList(),
+              ),
             );
           },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          loading: () => SkeletonLoader(
+            height: 160,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLG),
           ),
-          error: (error, stack) => const Text('Gagal memuat aktivitas.'),
+          error: (error, stack) => AppCard(
+            child: const Text('Gagal memuat aktivitas.'),
+          ),
         );
       },
     );
@@ -465,30 +588,92 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context, ref, _) {
         final items = ref.watch(myRequestsProvider);
         if (items.isEmpty) {
-          return const Center(
-            child: Text('Belum ada pengajuan cuti.'),
+          return AppCard(
+            child: Row(
+              children: [
+                Icon(
+                  Icons.inbox_outlined,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                const Text('Belum ada pengajuan cuti.'),
+              ],
+            ),
           );
         }
-        return Column(
-          children:
-              items.take(5).toList().asMap().entries.map((entry) {
-                final req = entry.value;
-                return ListTile(
-                  leading: Icon(
-                    Icons.document_scanner_outlined,
-                    color: Theme.of(context).colorScheme.primary,
+        return AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children:
+                items.take(5).toList().asMap().entries.map((entry) {
+              final req = entry.value;
+              final isLast = entry.key == items.take(5).length - 1;
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(AppTheme.spacingMD),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.description_outlined,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                req.typeLabel,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${req.startDate.day}/${req.startDate.month}/${req.startDate.year} - ${req.endDate.day}/${req.endDate.month}/${req.endDate.year}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        StatusChip(
+                          label: _statusLabel(req),
+                          type: _statusType(req),
+                          showDot: false,
+                        ),
+                      ],
+                    ),
                   ),
-                  title: Text(req.typeLabel),
-                  subtitle: Text(
-                    '${req.startDate.day}/${req.startDate.month}/${req.startDate.year} - ${req.endDate.day}/${req.endDate.month}/${req.endDate.year}',
-                  ),
-                  trailing: StatusChip(
-                    label: _statusLabel(req),
-                    type: _statusType(req),
-                    outline: true,
-                  ),
-                );
-              }).toList(),
+                  if (!isLast)
+                    Divider(
+                      height: 1,
+                      indent: AppTheme.spacingMD,
+                      endIndent: AppTheme.spacingMD,
+                      color:
+                          Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                    ),
+                ],
+              );
+            }).toList(),
+          ),
         );
       },
     );
@@ -516,81 +701,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Widget _buildSectionWithTitle(
-    BuildContext context,
-    String title,
-    VoidCallback onTap,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        TextButton(
-          onPressed: onTap,
-          child: Text(
-            'Lihat Semua',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildMonitoringCard(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: InkWell(
-        onTap: () => context.push('/team-attendance-monitoring'),
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.people_outline,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Monitoring Kehadiran',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Lihat detail kehadiran karyawan',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 16),
-            ],
+    return AppCard(
+      onTap: () => context.push('/team-attendance-monitoring'),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.people_outline,
+              color: AppColors.primary,
+              size: 22,
+            ),
           ),
-        ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Monitoring Kehadiran',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Lihat detail kehadiran karyawan',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, size: 20),
+        ],
       ),
     );
   }
@@ -614,32 +766,35 @@ class _NotificationIconButton extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          width: 36,
-          height: 36,
+          width: 40,
+          height: 40,
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               const Icon(
-                Icons.notifications,
+                Icons.notifications_none,
                 color: Colors.white,
-                size: 18,
+                size: 20,
               ),
               if (unreadCount > 0)
                 Positioned(
-                  top: 0,
-                  right: 0,
+                  top: -4,
+                  right: -4,
                   child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
+                    padding: const EdgeInsets.all(3),
+                    constraints:
+                        const BoxConstraints(minWidth: 16, minHeight: 16),
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.red,
+                      color: AppColors.error,
+                      border: Border.all(color: Colors.white, width: 1.5),
                     ),
                     child: Center(
                       child: Text(
                         unreadCount > 9 ? '9+' : unreadCount.toString(),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 7,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

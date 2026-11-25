@@ -28,7 +28,10 @@ class NotificationScreen extends ConsumerWidget {
                 );
               }
             },
-              child: const Text('Tandai Semua Dibaca', style: TextStyle(color: AppColors.darkTextSecondary)),
+              child: Text(
+                'Tandai Semua Dibaca',
+                style: TextStyle(color: theme.colorScheme.onPrimary),
+              ),
           ),
         ],
       ),
@@ -39,10 +42,33 @@ class NotificationScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none, size: 64, color: theme.colorScheme.onSurfaceVariant),
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.notifications_none_rounded,
+                      size: 44,
+                      color: AppColors.primary.withValues(alpha: 0.7),
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  Text('Belum ada notifikasi',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    'Belum ada notifikasi',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Pemberitahuan terbaru akan muncul di sini',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -104,15 +130,28 @@ class NotificationScreen extends ConsumerWidget {
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      child: Text(
-        title,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 14,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -120,53 +159,105 @@ class NotificationScreen extends ConsumerWidget {
   Widget _buildNotificationItem(BuildContext context, WidgetRef ref, NotificationModel item) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = item.isRead
-        ? Colors.transparent
-        : (isDark ? AppColors.primary.withValues(alpha: 0.15) : AppColors.primary.withValues(alpha: 0.08));
+    final unread = !item.isRead;
+    final bgColor = unread
+        ? AppColors.primary.withValues(alpha: isDark ? 0.16 : 0.06)
+        : theme.cardTheme.color;
 
-    return ListTile(
-      tileColor: bgColor,
-      leading: CircleAvatar(
-        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-        child: Icon(Icons.notifications, color: AppColors.primary, size: 20),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: unread
+              ? AppColors.primary.withValues(alpha: 0.22)
+              : theme.dividerColor.withValues(alpha: 0.25),
+        ),
       ),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              item.title,
-              style: TextStyle(
-                fontWeight: item.isRead ? FontWeight.normal : FontWeight.bold,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () async {
+          if (unread) {
+            await ref.read(notificationActionProvider.notifier).markAsRead(item.id);
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  unread
+                      ? Icons.notifications_active_rounded
+                      : Icons.notifications_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight:
+                                  unread ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        if (unread) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 8,
+                            height: 8,
+                            margin: const EdgeInsets.only(top: 5),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.info,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.body,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      DateFormat('HH:mm • dd MMM yyyy', 'id_ID')
+                          .format(item.createdAt),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          if (!item.isRead)
-            Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.info),
-            ),
-        ],
+        ),
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 4),
-          Text(item.body,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
-          const SizedBox(height: 2),
-          Text(
-            DateFormat('HH:mm • dd MMM yyyy', 'id_ID').format(item.createdAt),
-            style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 11),
-          ),
-        ],
-      ),
-      onTap: () async {
-        if (!item.isRead) {
-          await ref.read(notificationActionProvider.notifier).markAsRead(item.id);
-        }
-      },
     );
   }
 }

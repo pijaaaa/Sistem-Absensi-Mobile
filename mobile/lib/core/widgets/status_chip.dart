@@ -24,6 +24,7 @@ class StatusChip extends StatelessWidget {
   final StatusType type;
   final Color? customColor;
   final bool outline;
+  final bool showDot;
   final VoidCallback? onTap;
 
   const StatusChip({
@@ -32,6 +33,7 @@ class StatusChip extends StatelessWidget {
     required this.type,
     this.customColor,
     this.outline = false,
+    this.showDot = true,
     this.onTap,
   });
 
@@ -73,18 +75,13 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _getColor(context);
-    final textColor = _getTextColor(color);
-    final bgColor = outline
-        ? Colors.transparent
-        : color.withValues(alpha: 0.15);
-    final borderColor = outline
-        ? color
-        : Colors.transparent;
+    final bgColor = outline ? Colors.transparent : color.withValues(alpha: 0.14);
+    final borderColor = outline ? color.withValues(alpha: 0.6) : Colors.transparent;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: bgColor,
           border: Border.all(color: borderColor, width: 1),
@@ -93,29 +90,39 @@ class StatusChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (type == StatusType.pending && !outline)
-              const SizedBox(
-                width: 8,
-                height: 8,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            const SizedBox(width: 4),
+            if (showDot) ...[
+              if (type == StatusType.pending)
+                SizedBox(
+                  width: 8,
+                  height: 8,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.6,
+                    color: color,
+                  ),
+                )
+              else
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                  ),
+                ),
+              const SizedBox(width: 6),
+            ],
             Text(
               label,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: outline ? color : textColor,
+                fontWeight: FontWeight.w600,
+                color: color,
+                letterSpacing: 0.1,
               ),
             ),
           ],
         ),
-      ));
-  }
-
-  Color _getTextColor(Color bgColor) {
-    final luminance =
-        0.299 * bgColor.r + 0.587 * bgColor.g + 0.114 * bgColor.b;
-    return luminance > 0.5 ? AppColors.lightTextPrimary : Colors.white;
+      ),
+    );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/widgets/app_avatar.dart';
 import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/core/widgets/confirm_dialog.dart';
@@ -83,12 +84,33 @@ class _LeaveApprovals extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle,
-                    size: 48, color: theme.colorScheme.onSurfaceVariant),
-                const SizedBox(height: 12),
-                Text('Tidak ada pengajuan yang perlu disetujui',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.task_alt_rounded,
+                    size: 44,
+                    color: AppColors.success,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Tidak ada pengajuan',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Semua pengajuan sudah diproses',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           );
@@ -145,9 +167,10 @@ class _LeaveApprovalCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                child: Icon(icon, color: AppColors.primary),
+              AppAvatar(
+                name: item.employeeName ?? '?',
+                size: 44,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -156,9 +179,16 @@ class _LeaveApprovalCard extends ConsumerWidget {
                   children: [
                     Text(item.employeeName ?? 'Unknown',
                         style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text(label,
-                        style: TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant)),
+                    Row(
+                      children: [
+                        Icon(icon, size: 13, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(label,
+                            style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 12)),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -387,12 +417,33 @@ class _AttendanceApprovals extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle,
-                    size: 48, color: theme.colorScheme.onSurfaceVariant),
-                const SizedBox(height: 12),
-                Text('Tidak ada kehadiran yang perlu disetujui',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.verified_rounded,
+                    size: 44,
+                    color: AppColors.success,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Tidak ada kehadiran',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Semua kehadiran sudah diproses',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           );

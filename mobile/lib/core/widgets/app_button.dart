@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/theme/app_theme.dart';
 
 class AppButton extends StatelessWidget {
   final String text;
@@ -37,15 +38,16 @@ class AppButton extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMD),
             ),
             foregroundColor: backgroundColor ?? theme.colorScheme.primary,
             side: BorderSide(
-              color: backgroundColor ?? theme.colorScheme.primary,
+              color: (backgroundColor ?? theme.colorScheme.primary)
+                  .withValues(alpha: 0.5),
             ),
           ),
-          icon: icon != null ? Icon(icon) : null,
-          label: _buildChild(),
+          icon: icon != null ? Icon(icon, size: 20) : null,
+          label: _buildChild(theme.colorScheme.primary),
         ),
       );
     }
@@ -59,28 +61,25 @@ class AppButton extends StatelessWidget {
           foregroundColor: textColor ?? Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMD),
           ),
         ),
-        icon: icon != null ? Icon(icon) : null,
-        label: _buildChild(),
+        icon: icon != null ? Icon(icon, size: 20) : null,
+        label: _buildChild(textColor ?? Colors.white),
       ),
     );
   }
 
-  Widget _buildChild() {
+  Widget _buildChild(Color spinnerColor) {
     if (isLoading) {
-      return const SizedBox(
-        width: 16,
-        height: 16,
+      return SizedBox(
+        width: 18,
+        height: 18,
         child: CircularProgressIndicator(
           strokeWidth: 2,
-          color: Colors.white,
+          color: spinnerColor,
         ),
       );
-    }
-    if (icon != null) {
-      return Text(text);
     }
     return Text(text);
   }

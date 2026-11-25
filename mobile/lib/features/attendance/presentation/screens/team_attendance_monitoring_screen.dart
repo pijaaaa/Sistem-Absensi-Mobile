@@ -82,29 +82,41 @@ class _TeamAttendanceMonitoringScreenState extends ConsumerState<TeamAttendanceM
         children: [
           // Date picker & search section
           Container(
-            padding: const EdgeInsets.all(AppTheme.spacingMD),
-            color: theme.colorScheme.surface,
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(
+                alpha: theme.brightness == Brightness.dark ? 0.12 : 0.05,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.12),
+              ),
+            ),
             child: Column(
               children: [
                 // Date picker
                 InkWell(
                   onTap: () => _selectDate(context),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: theme.colorScheme.outline),
-                      borderRadius: BorderRadius.circular(12),
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.18),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+                        Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             _formatDate(selectedDate),
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -129,10 +141,6 @@ class _TeamAttendanceMonitoringScreenState extends ConsumerState<TeamAttendanceM
                             },
                           )
                         : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
               ],
@@ -148,15 +156,30 @@ class _TeamAttendanceMonitoringScreenState extends ConsumerState<TeamAttendanceM
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 64,
-                          color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.people_outline,
+                            size: 44,
+                            color: AppColors.primary.withValues(alpha: 0.7),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Tidak ada data karyawan',
-                          style: theme.textTheme.bodyLarge?.copyWith(
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Coba ubah tanggal atau kata kunci pencarian',
+                          style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),

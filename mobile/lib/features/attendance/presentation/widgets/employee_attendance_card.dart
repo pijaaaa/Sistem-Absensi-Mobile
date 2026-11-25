@@ -25,7 +25,7 @@ class EmployeeAttendanceCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: hasAttendance ? AppColors.success.withOpacity(0.15) : AppColors.error.withOpacity(0.15),
+                backgroundColor: hasAttendance ? AppColors.success.withValues(alpha: 0.15) : AppColors.error.withValues(alpha: 0.15),
                 child: Icon(
                   hasAttendance ? Icons.check_circle : Icons.access_time,
                   color: hasAttendance ? AppColors.success : AppColors.error,
@@ -186,9 +186,9 @@ class EmployeeAttendanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,

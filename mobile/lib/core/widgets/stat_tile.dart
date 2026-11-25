@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/theme/app_theme.dart';
 
 class StatTile extends StatelessWidget {
   final String title;
@@ -21,56 +22,56 @@ class StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = iconColor ?? theme.colorScheme.primary;
 
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppTheme.spacingMD),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
+              if (icon != null)
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
                   ),
-                  if (icon != null)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: Icon(
-                        icon,
-                        color: iconColor ?? theme.colorScheme.primary,
-                        size: 18,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
+                  child: Icon(icon, color: color, size: 18),
+                ),
+              const SizedBox(height: 14),
               Text(
                 value,
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   color: theme.colorScheme.onSurface,
+                  height: 1.0,
                 ),
               ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
               if (showProgress) ...[
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: null,
-                  backgroundColor:
-                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
-                  minHeight: 3,
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: null,
+                    backgroundColor: color.withValues(alpha: 0.12),
+                    color: color,
+                    minHeight: 4,
+                  ),
                 ),
               ],
             ],

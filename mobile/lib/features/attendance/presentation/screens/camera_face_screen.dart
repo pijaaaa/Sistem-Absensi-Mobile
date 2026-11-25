@@ -60,7 +60,6 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
   int? _lockedTrackingId;
   static const double _centerYawTolerance = 8.0;
   bool _returningToCenter = false;
-  String? _firstTurnDirection;
 
   static const int _maxAttemptsPerChallenge = 10;
   static const _pollInterval = Duration(milliseconds: 700);
@@ -99,12 +98,12 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
       LivenessChallenge(
         type: LivenessChallengeType.turnLeft,
         instruction: 'Putar kepala ke Kanan',
-        semanticLabel: 'Tantangan putar kepala ke kiri',
+        semanticLabel: 'Tantangan putar kepala ke kanan',
       ),
       LivenessChallenge(
         type: LivenessChallengeType.turnRight,
         instruction: 'Putar kepala ke Kiri',
-        semanticLabel: 'Tantangan putar kepala ke kanan',
+        semanticLabel: 'Tantangan putar kepala ke kiri',
       ),
     ];
   }
@@ -184,7 +183,6 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
       _challengeCompleted = false;
       _progress = 0.0;
       _challengeAttempts = 0;
-      _firstTurnDirection = null;
       _lockedTrackingId = null;
       _returningToCenter = false;
       _showSkip = false;
@@ -432,12 +430,26 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(widget.isEnrollment ? 'Daftar Wajah' : 'Absen Wajah'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.isEnrollment ? 'Daftar Wajah' : 'Verifikasi Wajah'),
+            Text(
+              widget.isEnrollment ? 'Ambil foto wajah' : 'Langkah 2 dari 3',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.close),
+          tooltip: 'Tutup',
           onPressed: _livenessDone
               ? null
               : () {
@@ -531,47 +543,95 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
             ),
           ),
 
-          // Progress Steps Indicator (Front / Left / Right poses)
+          // Liveness progress bar
+          if (_livenessActive || _livenessDone)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + kToolbarHeight + 4,
+              left: 24,
+              right: 24,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: _livenessDone ? 1.0 : _progress,
+                  minHeight: 4,
+                  backgroundColor: Colors.white24,
+                  color: AppColors.accent,
+                ),
+              ),
+            ),
+
+          // Instruction card
+          Positioned(
+            bottom: 168,
+            left: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.62),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.face_retouching_natural,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _getChallengeInstruction(),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Pose chips
           if (_livenessActive)
             Positioned(
-              top: 110,
+              bottom: 112,
               left: 24,
               right: 24,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildStepIndicator(1, 'Depan', _currentChallengeIndex >= 0),
-                  _buildStepIndicatorConnector(_currentChallengeIndex >= 1),
-                  _buildStepIndicator(2, 'Kanan', _currentChallengeIndex >= 1),
-                  _buildStepIndicatorConnector(_currentChallengeIndex >= 2),
-                  _buildStepIndicator(3, 'Kiri', _livenessDone),
+                  _buildChallengeChip(
+                    'Depan',
+                    active: false,
+                    done: true,
+                  ),
+                  const SizedBox(width: 10),
+                  _buildChallengeChip(
+                    'Kanan',
+                    active: !_livenessDone && _currentChallengeIndex == 0,
+                    done: _currentChallengeIndex > 0 || _livenessDone,
+                  ),
+                  const SizedBox(width: 10),
+                  _buildChallengeChip(
+                    'Kiri',
+                    active: !_livenessDone && _currentChallengeIndex == 1,
+                    done: _livenessDone,
+                  ),
                 ],
               ),
             ),
-
-          // Clear Instruction Text Box
-          Positioned(
-            top: 175,
-            left: 24,
-            right: 24,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Text(
-                _getChallengeInstruction(),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
 
           // Skip button fallback if needed
           if (_showSkip)
@@ -615,52 +675,48 @@ class _CameraFaceScreenState extends ConsumerState<CameraFaceScreen>
     );
   }
 
-  Widget _buildStepIndicator(int stepNumber, String label, bool isActive) {
-    return Column(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isActive ? AppColors.primary : Colors.white24,
-            border: Border.all(
-              color: isActive ? Colors.white : Colors.white38,
-              width: 2,
+  Widget _buildChallengeChip(
+    String label, {
+    required bool active,
+    required bool done,
+  }) {
+    final bgColor = active
+        ? AppColors.accent
+        : done
+            ? AppColors.primary
+            : Colors.white.withValues(alpha: 0.12);
+    final fgColor = active
+        ? AppColors.lightTextPrimary
+        : done
+            ? Colors.white
+            : Colors.white70;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: active || done ? Colors.transparent : Colors.white24,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (done && !active) ...[
+            Icon(Icons.check, size: 14, color: fgColor),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: fgColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          child: Center(
-            child: isActive && stepNumber <= (_currentChallengeIndex + 1)
-                ? const Icon(Icons.check, size: 16, color: Colors.white)
-                : Text(
-                    '$stepNumber',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.white54,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepIndicatorConnector(bool isActive) {
-    return Container(
-      width: 40,
-      height: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
-      color: isActive ? AppColors.primary : Colors.white24,
+        ],
+      ),
     );
   }
 }

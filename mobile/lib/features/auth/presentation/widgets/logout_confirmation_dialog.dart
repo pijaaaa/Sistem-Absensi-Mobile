@@ -7,6 +7,7 @@ import 'package:mobile/features/auth/presentation/providers/auth_providers.dart'
 
 /// Helper function to handle logout with pending offline items warning dialog (Requirement #4)
 Future<void> handleLogoutWithOfflineCheck(BuildContext context, WidgetRef ref, VoidCallback onConfirmLogout) async {
+  ref.read(authLoadingProvider.notifier).state = false;
   final offlineService = ref.read(offlineAttendanceServiceProvider);
   final authState = ref.read(authStateProvider);
   final userId = authState.user?.id ?? authState.employee?.id ?? 0;

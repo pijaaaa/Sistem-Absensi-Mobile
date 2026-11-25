@@ -239,12 +239,16 @@ class _MonthSummaryCard extends StatelessWidget {
   }
 
   Widget _buildSummaryRow(BuildContext context, String label, String value, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
           Row(
             children: [
               Container(
@@ -253,8 +257,15 @@ class _MonthSummaryCard extends StatelessWidget {
                 decoration: BoxDecoration(shape: BoxShape.circle, color: color),
               ),
               const SizedBox(width: 8),
-              Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(label, style: Theme.of(context).textTheme.bodyMedium),
             ],
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
           ),
         ],
       ),
@@ -271,26 +282,60 @@ class _MonthHeader extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: theme.cardTheme.color,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.07),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.15),
+        ),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () => onMonthChanged(DateTime(month.year, month.month - 1)),
+          _navButton(
+            icon: Icons.chevron_left,
+            tooltip: 'Bulan sebelumnya',
+            onPressed: () =>
+                onMonthChanged(DateTime(month.year, month.month - 1)),
           ),
-          Text(
-            DateFormat('MMMM yyyy', 'id_ID').format(month),
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          Expanded(
+            child: Center(
+              child: Text(
+                DateFormat('MMMM yyyy', 'id_ID').format(month),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () => onMonthChanged(DateTime(month.year, month.month + 1)),
+          _navButton(
+            icon: Icons.chevron_right,
+            tooltip: 'Bulan berikutnya',
+            onPressed: () =>
+                onMonthChanged(DateTime(month.year, month.month + 1)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _navButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return IconButton(
+      icon: Icon(icon, size: 20),
+      tooltip: tooltip,
+      onPressed: onPressed,
+      visualDensity: VisualDensity.compact,
+      style: IconButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        backgroundColor: AppColors.primary.withValues(alpha: 0.10),
       ),
     );
   }

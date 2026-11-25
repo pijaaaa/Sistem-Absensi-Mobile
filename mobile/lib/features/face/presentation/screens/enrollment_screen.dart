@@ -279,6 +279,49 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
     return true;
   }
 
+  Widget _buildStep(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+  ) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -308,65 +351,135 @@ class _EnrollmentScreenState extends ConsumerState<EnrollmentScreen> {
               ),
           ],
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Icon(Icons.face_retouching_natural,
-                  size: 80, color: theme.colorScheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                'Pendaftaran Wajah',
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Satu sesi liveness (toleh kiri-kanan) lalu foto terambil otomatis.',
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              if (_hasTemplateDownloaded)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+          children: [
+            Center(
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primary, AppColors.primaryDark],
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle, color: AppColors.success, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.28),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.face_retouching_natural,
+                  size: 46,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Pendaftaran Wajah',
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Satu sesi liveness (toleh kiri-kanan) lalu foto terambil otomatis.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            if (_hasTemplateDownloaded) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
                         'Template wajah sudah terdaftar. Daftar ulang untuk memperbarui.',
-                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.success),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.success,
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              const Spacer(),
-              AppButton(
-                text: 'Daftar Wajah dengan Liveness',
-                icon: Icons.face_retouching_natural,
-                isLoading: _isSubmitting,
-                onPressed: _isSubmitting ? null : _startEnrollment,
               ),
-              if (_hasTemplateDownloaded) ...[
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  onPressed: _isSubmitting ? null : () => _deleteFace(context, ref),
-                  icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-                  label: Text(
-                    'Hapus Wajah',
-                    style: TextStyle(color: theme.colorScheme.error),
-                  ),
-                ),
-              ],
+              const SizedBox(height: 16),
             ],
-          ),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildStep(
+                      context,
+                      Icons.face_rounded,
+                      'Hadap depan kamera',
+                      'Posisikan wajah di dalam bingkai',
+                    ),
+                    const Divider(height: 24),
+                    _buildStep(
+                      context,
+                      Icons.turn_right_rounded,
+                      'Toleh ke kanan',
+                      'Ikuti instruksi yang muncul di layar',
+                    ),
+                    const Divider(height: 24),
+                    _buildStep(
+                      context,
+                      Icons.turn_left_rounded,
+                      'Toleh ke kiri',
+                      'Selesaikan tantangan liveness',
+                    ),
+                    const Divider(height: 24),
+                    _buildStep(
+                      context,
+                      Icons.lock_outline_rounded,
+                      'Template terenkripsi',
+                      'Data wajah disimpan aman di perangkat',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+            AppButton(
+              text: 'Daftar Wajah dengan Liveness',
+              icon: Icons.face_retouching_natural,
+              isLoading: _isSubmitting,
+              onPressed: _isSubmitting ? null : _startEnrollment,
+            ),
+            if (_hasTemplateDownloaded) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: _isSubmitting ? null : () => _deleteFace(context, ref),
+                icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
+                label: Text(
+                  'Hapus Wajah',
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

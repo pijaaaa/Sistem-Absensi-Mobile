@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/theme/app_theme.dart';
 
 class AppCard extends StatelessWidget {
   final Widget child;
@@ -29,30 +30,33 @@ class AppCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final card = Card(
-      color: color ?? theme.cardTheme.color,
-      elevation: elevation ?? theme.cardTheme.elevation ?? 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: borderRadius ?? BorderRadius.circular(20),
-        side: border != null
-            ? const BorderSide()
-            : BorderSide.none,
-      ),
-      child: Container(
-        width: width,
-        height: height,
-        padding: padding ?? const EdgeInsets.all(16),
-        child: child,
-      ),
+    final radius = borderRadius ?? BorderRadius.circular(AppTheme.radiusLG);
+    final side = border != null
+        ? BorderSide(
+            color: border!.top.color,
+            width: border!.top.width == 0 ? 1 : border!.top.width,
+          )
+        : BorderSide(color: theme.dividerColor.withValues(alpha: 0.7));
+
+    final content = Container(
+      width: width,
+      height: height,
+      padding: padding ?? const EdgeInsets.all(AppTheme.spacingMD),
+      child: child,
     );
 
-    if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: card,
-      );
-    }
-
-    return card;
+    return Card(
+      color: color ?? theme.cardTheme.color,
+      elevation: elevation ?? 0,
+      margin: margin ?? EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: radius, side: side),
+      child: onTap == null
+          ? content
+          : InkWell(
+              onTap: onTap,
+              child: content,
+            ),
+    );
   }
 }

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/widgets/app_button.dart';
+import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 import 'package:mobile/features/attendance/presentation/screens/camera_face_screen.dart';
 import 'package:mobile/features/attendance/data/attendance_flow_service.dart';
@@ -24,18 +26,18 @@ class AttendanceFlowScreen extends ConsumerStatefulWidget {
 
 class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
   int _currentStep = 0;
-  
+
   // Location step
   bool _isCheckingLocation = false;
   LocationCheckResult? _locationResult;
-  
+
   // Face step
   Uint8List? _capturedImageBytes;
   double? _faceScore;
   int _retryAttempts = 0;
   String? _serverMessage;
   String? _decisionStatus; // 'pass', 'retry', 'review', 'reject'
-  
+
   // Result step
   bool _isSubmitting = false;
   AttendanceResult? _attendanceResult;
@@ -239,30 +241,10 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isCheckIn ? 'Absen Masuk' : 'Absen Pulang'),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
-      ),
       body: Column(
         children: [
-          // Stepper Progress
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildStepIndicator(0, 'Lokasi'),
-                _buildStepLine(0),
-                _buildStepIndicator(1, 'Wajah'),
-                _buildStepLine(1),
-                _buildStepIndicator(2, 'Selesai'),
-              ],
-            ),
-          ),
+          _buildFlowHeader(),
           Expanded(
             child: IndexedStack(
               index: _currentStep,
@@ -278,33 +260,113 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
     );
   }
 
+  Widget _buildFlowHeader() {
+    final theme = Theme.of(context);
+    const labels = ['Lokasi', 'Wajah', 'Hasil'];
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primaryDark, AppColors.primary],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(AppTheme.radiusXL),
+          bottomRight: Radius.circular(AppTheme.radiusXL),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.spacingSM,
+            AppTheme.spacingSM,
+            AppTheme.spacingLG,
+            AppTheme.spacingLG,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    tooltip: 'Kembali',
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.isCheckIn ? 'Absen Masuk' : 'Absen Pulang',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          'Langkah ${_currentStep + 1} dari 3 · ${labels[_currentStep]}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingMD),
+              Row(
+                children: [
+                  _buildStepIndicator(0, labels[0]),
+                  _buildStepLine(0),
+                  _buildStepIndicator(1, labels[1]),
+                  _buildStepLine(1),
+                  _buildStepIndicator(2, labels[2]),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStepIndicator(int step, String label) {
     final isActive = _currentStep >= step;
-    final theme = Theme.of(context);
+    final isDone = _currentStep > step;
 
     return Column(
       children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: isActive ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
-          child: isActive && _currentStep > step
-              ? const Icon(Icons.check, color: Colors.white, size: 20)
-              : Text(
-                  '${step + 1}',
-                  style: TextStyle(
-                    color: isActive ? Colors.white : theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.2),
+          ),
+          child: Center(
+            child: isDone
+                ? const Icon(Icons.check, color: AppColors.primary, size: 18)
+                : Text(
+                    '${step + 1}',
+                    style: TextStyle(
+                      color: isActive ? AppColors.primary : Colors.white70,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           label,
           style: TextStyle(
-             color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            fontSize: 12,
+            color: isActive ? Colors.white : Colors.white60,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            fontSize: 11,
           ),
         ),
       ],
@@ -316,23 +378,30 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
     return Expanded(
       child: Container(
         height: 2,
-        margin: const EdgeInsets.only(bottom: 28),
-        color: isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+        margin: const EdgeInsets.only(bottom: 24, left: 6, right: 6),
+        color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.25),
       ),
     );
   }
 
   Widget _buildLocationStep() {
     final theme = Theme.of(context);
+    final workLocation = ref.watch(authStateProvider).employee?.workLocation;
+    final radius = workLocation?.radiusM ?? 100;
 
     if (_isCheckingLocation) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Memeriksa lokasi Anda...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'Memeriksa lokasi Anda...',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       );
@@ -340,91 +409,159 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
 
     final isMockLocation = _locationResult?.isMockLocation == true;
     final isValid = _locationResult?.isValid == true;
+    final distance = _locationResult?.distance;
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.spacingMD),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 20),
-          Icon(
-            isMockLocation
-                ? Icons.warning
-                : isValid
-                    ? Icons.check_circle
-                    : Icons.location_off,
-            size: 80,
-            color: isMockLocation
-                ? AppColors.pending
-                : isValid
-                    ? AppColors.success
-                    : AppColors.error,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            isMockLocation
-                ? 'Mock Location Terdeteksi'
-                : isValid
-                    ? 'Lokasi Valid'
-                    : 'Di Luar Area',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isMockLocation
-                  ? AppColors.pending
-                  : isValid
-                      ? AppColors.success
-                      : AppColors.error,
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _LocationIllustration(
+                  valid: isValid && !isMockLocation,
+                  radius: radius,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(AppTheme.spacingMD),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isMockLocation
+                                    ? Icons.warning_amber_rounded
+                                    : isValid
+                                        ? Icons.check_circle
+                                        : Icons.location_off,
+                                size: 18,
+                                color: isMockLocation
+                                    ? AppColors.pending
+                                    : isValid
+                                        ? AppColors.success
+                                        : AppColors.error,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isMockLocation
+                                    ? 'Mock Location'
+                                    : isValid
+                                        ? 'Lokasi valid'
+                                        : 'Di luar radius',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: isMockLocation
+                                      ? AppColors.pending
+                                      : isValid
+                                          ? AppColors.success
+                                          : AppColors.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'Radius $radius m',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppTheme.spacingMD),
+                      Text(
+                        workLocation?.name ?? 'Kantor',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (distance != null) ...[
+                        const SizedBox(height: 4),
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${distance.toStringAsFixed(0)} m',
+                                style: theme.textTheme.displayMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '  dari batas $radius m',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppTheme.spacingMD),
+                      Divider(
+                        height: 1,
+                        color: theme.dividerColor.withValues(alpha: 0.6),
+                      ),
+                      const SizedBox(height: AppTheme.spacingMD),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InfoBlock(
+                              label: 'Jam sekarang',
+                              value:
+                                  '${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')} WIB',
+                            ),
+                          ),
+                          Expanded(
+                            child: _InfoBlock(
+                              label: 'Jam kerja',
+                              value: '08:00–17:00',
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (isMockLocation) ...[
+                        const SizedBox(height: AppTheme.spacingMD),
+                        Text(
+                          'Aplikasi Fake GPS terdeteksi. Matikan aplikasi pemalsu lokasi untuk melanjutkan.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.pending,
+                          ),
+                        ),
+                      ] else if (!isValid &&
+                          _locationResult?.errorMessage != null) ...[
+                        const SizedBox(height: AppTheme.spacingMD),
+                        Text(
+                          _locationResult!.errorMessage!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          if (isMockLocation)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Aplikasi Fake GPS terdeteksi! Mohon matikan aplikasi pemalsu lokasi untuk melanjutkan absensi.',
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            )
-          else if (_locationResult?.errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                _locationResult!.errorMessage!,
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            )
-          else if (isValid)
-            Text(
-              'Anda berada di dalam area kerja',
-              style: theme.textTheme.bodyMedium,
-            ),
-          if (_locationResult?.distance != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              'Jarak: ${_locationResult!.distance!.toStringAsFixed(0)} m',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-          const Spacer(),
-          if (isMockLocation)
+          const SizedBox(height: AppTheme.spacingLG),
+          if (isMockLocation || !isValid)
             AppButton(
               text: 'Coba Lagi',
               onPressed: _checkLocation,
               outline: true,
-            )
-          else if (isValid)
-            AppButton(
-              text: 'Lanjutkan ke Verifikasi Wajah',
-              onPressed: _proceedToFaceVerification,
+              icon: Icons.refresh,
             )
           else
             AppButton(
-              text: 'Coba Lagi',
-              onPressed: _checkLocation,
-              outline: true,
+              text: 'Lanjut ke Verifikasi Wajah',
+              onPressed: _proceedToFaceVerification,
+              icon: Icons.arrow_forward,
             ),
         ],
       ),
@@ -434,30 +571,51 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
   Widget _buildFaceStep() {
     final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.spacingMD),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 40),
-          Icon(
-            Icons.face,
-            size: 100,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Verifikasi Wajah',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+          const SizedBox(height: AppTheme.spacingMD),
+          AppCard(
+            child: Column(
+              children: [
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.face_retouching_natural,
+                    size: 44,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMD),
+                Text(
+                  'Verifikasi Wajah',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Pastikan wajah Anda terlihat jelas dengan pencahayaan yang cukup.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppTheme.spacingLG),
+                _ChecklistItem(text: 'Pencahayaan cukup'),
+                _ChecklistItem(text: 'Lepas masker atau penutup wajah'),
+                _ChecklistItem(text: 'Hadapkan wajah ke kamera'),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Pastikan wajah Anda terlihat jelas dan berada dalam kondisi cahaya yang cukup',
-            style: theme.textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const Spacer(),
+          const SizedBox(height: AppTheme.spacingLG),
           AppButton(
             text: 'Buka Kamera',
             onPressed: _openCamera,
@@ -472,13 +630,18 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
     final theme = Theme.of(context);
 
     if (_isSubmitting) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Memproses absensi & keputusan server...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'Memproses absensi & keputusan server...',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       );
@@ -486,98 +649,119 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
 
     final bool isOffline = _attendanceResult?.data?['is_offline'] == true;
     final String decision = isOffline ? 'pass' : (_decisionStatus ?? (_attendanceResult?.success == true ? 'pass' : 'reject'));
-    
+
     final bool isPass = decision == 'pass' || decision == 'synced' || decision == 'created';
     final bool isRetryOrReview = decision == 'retry' || decision == 'review';
     final bool isReject = decision == 'reject';
 
     IconData iconData = Icons.check_circle;
     Color iconColor = AppColors.success;
-    String titleText = 'Absensi Berhasil!';
+    String titleText = 'Absensi Berhasil';
 
     if (isOffline) {
       iconData = Icons.cloud_off;
       iconColor = AppColors.pending;
-      titleText = 'Tersimpan Offline (Terenkripsi)';
+      titleText = 'Tersimpan Offline';
     } else if (isRetryOrReview) {
       iconData = Icons.warning_amber_rounded;
       iconColor = AppColors.pending;
-      titleText = 'Verifikasi Perlu Review / Ulang';
+      titleText = 'Perlu Review / Ulang';
     } else if (isReject || !_attendanceResult!.success) {
       iconData = Icons.block;
       iconColor = AppColors.error;
-      titleText = 'Absensi Ditolak & Terkunci';
+      titleText = 'Absensi Ditolak';
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTheme.spacingMD),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 40),
-          Icon(iconData, size: 100, color: iconColor),
-          const SizedBox(height: 24),
-          Text(
-            titleText,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: iconColor,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          if (isRetryOrReview) ...[
-            Text(
-              _serverMessage ?? 'Kualitas wajah kurang atau ragu-ragu. Sisa percobaan: ${3 - _retryAttempts}',
-              style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.pending),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Percobaan ke-$_retryAttempts dari 3',
-              style: theme.textTheme.bodyMedium,
-            ),
-          ] else if (isReject) ...[
-            Text(
-              _serverMessage ?? 'Wajah tidak cocok atau verifikasi liveness gagal. Akses absen dikunci sementara.',
-              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
-              textAlign: TextAlign.center,
-            ),
-          ] else ...[
-            Text(
-              _serverMessage ?? _attendanceResult?.data?['message'] ?? 'Absensi ${widget.isCheckIn ? "masuk" : "pulang"} berhasil dicatat',
-              style: theme.textTheme.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-            if (isOffline) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.pending.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.pending),
+          const SizedBox(height: AppTheme.spacingMD),
+          AppCard(
+            child: Column(
+              children: [
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(iconData, size: 44, color: iconColor),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: AppColors.pending, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Crop wajah terenkripsi & skor lokal tersimpan offline. Disinkron otomatis saat online.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.pending,
-                        ),
+                const SizedBox(height: AppTheme.spacingMD),
+                Text(
+                  titleText,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: iconColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                if (isRetryOrReview) ...[
+                  Text(
+                    _serverMessage ?? 'Kualitas wajah kurang atau ragu-ragu. Sisa percobaan: ${3 - _retryAttempts}',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.pending),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Percobaan ke-$_retryAttempts dari 3',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ] else if (isReject) ...[
+                  Text(
+                    _serverMessage ?? 'Wajah tidak cocok atau verifikasi liveness gagal. Akses absen dikunci sementara.',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ] else ...[
+                  Text(
+                    _serverMessage ?? _attendanceResult?.data?['message'] ?? 'Absensi ${widget.isCheckIn ? "masuk" : "pulang"} berhasil dicatat',
+                    style: theme.textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  if (isOffline) ...[
+                    const SizedBox(height: AppTheme.spacingMD),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.pending.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSM),
+                        border: Border.all(color: AppColors.pending.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: AppColors.pending, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Crop wajah terenkripsi & skor lokal tersimpan offline. Disinkron otomatis saat online.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.pending,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            if (_attendanceResult?.data?['time'] != null)
-              _buildInfoRow('Waktu', _attendanceResult!.data!['time']),
-          ],
-          const Spacer(),
+                ],
+                if (_attendanceResult?.data?['time'] != null) ...[
+                  const SizedBox(height: AppTheme.spacingMD),
+                  Divider(
+                    height: 1,
+                    color: theme.dividerColor.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(height: AppTheme.spacingMD),
+                  _buildInfoRow('Waktu', _attendanceResult!.data!['time']),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingLG),
           if (isRetryOrReview && _retryAttempts < 3) ...[
             AppButton(
               text: 'Coba Ambil Foto Ulang',
@@ -603,10 +787,11 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
             const SizedBox(height: 12),
           ],
           AppButton(
-            text: 'Selesai',
+            text: 'Kembali ke Beranda',
             onPressed: () {
               Navigator.pop(context, isPass || isOffline);
             },
+            icon: Icons.home_outlined,
           ),
         ],
       ),
@@ -615,21 +800,172 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LocationIllustration extends StatelessWidget {
+  final bool valid;
+  final int radius;
+
+  const _LocationIllustration({required this.valid, required this.radius});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = valid ? AppColors.primary : AppColors.error;
+
+    return Container(
+      height: 168,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primarySoft,
+            AppColors.primarySoft.withValues(alpha: 0.5),
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppTheme.radiusLG),
+          topRight: Radius.circular(AppTheme.radiusLG),
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Text(
-            '$label: ',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.grey[600],
+          Container(
+            width: 150,
+            height: 150,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: color.withValues(alpha: 0.35),
+                width: 1.5,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+          Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: color.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
+            ),
+          ),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.location_on,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+          Positioned(
+            top: 20,
+            right: 24,
+            child: Text(
+              'Radius $radius m',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.primary.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoBlock extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoBlock({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChecklistItem extends StatelessWidget {
+  final String text;
+
+  const _ChecklistItem({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check,
+              size: 14,
+              color: AppColors.success,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
         ],

@@ -5,11 +5,14 @@ class AppColors {
   static const primary = Color(0xFF2D6049);        // Hijau tua brand
   static const primaryDark = Color(0xFF1F4636);    // Hijau tua lebih gelap
   static const primarySoft = Color(0xFFE3EFE8);    // Tint hijau
+  static const primaryMuted = Color(0xFF6E9B84);   // Hijau muted untuk teks/ikon sekunder
   static const accent = Color(0xFFF5B921);         // Kuning emas brand
+  static const accentSoft = Color(0xFFFFF3D1);     // Tint emas untuk chip
 
   // === LIGHT MODE ===
   static const lightBackground = Color(0xFFF6F7F5);
   static const lightSurface = Color(0xFFFFFFFF);
+  static const lightSurfaceMuted = Color(0xFFF1F3F1);
   static const lightTextPrimary = Color(0xFF0B1330);      // Navy gelap
   static const lightTextSecondary = Color(0xFF5B6475);
   static const lightBorder = Color(0xFFE4E7E5);

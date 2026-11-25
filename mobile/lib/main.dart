@@ -19,6 +19,7 @@ import 'package:mobile/core/theme/theme_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:mobile/features/attendance/data/local/workmanager_service.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
+import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/firebase_options.dart';
 
 Future<RemoteMessage?> _initializeFirebase(SharedPreferences prefs) async {
@@ -199,6 +200,7 @@ class AbsensiApp extends ConsumerWidget {
 
     // Setup 401 callback — trigger logout on expired token from Dio interceptor
     SessionManager.onSessionExpired ??= () {
+      ref.read(authLoadingProvider.notifier).state = false;
       ref.read(appStateProvider.notifier).logout();
     };
 

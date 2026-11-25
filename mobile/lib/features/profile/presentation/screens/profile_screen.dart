@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
+import 'package:mobile/core/widgets/section_header.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/auth/presentation/providers/device_providers.dart';
 import 'package:mobile/features/auth/presentation/widgets/logout_confirmation_dialog.dart';
@@ -22,122 +23,126 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Profil'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Avatar
-            CircleAvatar(
-              radius: 48,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Text(
-                _getInitials(user?.name ?? ''),
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          _buildHeaderBanner(context, user?.name ?? 'Pengguna',
+              user?.email ?? '', _getRoleLabel(user?.role)),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Informasi Akun'),
+          const SizedBox(height: 10),
+          _buildDetailCard(context, [
+            _buildDetailItem(context, Icons.person_outline, 'Nama', user?.name ?? '-'),
+            _buildDetailItem(context, Icons.work_outline, 'Role', _getRoleLabel(user?.role)),
+            _buildDetailItem(context, Icons.badge_outlined, 'Email', user?.email ?? '-'),
+            if (user?.employee != null)
+              _buildDetailItem(context, Icons.numbers, 'NIP', user!.employee!.nip),
+          ]),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Status Perangkat'),
+          const SizedBox(height: 10),
+          _buildDeviceStatusCard(context, ref),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Pengaturan'),
+          const SizedBox(height: 10),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _buildSettingItem(
+                  context,
+                  Icons.palette_outlined,
+                  'Tema Aplikasi',
+                  _buildThemeSelector(context, ref),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              user?.name ?? 'Pengguna',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              user?.email ?? '',
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 32),
-
-            // Profile Details
-            _buildDetailCard(context, [
-              _buildDetailItem(context, Icons.person_outline, 'Nama', user?.name ?? '-'),
-              _buildDetailItem(context, Icons.work_outline, 'Role', _getRoleLabel(user?.role)),
-              _buildDetailItem(context, Icons.badge_outlined, 'Email', user?.email ?? '-'),
-              if (user?.employee != null)
-                _buildDetailItem(context, Icons.numbers, 'NIP', user!.employee!.nip),
-            ]),
-            const SizedBox(height: 16),
-
-            // Device Status
-            _buildDeviceStatusCard(context, ref),
-            const SizedBox(height: 24),
-
-            // Settings
-            _buildSettingItem(context, Icons.palette_outlined, 'Tema Aplikasi', _buildThemeSelector(context, ref)),
-            _buildSettingItem(context, Icons.language, 'Bahasa', Text('Bahasa Indonesia')),
-            ListTile(
-              leading: Icon(Icons.notifications_outlined, color: Theme.of(context).colorScheme.primary),
-              title: Text('Notifikasi'),
-              subtitle: Text('Atur pengingat yang ingin diterima'),
-              trailing: Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => context.push('/notification-preferences'),
-            ),
-            ListTile(
-              leading: Icon(Icons.face_retouching_natural, color: Theme.of(context).colorScheme.primary),
-              title: Text('Daftar Wajah'),
-              subtitle: Text('Registrasi wajah untuk absensi'),
-              trailing: Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => context.push('/enrollment'),
-            ),
-            ListTile(
-              leading: Icon(Icons.face_unlock_outlined, color: theme.colorScheme.error),
-              title: Text('Hapus Data Wajah', style: TextStyle(color: theme.colorScheme.error)),
-              subtitle: Text('Reset atau hapus template wajah terdaftar'),
-              onTap: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Hapus Data Wajah'),
-                    content: const Text('Apakah Anda yakin ingin menghapus data wajah terdaftar? Anda perlu melakukan registrasi ulang.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Batal'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error),
-                        child: const Text('Hapus'),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm == true && context.mounted) {
-                  try {
-                    showDialog(
+                const Divider(height: 1),
+                _buildSettingItem(
+                  context,
+                  Icons.language,
+                  'Bahasa',
+                  Text('Bahasa Indonesia', style: theme.textTheme.bodySmall),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.notifications_outlined, color: theme.colorScheme.primary),
+                  title: const Text('Notifikasi'),
+                  subtitle: const Text('Atur pengingat yang ingin diterima'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => context.push('/notification-preferences'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.face_retouching_natural, color: theme.colorScheme.primary),
+                  title: const Text('Daftar Wajah'),
+                  subtitle: const Text('Registrasi wajah untuk absensi'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => context.push('/enrollment'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.face_unlock_outlined, color: theme.colorScheme.error),
+                  title: Text('Hapus Data Wajah', style: TextStyle(color: theme.colorScheme.error)),
+                  subtitle: const Text('Reset atau hapus template wajah terdaftar'),
+                  onTap: () async {
+                    final confirm = await showDialog<bool>(
                       context: context,
-                      barrierDismissible: false,
-                      builder: (context) => const Center(child: CircularProgressIndicator()),
+                      builder: (context) => AlertDialog(
+                        title: const Text('Hapus Data Wajah'),
+                        content: const Text('Apakah Anda yakin ingin menghapus data wajah terdaftar? Anda perlu melakukan registrasi ulang.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Batal'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error),
+                            child: const Text('Hapus'),
+                          ),
+                        ],
+                      ),
                     );
-                    final dataSource = ref.read(faceDataSourceProvider);
-                    await dataSource.deleteFace();
-                    if (context.mounted) {
-                      Navigator.pop(context); // pop loading
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Data wajah berhasil dihapus')),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      Navigator.pop(context); // pop loading
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Gagal menghapus data wajah: $e')),
-                      );
-                    }
-                  }
-                }
-              },
-            ),
-            _buildSettingItem(context, Icons.info_outline, 'Versi Aplikasi', Text('1.0.0')),
-            const SizedBox(height: 24),
 
-            // Logout Button
-            FilledButton.icon(
+                    if (confirm == true && context.mounted) {
+                      try {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => const Center(child: CircularProgressIndicator()),
+                        );
+                        final dataSource = ref.read(faceDataSourceProvider);
+                        await dataSource.deleteFace();
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Data wajah berhasil dihapus')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Gagal menghapus data wajah: $e')),
+                          );
+                        }
+                      }
+                    }
+                  },
+                ),
+                const Divider(height: 1),
+                _buildSettingItem(
+                  context,
+                  Icons.info_outline,
+                  'Versi Aplikasi',
+                  Text('1.0.0', style: theme.textTheme.bodySmall),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
               onPressed: () async {
                 await handleLogoutWithOfflineCheck(context, ref, () {
                   ref.read(appStateProvider.notifier).logout();
@@ -148,12 +153,116 @@ class ProfileScreen extends ConsumerWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.error,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            Text('v1.0.0', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          ],
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              'v1.0.0',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderBanner(
+    BuildContext context,
+    String name,
+    String email,
+    String role,
+  ) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primary, AppColors.primaryDark],
         ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.25),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.accent.withValues(alpha: 0.8),
+                width: 2,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _getInitials(name),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  email,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    role,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

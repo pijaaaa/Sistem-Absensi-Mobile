@@ -27,100 +27,128 @@ class _DeviceRegistrationScreenState
         title: const Text('Registrasi Device'),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 32),
-              Icon(
-                Icons.phone_android,
-                size: 80,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Device Baru Terdeteksi',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              deviceInfoAsync.when(
-                data: (deviceInfo) => Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        _buildInfoRow(
-                          context,
-                          icon: Icons.phone_android,
-                          label: 'Device',
-                          value: deviceInfo['device_name'] ?? 'Unknown',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInfoRow(
-                          context,
-                          icon: Icons.fingerprint,
-                          label: 'ID',
-                          value: deviceInfo['device_uid']?.substring(0, 8) ?? '-',
-                        ),
-                      ],
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          children: [
+            Center(
+              child: Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primary, AppColors.primaryDark],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.28),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
                     ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.phone_android,
+                  size: 44,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Device Baru Terdeteksi',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Daftarkan perangkat ini untuk mulai melakukan absensi.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            deviceInfoAsync.when(
+              data: (deviceInfo) => Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      _buildInfoRow(
+                        context,
+                        icon: Icons.phone_android,
+                        label: 'Device',
+                        value: deviceInfo['device_name'] ?? 'Unknown',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInfoRow(
+                        context,
+                        icon: Icons.fingerprint,
+                        label: 'ID',
+                        value: deviceInfo['device_uid']?.substring(0, 8) ?? '-',
+                      ),
+                    ],
                   ),
                 ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => const SizedBox.shrink(),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Pilih jenis device:',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, _) => const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Pilih jenis device:',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 16),
-              _buildDeviceTypeCard(
-                context,
-                title: 'Device Utama',
-                description:
-                    'Device utama untuk absensi sehari-hari. Tidak perlu persetujuan manager.',
-                icon: Icons.phone_android,
-                color: AppColors.primary,
-                onTap: () => _registerDevice(asBackup: false),
-              ),
-              const SizedBox(height: 12),
-              _buildDeviceTypeCard(
-                context,
-                title: 'Device Cadangan',
-                description:
-                    'Device cadangan untuk situasi darurat. Absensi memerlukan persetujuan manager.',
-                icon: Icons.phone_iphone,
-                color: AppColors.accent,
-                onTap: () => _registerDevice(asBackup: true),
-              ),
-              const Spacer(),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    _errorMessage!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                    textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            _buildDeviceTypeCard(
+              context,
+              title: 'Device Utama',
+              description:
+                  'Device utama untuk absensi sehari-hari. Tidak perlu persetujuan manager.',
+              icon: Icons.phone_android,
+              color: AppColors.primary,
+              onTap: () => _registerDevice(asBackup: false),
+            ),
+            const SizedBox(height: 12),
+            _buildDeviceTypeCard(
+              context,
+              title: 'Device Cadangan',
+              description:
+                  'Device cadangan untuk situasi darurat. Absensi memerlukan persetujuan manager.',
+              icon: Icons.phone_iphone,
+              color: AppColors.accent,
+              onTap: () => _registerDevice(asBackup: true),
+            ),
+            const SizedBox(height: 24),
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Text(
+                  _errorMessage!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.error,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-              if (_isLoading)
-                const Center(child: CircularProgressIndicator())
-              else
-                TextButton(
+              ),
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else
+              Center(
+                child: TextButton(
                   onPressed: () => context.go('/login'),
                   child: const Text('Kembali ke Login'),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
@@ -173,18 +201,19 @@ class _DeviceRegistrationScreenState
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-          borderRadius: BorderRadius.circular(16),
+          color: color.withValues(alpha: 0.06),
+          border: Border.all(color: color.withValues(alpha: 0.28)),
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: color, size: 32),
+              child: Icon(icon, color: color, size: 30),
             ),
             const SizedBox(width: 16),
             Expanded(

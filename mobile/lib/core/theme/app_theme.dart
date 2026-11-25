@@ -66,23 +66,62 @@ class AppTheme {
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.lightSurfaceMuted,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(radiusMD),
+          borderSide: BorderSide(color: AppColors.lightBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMD),
+          borderSide: BorderSide(color: AppColors.lightBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMD),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: GoogleFonts.poppins(fontSize: 14),
-        hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
+        hintStyle: GoogleFonts.poppins(fontSize: 14, color: AppColors.lightTextSecondary),
       ),
-      snackBarTheme: const SnackBarThemeData(
+      snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.lightTextPrimary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusSM),
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.lightSurface,
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppColors.lightBorder.withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(radiusLG),
+          side: BorderSide(color: AppColors.lightBorder),
         ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.lightSurface,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+        elevation: 0,
+        height: 68,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return GoogleFonts.poppins(
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            color: selected ? AppColors.primary : AppColors.lightTextSecondary,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            size: 22,
+            color: selected ? AppColors.primary : AppColors.lightTextSecondary,
+          );
+        }),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.lightSurface,
@@ -165,23 +204,62 @@ class AppTheme {
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.darkSurfaceHigh,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(radiusMD),
+          borderSide: BorderSide(color: AppColors.darkBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMD),
+          borderSide: BorderSide(color: AppColors.darkBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMD),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: GoogleFonts.poppins(fontSize: 14),
-        hintStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+        hintStyle: GoogleFonts.poppins(fontSize: 14, color: AppColors.darkTextSecondary),
       ),
-      snackBarTheme: const SnackBarThemeData(
+      snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.darkSurfaceHigh,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusSM),
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.darkSurface,
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppColors.darkBorder.withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(radiusLG),
+          side: BorderSide(color: AppColors.darkBorder),
         ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.darkSurface,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.28),
+        elevation: 0,
+        height: 68,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return GoogleFonts.poppins(
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            color: selected ? AppColors.primarySoft : AppColors.darkTextSecondary,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            size: 22,
+            color: selected ? AppColors.primarySoft : AppColors.darkTextSecondary,
+          );
+        }),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.darkSurface,
@@ -244,6 +322,35 @@ class AppTheme {
   static const double spacingLG = 24.0;
   static const double spacingXL = 32.0;
   static const double spacingXXL = 40.0;
+
+  // Radius tokens
+  static const double radiusXS = 10.0;
+  static const double radiusSM = 12.0;
+  static const double radiusMD = 14.0;
+  static const double radiusLG = 20.0;
+  static const double radiusXL = 28.0;
+  static const double radiusPill = 999.0;
+
+  static List<BoxShadow> softShadow(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    return [
+      BoxShadow(
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.35)
+            : const Color(0xFF0B1330).withValues(alpha: 0.05),
+        blurRadius: 18,
+        offset: const Offset(0, 6),
+      ),
+    ];
+  }
+
+  static LinearGradient brandGradient(Brightness brightness) {
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [AppColors.primaryDark, AppColors.primary],
+    );
+  }
 
   // Breakpoints
   static const double breakpointCompact = 600;

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
+import 'package:mobile/core/widgets/app_avatar.dart';
+import 'package:mobile/core/widgets/section_header.dart';
 import 'package:mobile/features/auth/presentation/widgets/logout_confirmation_dialog.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/notification/presentation/providers/notification_providers.dart';
@@ -24,65 +26,123 @@ class MoreScreen extends ConsumerWidget {
         centerTitle: false,
       ),
       body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          const _SectionHeader(title: 'Akun'),
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Icon(Icons.person, color: AppColors.primary, size: 20),
-            ),
-            title: Text(
-              authState.user?.name ?? 'Pengguna',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              authState.user?.email ?? '',
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.chevron_right),
-              onPressed: () => context.push('/profile'),
+          Card(
+            margin: EdgeInsets.zero,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => context.push('/profile'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    AppAvatar(
+                      name: authState.user?.name ?? 'Pengguna',
+                      size: 52,
+                      backgroundColor:
+                          AppColors.primary.withValues(alpha: 0.12),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            authState.user?.name ?? 'Pengguna',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            authState.user?.email ?? '',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
             ),
           ),
-          const Divider(height: 1),
-
-          const _SectionHeader(title: 'Pengaturan'),
-          _buildThemeSelector(context, ref),
-          ListTile(
-            leading: Icon(Icons.language, color: theme.colorScheme.primary),
-            title: const Text('Bahasa'),
-            trailing: Text('Bahasa Indonesia'),
-          ),
-          ListTile(
-            leading: Icon(Icons.notifications_outlined, color: theme.colorScheme.primary),
-            title: const Text('Notifikasi'),
-            trailing: Switch(
-              value: true,
-              activeThumbColor: AppColors.primary,
-              onChanged: (value) {},
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Pengaturan'),
+          const SizedBox(height: 10),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _buildThemeSelector(context, ref),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.language, color: theme.colorScheme.primary),
+                  title: const Text('Bahasa'),
+                  trailing: Text(
+                    'Bahasa Indonesia',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(
+                    Icons.notifications_outlined,
+                    color: theme.colorScheme.primary,
+                  ),
+                  title: const Text('Notifikasi'),
+                  trailing: Switch(
+                    value: true,
+                    activeThumbColor: AppColors.primary,
+                    onChanged: (value) {},
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.info_outline, color: theme.colorScheme.primary),
+                  title: const Text('Versi Aplikasi'),
+                  trailing: Text('v1.0.0', style: theme.textTheme.bodySmall),
+                ),
+              ],
             ),
           ),
-          ListTile(
-            leading: Icon(Icons.info_outline, color: theme.colorScheme.primary),
-            title: const Text('Versi Aplikasi'),
-            trailing: Text('v1.0.0'),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Notifikasi'),
+          const SizedBox(height: 10),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.notifications_active_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              title: const Text('Manajemen Notifikasi'),
+              subtitle: unreadCount > 0
+                  ? Text('$unreadCount belum dibaca')
+                  : null,
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/notifications'),
+            ),
           ),
-          const Divider(height: 1),
-
-          const _SectionHeader(title: 'Notifikasi'),
-          ListTile(
-            leading: Icon(Icons.notifications, color: theme.colorScheme.primary),
-            title: const Text('Manajemen Notifikasi'),
-            subtitle: unreadCount > 0
-                ? Text('$unreadCount belum dibaca')
-                : null,
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/notifications'),
-          ),
-          const Divider(height: 1),
-
-          Padding(
-            padding: const EdgeInsets.all(24),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
             child: FilledButton.icon(
               onPressed: () async {
                 await handleLogoutWithOfflineCheck(context, ref, () {
@@ -94,6 +154,10 @@ class MoreScreen extends ConsumerWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.error,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -138,27 +202,6 @@ class MoreScreen extends ConsumerWidget {
           },
         );
       }).toList(growable: false),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Text(
-        title,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
     );
   }
 }

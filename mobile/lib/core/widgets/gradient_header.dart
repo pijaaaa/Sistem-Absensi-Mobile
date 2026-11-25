@@ -28,57 +28,83 @@ class GradientHeader extends StatelessWidget {
 
     final Gradient gradient = colorOverride != null
         ? LinearGradient(colors: [colorOverride!, colorOverride!])
-        : isDark
-            ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primaryDark,
-                  AppColors.primary,
-                ],
-              )
-            : const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primaryDark,
-                  AppColors.primary,
-                ],
-              );
+        : AppTheme.brandGradient(Theme.of(context).brightness);
 
-    final widget = Container(
-      height: height,
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: borderRadius ?? BorderRadius.circular(0),
-      ),
-      child: Stack(
-        children: [
-          if (showAccentLine)
+    final radius = borderRadius ??
+        const BorderRadius.only(
+          bottomLeft: Radius.circular(AppTheme.radiusXL),
+          bottomRight: Radius.circular(AppTheme.radiusXL),
+        );
+
+    return ClipRRect(
+      borderRadius: radius,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(gradient: gradient),
+        child: Stack(
+          children: [
             Positioned(
-              top: 16,
-              left: 0,
-              child: Container(
-                width: accentWidth,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.accent : AppColors.accent,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+              top: -40,
+              right: -30,
+              child: _DecorativeCircle(
+                size: 140,
+                color: Colors.white.withValues(alpha: isDark ? 0.04 : 0.06),
               ),
             ),
-          Padding(
-            padding: padding ??
-                const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingMD,
-                  vertical: 16,
+            Positioned(
+              bottom: -60,
+              left: -20,
+              child: _DecorativeCircle(
+                size: 180,
+                color: Colors.white.withValues(alpha: isDark ? 0.03 : 0.05),
+              ),
+            ),
+            if (showAccentLine)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  height: 3,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.accent,
+                        AppColors.accent,
+                        Colors.transparent,
+                      ],
+                      stops: [0.0, 0.55, 1.0],
+                    ),
+                  ),
                 ),
-            child: child,
-          ),
-        ],
+              ),
+            Padding(
+              padding: padding ??
+                  const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingLG,
+                    vertical: AppTheme.spacingMD,
+                  ),
+              child: child,
+            ),
+          ],
+        ),
       ),
     );
+  }
+}
 
-    return widget;
+class _DecorativeCircle extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const _DecorativeCircle({required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    );
   }
 }

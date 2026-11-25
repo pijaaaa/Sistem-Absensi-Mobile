@@ -59,17 +59,33 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.inbox_outlined,
-                        size: 64,
-                        color: theme.colorScheme.onSurfaceVariant,
+                      Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.inbox_rounded,
+                          size: 44,
+                          color: AppColors.primary.withValues(alpha: 0.7),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Belum ada pengajuan',
-                        style: theme.textTheme.bodyLarge?.copyWith(
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pengajuan yang Anda buat akan tampil di sini',
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -125,20 +141,22 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
           _selectedStatus = status;
         });
       },
-      selectedColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+      selectedColor: AppColors.primary,
+      checkmarkColor: Colors.white,
+      showCheckmark: false,
       labelStyle: TextStyle(
-        color: isSelected
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurfaceVariant,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? Colors.white : theme.colorScheme.onSurfaceVariant,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+        fontSize: 13,
       ),
       backgroundColor: Colors.transparent,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
         side: BorderSide(
           color: isSelected
-              ? theme.colorScheme.primary
-              : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              ? AppColors.primary
+              : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.25),
         ),
       ),
     );
