@@ -16,7 +16,6 @@ import 'package:mobile/core/widgets/section_header.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/core/widgets/stat_tile.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
-import 'package:mobile/core/widgets/app_navigation_bar.dart';
 import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/core/providers/app_state_provider.dart';
 import 'package:mobile/core/services/push_notification_service.dart';
@@ -64,7 +63,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _refreshData() {
     final now = DateTime.now();
     ref.invalidate(todaySummaryProvider);
-    ref.invalidate(monthlySummaryProvider(MonthYearParams(year: now.year, month: now.month)));
+    ref.invalidate(
+      monthlySummaryProvider(MonthYearParams(year: now.year, month: now.month)),
+    );
     ref.invalidate(homeDataProvider);
     ref.invalidate(recentActivityProvider);
   }
@@ -89,11 +90,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await PushNotificationService.instance.requestPermission(context);
 
     // Callback lifecycle (service tidak butuh context/ref).
-    PushNotificationService.isAuthorized = () => ref.read(appStateProvider).isLoggedIn;
+    PushNotificationService.isAuthorized = () =>
+        ref.read(appStateProvider).isLoggedIn;
     PushNotificationService.onTokenRefreshed = (token) {
       ref.read(authDataSourceProvider).updateFcmToken(token);
     };
-    AppStateNotifier.onLogout ??= () => ref.read(authRepositoryProvider).logout();
+    AppStateNotifier.onLogout ??= () =>
+        ref.read(authRepositoryProvider).logout();
 
     final pending = PushNotificationService.consumePendingNavigation();
     if (pending != null && mounted) {
@@ -149,7 +152,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ref.invalidate(homeInitProvider);
             ref.invalidate(homeDataProvider);
             ref.invalidate(todaySummaryProvider);
-            ref.invalidate(monthlySummaryProvider(MonthYearParams(year: now.year, month: now.month)));
+            ref.invalidate(
+              monthlySummaryProvider(
+                MonthYearParams(year: now.year, month: now.month),
+              ),
+            );
             ref.invalidate(recentActivityProvider);
             ref.invalidate(leaveBalanceProvider);
             if (isManager) ref.invalidate(teamStatsProvider);
@@ -186,7 +193,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       SectionHeader(
                         title: 'Aktivitas Terakhir',
                         actionLabel: 'Lihat Semua',
-                        onAction: () => context.push('/history'),
+                        onAction: () => context.go('/history'),
                       ),
                       const SizedBox(height: AppTheme.spacingSM),
                       _buildRecentActivity(context),
@@ -194,7 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       SectionHeader(
                         title: 'Pengajuan Saya',
                         actionLabel: 'Lihat Semua',
-                        onAction: () => context.push('/leave'),
+                        onAction: () => context.go('/leave'),
                       ),
                       const SizedBox(height: AppTheme.spacingSM),
                       _buildMyRequests(context),
@@ -211,7 +218,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onRetry: () => ref.invalidate(homeInitProvider),
         ),
       ),
-      bottomNavigationBar: const AppNavigationBar(),
     );
   }
 
@@ -224,10 +230,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final hour = _now.hour;
     final greeting = _greeting(hour);
     final userName = authState.user?.name ?? 'Pengguna';
-    final department =
-        authState.employee?.departmentId != null
-            ? 'Department #${authState.employee!.departmentId}'
-            : 'PT Bumi Siak Pusako';
+    final department = authState.employee?.departmentId != null
+        ? 'Department #${authState.employee!.departmentId}'
+        : 'PT Bumi Siak Pusako';
 
     return SliverToBoxAdapter(
       child: GradientHeader(
@@ -346,7 +351,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     value: '$totalPresent',
                     icon: Icons.check_circle,
                     iconColor: AppColors.success,
-                    onTap: () => context.push('/history'),
+                    onTap: () => context.go('/history'),
                   ),
                 ),
                 const SizedBox(width: AppTheme.spacingSM),
@@ -365,42 +370,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     value: '$remainingLeave',
                     icon: Icons.calendar_today,
                     iconColor: AppColors.info,
-                    onTap: () => context.push('/leave'),
+                    onTap: () => context.go('/leave'),
                   ),
                 ),
               ],
             );
           },
           loading: () => Row(
-              children: List.generate(
-                3,
-                (i) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: i == 2 ? 0 : AppTheme.spacingSM,
-                    ),
-                    child: SkeletonLoader(
-                      height: 120,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusLG),
-                    ),
+            children: List.generate(
+              3,
+              (i) => Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: i == 2 ? 0 : AppTheme.spacingSM,
+                  ),
+                  child: SkeletonLoader(
+                    height: 120,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLG),
                   ),
                 ),
               ),
             ),
+          ),
           error: (e, _) => AppCard(
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: AppColors.error),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Gagal memuat ringkasan kehadiran',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.error),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Gagal memuat ringkasan kehadiran',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
         );
       },
     );
@@ -413,61 +418,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final isManager = authState.user?.role == 'manager_department';
         if (!isManager) return const SizedBox.shrink();
 
-        return ref.watch(todaySummaryProvider).when(
-          data: (_) => AppCard(
-            onTap: () => context.push('/approval'),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.fact_check_outlined,
-                    color: AppColors.warningYellow,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Approval',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+        return ref
+            .watch(todaySummaryProvider)
+            .when(
+              data: (_) => AppCard(
+                onTap: () => context.go('/approval'),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.18),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Pengajuan menunggu keputusan Anda',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
+                      child: const Icon(
+                        Icons.fact_check_outlined,
+                        color: AppColors.warningYellow,
+                        size: 22,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Approval',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Pengajuan menunggu keputusan Anda',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, size: 20),
+                  ],
                 ),
-                const Icon(Icons.chevron_right, size: 20),
-              ],
-            ),
-          ),
-          loading: () => SkeletonLoader(
-              height: 80,
-              borderRadius: BorderRadius.circular(AppTheme.radiusLG),
-            ),
-          error: (_, _) => const SizedBox.shrink(),
-        );
+              ),
+              loading: () => SkeletonLoader(
+                height: 80,
+                borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+              ),
+              error: (_, _) => const SizedBox.shrink(),
+            );
       },
     );
   }
@@ -535,9 +538,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     '${item.date} • ${item.time}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
+                                    style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: Theme.of(context)
                                               .colorScheme
@@ -561,8 +562,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           height: 1,
                           indent: AppTheme.spacingMD,
                           endIndent: AppTheme.spacingMD,
-                          color: Theme.of(context)
-                              .dividerColor
+                          color: Theme.of(context).dividerColor
                               .withValues(alpha: 0.5),
                         ),
                     ],
@@ -575,9 +575,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             height: 160,
             borderRadius: BorderRadius.circular(AppTheme.radiusLG),
           ),
-          error: (error, stack) => AppCard(
-            child: const Text('Gagal memuat aktivitas.'),
-          ),
+          error: (error, stack) =>
+              AppCard(child: const Text('Gagal memuat aktivitas.')),
         );
       },
     );
@@ -604,8 +603,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return AppCard(
           padding: EdgeInsets.zero,
           child: Column(
-            children:
-                items.take(5).toList().asMap().entries.map((entry) {
+            children: items.take(5).toList().asMap().entries.map((entry) {
               final req = entry.value;
               final isLast = entry.key == items.take(5).length - 1;
               return Column(
@@ -634,17 +632,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             children: [
                               Text(
                                 req.typeLabel,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '${req.startDate.day}/${req.startDate.month}/${req.startDate.year} - ${req.endDate.day}/${req.endDate.month}/${req.endDate.year}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
+                                style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -667,8 +661,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       height: 1,
                       indent: AppTheme.spacingMD,
                       endIndent: AppTheme.spacingMD,
-                      color:
-                          Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                      color: Theme.of(context).dividerColor
+                          .withValues(alpha: 0.5),
                     ),
                 ],
               );
@@ -782,8 +776,10 @@ class _NotificationIconButton extends StatelessWidget {
                   right: -4,
                   child: Container(
                     padding: const EdgeInsets.all(3),
-                    constraints:
-                        const BoxConstraints(minWidth: 16, minHeight: 16),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: AppColors.error,

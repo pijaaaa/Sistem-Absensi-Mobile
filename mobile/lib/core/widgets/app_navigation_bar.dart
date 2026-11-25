@@ -1,117 +1,156 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mobile/core/models/menu_item_model.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 
 class AppNavigationBar extends ConsumerWidget {
-  final int initialIndex;
-  final ValueChanged<int>? onTap;
+  final int currentIndex;
+  final ValueChanged<int>? onDestinationSelected;
 
   const AppNavigationBar({
     super.key,
-    this.initialIndex = 0,
-    this.onTap,
+    required this.currentIndex,
+    this.onDestinationSelected,
   });
 
   static const _iconMap = <String, IconData>{
     'home': Icons.home,
-    'attendance': Icons.fingerprint,
     'history': Icons.history,
     'leave': Icons.calendar_today,
     'profile': Icons.person,
     'approval': Icons.check_circle,
-    'team_stats': Icons.bar_chart,
-    'notifications': Icons.notifications,
     'more': Icons.menu,
   };
 
+  static const _branchRoutes = <String>[
+    '/home',
+    '/history',
+    '/leave',
+    '/approval',
+    '/profile',
+    '/more',
+  ];
+
   static const _routeMap = <String, String>{
     'home': '/home',
-    'attendance': '/attendance-flow',
     'history': '/history',
     'leave': '/leave',
-    'profile': '/profile',
     'approval': '/approval',
-    'team_stats': '/home',
-    'notifications': '/notifications',
+    'profile': '/profile',
     'more': '/more',
   };
 
+  static const _hiddenKeys = <String>{
+    'notifications',
+    'attendance',
+    'team_stats',
+  };
+
+  static final _homeItem = MenuItemModel(
+    featureKey: 'home',
+    label: 'Beranda',
+    icon: 'home',
+  );
+
+  static final _moreItem = MenuItemModel(
+    featureKey: 'more',
+    label: 'Lainnya',
+    icon: 'menu',
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final menusRaw = ref.watch(currentMenusProvider);
-
-    if (menusRaw == null || menusRaw.isEmpty) {
-      // Fallback: NavigationBar butuh minimal 2 destination — 
-      // tampilkan Home + More saat menu kosong (mis. offline / menu gagal load)
-      return NavigationBar(
-        selectedIndex: 0,
-        onDestinationSelected: (index) {
-          final currentLocation = GoRouterState.of(context).matchedLocation;
-          final target = index == 0 ? '/home' : '/more';
-          if (target != currentLocation) {
-            GoRouter.of(context).go(target);
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home, size: 22),
-            label: 'Beranda',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu, size: 22),
-            label: 'Lainnya',
-          ),
-        ],
-      );
-    }
-
-    final menus =
-        menusRaw.map((e) => MenuItemModel.fromJson(e)).toList();
-    final visibleMenus = menus
-        .where((e) => e.featureKey != 'notifications' && e.featureKey != 'attendance' && e.featureKey != 'team_stats')
-        .take(5)
-        .toList();
-    final hasMore = menus
-        .where((e) => e.featureKey != 'notifications' && e.featureKey != 'attendance' && e.featureKey != 'team_stats')
-        .length > 5;
-
-    if (hasMore) {
-      visibleMenus.add(MenuItemModel(
-        featureKey: 'more',
-        label: 'Lainnya',
-        icon: 'menu',
-      ));
-    }
+    final destinations = _visibleDestinations(
+      ref.watch(currentMenusProvider),
+      currentIndex,
+    );
 
     return NavigationBar(
-      selectedIndex: initialIndex.clamp(0, visibleMenus.length - 1),
+      selectedIndex: _destinationIndexForBranch(destinations, currentIndex),
       onDestinationSelected: (index) {
-        final item = visibleMenus[index];
-        final route = _routeMap[item.featureKey] ?? '/home';
-        final currentLocation = GoRouterState.of(context).matchedLocation;
-        if (route == currentLocation) return;
-        if (GoRouter.of(context).canPop()) {
-          GoRouter.of(context).pop();
-        }
-        GoRouter.of(context).push(route);
-        onTap?.call(index);
+        final branchIndex = _branchIndexForDestination(destinations, index);
+        if (branchIndex == null || branchIndex == currentIndex) return;
+        onDestinationSelected?.call(branchIndex);
       },
       indicatorColor: _getIndicatorColor(context),
-      destinations: visibleMenus.asMap().entries.map((entry) {
-        final item = entry.value;
-        final icon = _iconMap[item.featureKey] ?? _iconMap[item.icon] ?? Icons.widgets;
-        final label = item.label;
-
+      destinations: destinations.map((item) {
+        final icon =
+            _iconMap[item.featureKey] ?? _iconMap[item.icon] ?? Icons.widgets;
         return NavigationDestination(
           icon: Icon(icon, size: 22),
-          label: label,
-          tooltip: label,
+          label: item.label,
+          tooltip: item.label,
         );
       }).toList(),
     );
+  }
+
+  List<MenuItemModel> _visibleDestinations(
+    List<Map<String, dynamic>>? raw,
+    int branchIndex,
+  ) {
+    final seen = <String>{};
+    final eligible = <MenuItemModel>[];
+
+    for (final entry in raw ?? const <Map<String, dynamic>>[]) {
+      final item = MenuItemModel.fromJson(entry);
+      final key = item.featureKey;
+      if (key.isEmpty ||
+          _hiddenKeys.contains(key) ||
+          !_routeMap.containsKey(key) ||
+          !seen.add(key)) {
+        continue;
+      }
+      eligible.add(item);
+    }
+
+    final visible = eligible.take(5).toList();
+    if ((eligible.length > 5 ||
+            branchIndex == _branchRoutes.indexOf('/more')) &&
+        !visible.any((item) => item.featureKey == 'more')) {
+      visible.add(_moreItem);
+    }
+    if (branchIndex == 0 && !visible.any((item) => item.featureKey == 'home')) {
+      visible.insert(0, _homeItem);
+    }
+
+    if (visible.length < 2) {
+      if (!visible.any((item) => item.featureKey == 'home')) {
+        visible.insert(0, _homeItem);
+      }
+      if (!visible.any((item) => item.featureKey == 'more')) {
+        visible.add(_moreItem);
+      }
+    }
+
+    return visible;
+  }
+
+  int _destinationIndexForBranch(
+    List<MenuItemModel> destinations,
+    int branchIndex,
+  ) {
+    final route = branchIndex >= 0 && branchIndex < _branchRoutes.length
+        ? _branchRoutes[branchIndex]
+        : '/home';
+    final index = destinations.indexWhere(
+      (item) => _routeMap[item.featureKey] == route,
+    );
+    return index == -1 ? 0 : index;
+  }
+
+  int? _branchIndexForDestination(
+    List<MenuItemModel> destinations,
+    int destinationIndex,
+  ) {
+    if (destinationIndex < 0 || destinationIndex >= destinations.length) {
+      return null;
+    }
+    final route = _routeMap[destinations[destinationIndex].featureKey];
+    if (route == null) return null;
+    final branchIndex = _branchRoutes.indexOf(route);
+    return branchIndex == -1 ? null : branchIndex;
   }
 
   Color _getIndicatorColor(BuildContext context) {

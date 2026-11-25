@@ -21,10 +21,7 @@ class MoreScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Lainnya'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('Lainnya'), centerTitle: false),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
@@ -32,7 +29,7 @@ class MoreScreen extends ConsumerWidget {
             margin: EdgeInsets.zero,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: () => context.push('/profile'),
+              onTap: () => context.go('/profile'),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -40,8 +37,9 @@ class MoreScreen extends ConsumerWidget {
                     AppAvatar(
                       name: authState.user?.name ?? 'Pengguna',
                       size: 52,
-                      backgroundColor:
-                          AppColors.primary.withValues(alpha: 0.12),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.12,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -84,7 +82,10 @@ class MoreScreen extends ConsumerWidget {
                 _buildThemeSelector(context, ref),
                 const Divider(height: 1),
                 ListTile(
-                  leading: Icon(Icons.language, color: theme.colorScheme.primary),
+                  leading: Icon(
+                    Icons.language,
+                    color: theme.colorScheme.primary,
+                  ),
                   title: const Text('Bahasa'),
                   trailing: Text(
                     'Bahasa Indonesia',
@@ -106,7 +107,10 @@ class MoreScreen extends ConsumerWidget {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: Icon(Icons.info_outline, color: theme.colorScheme.primary),
+                  leading: Icon(
+                    Icons.info_outline,
+                    color: theme.colorScheme.primary,
+                  ),
                   title: const Text('Versi Aplikasi'),
                   trailing: Text('v1.0.0', style: theme.textTheme.bodySmall),
                 ),
@@ -185,23 +189,29 @@ class MoreScreen extends ConsumerWidget {
       leading: Icon(Icons.palette_outlined, color: theme.colorScheme.primary),
       title: const Text('Tema Aplikasi'),
       childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      children: ThemeMode.values.map((mode) {
-        final selected = current == mode;
-        return ListTile(
-          contentPadding: const EdgeInsets.only(left: 32),
-            leading: Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-            color: selected ? AppColors.primary : theme.colorScheme.onSurfaceVariant,
-            size: 18,
-          ),
-          title: Text(getLabel(mode)),
-          onTap: () {
-            ref.read(themeModeProvider.notifier).state = mode;
-            ThemeSettings.saveThemeMode(mode);
-            Navigator.pop(context);
-          },
-        );
-      }).toList(growable: false),
+      children: ThemeMode.values
+          .map((mode) {
+            final selected = current == mode;
+            return ListTile(
+              contentPadding: const EdgeInsets.only(left: 32),
+              leading: Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected
+                    ? AppColors.primary
+                    : theme.colorScheme.onSurfaceVariant,
+                size: 18,
+              ),
+              title: Text(getLabel(mode)),
+              onTap: () {
+                ref.read(themeModeProvider.notifier).state = mode;
+                ThemeSettings.saveThemeMode(mode);
+                Navigator.pop(context);
+              },
+            );
+          })
+          .toList(growable: false),
     );
   }
 }

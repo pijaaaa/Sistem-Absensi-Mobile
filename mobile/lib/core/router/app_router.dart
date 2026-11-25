@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/providers/app_state_provider.dart';
+import 'package:mobile/core/widgets/app_navigation_bar.dart';
 import 'package:mobile/features/approval/presentation/screens/approval_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/attendance_flow_screen.dart';
 import 'package:mobile/features/attendance/presentation/screens/history_screen.dart';
@@ -25,6 +26,13 @@ import 'package:mobile/splash_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+final _homeNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'home');
+final _historyNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'history');
+final _leaveNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'leave');
+final _approvalNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'approval');
+final _profileNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
+final _moreNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'more');
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshStream = _AppStateRefreshStream(ref);
 
@@ -44,7 +52,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 2) Sudah login, tapi di splash/onboarding/login → ke home
       if (appState.isLoggedIn) {
-        if (location == '/splash' || location == '/onboarding' || location == '/login') {
+        if (location == '/splash' ||
+            location == '/onboarding' ||
+            location == '/login') {
           return '/home';
         }
         return null;
@@ -65,10 +75,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
@@ -77,9 +84,72 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/device-registration',
         builder: (context, state) => const DeviceRegistrationScreen(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomeScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return Scaffold(
+            body: navigationShell,
+            bottomNavigationBar: AppNavigationBar(
+              currentIndex: navigationShell.currentIndex,
+              onDestinationSelected: (index) => navigationShell.goBranch(index),
+            ),
+          );
+        },
+        branches: [
+          StatefulShellBranch(
+            navigatorKey: _homeNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: _historyNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/history',
+                builder: (context, state) => const HistoryScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: _leaveNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/leave',
+                builder: (context, state) => const LeaveScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: _approvalNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/approval',
+                builder: (context, state) => const ApprovalScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: _profileNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (context, state) => const ProfileScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: _moreNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/more',
+                builder: (context, state) => const MoreScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: '/attendance-flow',
@@ -89,24 +159,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/history',
-        builder: (context, state) => const HistoryScreen(),
-      ),
-      GoRoute(
         path: '/offline-queue',
         builder: (context, state) => const OfflineQueueScreen(),
       ),
       GoRoute(
         path: '/offline-history',
         builder: (context, state) => const OfflineHistoryScreen(),
-      ),
-      GoRoute(
-        path: '/leave',
-        builder: (context, state) => const LeaveScreen(),
-      ),
-      GoRoute(
-        path: '/approval',
-        builder: (context, state) => const ApprovalScreen(),
       ),
       GoRoute(
         path: '/team-attendance-monitoring',
@@ -119,14 +177,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notification-preferences',
         builder: (context, state) => const NotificationPreferencesScreen(),
-      ),
-      GoRoute(
-        path: '/profile',
-        builder: (context, state) => const ProfileScreen(),
-      ),
-      GoRoute(
-        path: '/more',
-        builder: (context, state) => const MoreScreen(),
       ),
       GoRoute(
         path: '/enrollment',
@@ -145,9 +195,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LivenessDebugScreen(),
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text(state.error.toString())),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text(state.error.toString()))),
   );
 });
 
