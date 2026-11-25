@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile/core/models/attendance_summary_models.dart';
 import 'package:mobile/core/models/leave_models.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
@@ -38,9 +39,8 @@ class HomeData {
 final todaySummaryProvider = FutureProvider<AttendanceSummaryModel>((ref) {
   final now = DateTime.now();
   return ref.watch(
-    monthlySummaryProvider(
-      MonthYearParams(year: now.year, month: now.month),
-    ).future,
+    monthlySummaryProvider(MonthYearParams(year: now.year, month: now.month))
+        .future,
   );
 });
 
@@ -52,10 +52,7 @@ final homeDataProvider = FutureProvider<HomeData>((ref) async {
   try {
     final summary = await ref.watch(
       monthlySummaryProvider(
-        MonthYearParams(
-          year: DateTime.now().year,
-          month: DateTime.now().month,
-        ),
+        MonthYearParams(year: DateTime.now().year, month: DateTime.now().month),
       ).future,
     );
     summaryModel = summary;
@@ -106,6 +103,7 @@ class RecentActivityItem {
   final String status;
   final String time;
   final StatusType type;
+  final bool isCheckIn;
   final bool isCheckedOut;
 
   const RecentActivityItem({
@@ -113,11 +111,33 @@ class RecentActivityItem {
     required this.status,
     required this.time,
     required this.type,
+    required this.isCheckIn,
     required this.isCheckedOut,
   });
 }
 
-final recentActivityProvider = FutureProvider<List<RecentActivityItem>>((ref) async {
+bool isTodayActivity(RecentActivityItem item, [DateTime? now]) {
+  final target = now ?? DateTime.now();
+  DateTime? parsed;
+
+  try {
+    parsed = DateFormat('yyyy-MM-dd').parse(item.date);
+  } catch (_) {
+    try {
+      parsed = DateFormat('d MMM y', 'en_US').parse(item.date);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  return parsed.year == target.year &&
+      parsed.month == target.month &&
+      parsed.day == target.day;
+}
+
+final recentActivityProvider = FutureProvider<List<RecentActivityItem>>((
+  ref,
+) async {
   final dataSource = ref.watch(attendanceDataSourceProvider);
   final rawLogs = await dataSource.fetchLogs();
 
@@ -128,12 +148,14 @@ final recentActivityProvider = FutureProvider<List<RecentActivityItem>>((ref) as
       statusType = StatusType.lateYellow;
     }
 
+    final isCheckout = item['is_checkout'] == true;
     return RecentActivityItem(
       date: item['date'] ?? '',
       status: item['status'] ?? 'Hadir',
       time: item['time'] ?? '',
       type: statusType,
-      isCheckedOut: item['is_checkout'] ?? false,
+      isCheckIn: item['is_checkout'] == false,
+      isCheckedOut: isCheckout,
     );
   }).toList();
 });

@@ -13,10 +13,7 @@ import 'package:mobile/features/home/presentation/providers/home_providers.dart'
 class TodayAttendanceCard extends ConsumerWidget {
   final bool isManager;
 
-  const TodayAttendanceCard({
-    super.key,
-    this.isManager = false,
-  });
+  const TodayAttendanceCard({super.key, this.isManager = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,16 +24,20 @@ class TodayAttendanceCard extends ConsumerWidget {
       child: summaryAsync.when(
         data: (summary) {
           final today = summary.today;
-          final recentItems = ref.watch(recentActivityProvider).valueOrNull ?? [];
-          final hasCheckedInLog =
-              recentItems.any((item) => !item.isCheckedOut);
-          final hasCheckedOutLog =
-              recentItems.any((item) => item.isCheckedOut);
+          final now = DateTime.now();
+          final todayLogs =
+              (ref.watch(recentActivityProvider).valueOrNull ?? [])
+                  .where((item) => isTodayActivity(item, now))
+                  .toList();
+          final hasCheckedInLog = todayLogs.any((item) => item.isCheckIn);
+          final hasCheckedOutLog = todayLogs.any((item) => item.isCheckedOut);
 
-          final isCheckedIn = summary.isCheckedInToday ||
+          final isCheckedIn =
+              summary.isCheckedInToday ||
               (today?.checkIn != null) ||
               hasCheckedInLog;
-          final isCheckedOut = summary.isCheckedOutToday ||
+          final isCheckedOut =
+              summary.isCheckedOutToday ||
               (today?.checkOut != null) ||
               hasCheckedOutLog;
 
@@ -67,8 +68,9 @@ class TodayAttendanceCard extends ConsumerWidget {
               authState.employee?.workLocation?.name ?? 'Lokasi kerja';
 
           final targetDays = _weekdaysElapsed(DateTime.now());
-          final progress =
-              targetDays == 0 ? 0.0 : summary.totalPresent / targetDays;
+          final progress = targetDays == 0
+              ? 0.0
+              : summary.totalPresent / targetDays;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -169,8 +171,8 @@ class TodayAttendanceCard extends ConsumerWidget {
                     child: FilledButton.icon(
                       onPressed: isCheckedIn
                           ? null
-                          : () => context
-                              .push('/attendance-flow?isCheckIn=true'),
+                          : () =>
+                                context.push('/attendance-flow?isCheckIn=true'),
                       icon: const Icon(Icons.login_rounded, size: 18),
                       label: Text(isCheckedIn ? 'Sudah Masuk' : 'Masuk'),
                     ),
@@ -180,8 +182,9 @@ class TodayAttendanceCard extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       onPressed: isCheckedOut
                           ? null
-                          : () => context
-                              .push('/attendance-flow?isCheckIn=false'),
+                          : () => context.push(
+                              '/attendance-flow?isCheckIn=false',
+                            ),
                       icon: const Icon(Icons.logout_rounded, size: 18),
                       label: Text(isCheckedOut ? 'Sudah Pulang' : 'Pulang'),
                     ),
@@ -205,9 +208,7 @@ class TodayAttendanceCard extends ConsumerWidget {
         ),
         error: (e, _) => Text(
           'Gagal memuat status absen',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.error,
-          ),
+          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
         ),
       ),
     );
