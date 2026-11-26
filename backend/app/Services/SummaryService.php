@@ -164,6 +164,8 @@ class SummaryService
             $days[] = [
                 'date' => $key,
                 'status' => $this->dayStatus($cursor, $attendance, $leave),
+                'check_in' => $attendance?->check_in_at?->format('H:i'),
+                'check_out' => $attendance?->check_out_at?->format('H:i'),
             ];
 
             $cursor->addDay();

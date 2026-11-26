@@ -7,6 +7,7 @@ import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/core/widgets/app_button.dart';
 import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
+import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
 import 'package:mobile/features/attendance/presentation/screens/camera_face_screen.dart';
 import 'package:mobile/features/attendance/data/attendance_flow_service.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
@@ -789,6 +790,7 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
           AppButton(
             text: 'Kembali ke Beranda',
             onPressed: () {
+              ref.invalidate(monthlySummaryProvider);
               Navigator.pop(context, isPass || isOffline);
             },
             icon: Icons.home_outlined,
