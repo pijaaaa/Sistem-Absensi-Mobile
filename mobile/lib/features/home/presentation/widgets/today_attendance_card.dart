@@ -7,6 +7,7 @@ import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/core/widgets/app_progress_ring.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/core/widgets/status_chip.dart';
+import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/home/presentation/providers/home_providers.dart';
 
@@ -19,6 +20,7 @@ class TodayAttendanceCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final summaryAsync = ref.watch(todaySummaryProvider);
+    final pendingTypes = ref.watch(pendingOfflineTypesProvider).valueOrNull ?? <bool>{};
 
     return AppCard(
       child: summaryAsync.when(
@@ -35,11 +37,13 @@ class TodayAttendanceCard extends ConsumerWidget {
           final isCheckedIn =
               summary.isCheckedInToday ||
               (today?.checkIn != null) ||
-              hasCheckedInLog;
+              hasCheckedInLog ||
+              pendingTypes.contains(true);
           final isCheckedOut =
               summary.isCheckedOutToday ||
               (today?.checkOut != null) ||
-              hasCheckedOutLog;
+              hasCheckedOutLog ||
+              pendingTypes.contains(false);
 
           String statusText = 'Belum absen';
           StatusType statusType = StatusType.pending;
@@ -165,31 +169,9 @@ class TodayAttendanceCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: AppTheme.spacingLG),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: isCheckedIn
-                          ? null
-                          : () =>
-                                context.push('/attendance-flow?isCheckIn=true'),
-                      icon: const Icon(Icons.login_rounded, size: 18),
-                      label: Text(isCheckedIn ? 'Sudah Masuk' : 'Masuk'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: isCheckedOut
-                          ? null
-                          : () => context.push(
-                              '/attendance-flow?isCheckIn=false',
-                            ),
-                      icon: const Icon(Icons.logout_rounded, size: 18),
-                      label: Text(isCheckedOut ? 'Sudah Pulang' : 'Pulang'),
-                    ),
-                  ),
-                ],
+              _AttendanceActions(
+                isCheckedIn: isCheckedIn,
+                isCheckedOut: isCheckedOut,
               ),
             ],
           );
@@ -206,9 +188,20 @@ class TodayAttendanceCard extends ConsumerWidget {
             ),
           ],
         ),
-        error: (e, _) => Text(
-          'Gagal memuat status absen',
-          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
+        error: (e, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Status server tidak tersedia — menampilkan antrean offline',
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
+            ),
+            const SizedBox(height: AppTheme.spacingMD),
+            _AttendanceActions(
+              isCheckedIn: pendingTypes.contains(true),
+              isCheckedOut: pendingTypes.contains(false),
+            ),
+          ],
         ),
       ),
     );
@@ -224,6 +217,43 @@ class TodayAttendanceCard extends ConsumerWidget {
       }
     }
     return count;
+  }
+}
+
+class _AttendanceActions extends StatelessWidget {
+  final bool isCheckedIn;
+  final bool isCheckedOut;
+
+  const _AttendanceActions({
+    required this.isCheckedIn,
+    required this.isCheckedOut,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: isCheckedIn
+                ? null
+                : () => context.push('/attendance-flow?isCheckIn=true'),
+            icon: const Icon(Icons.login_rounded, size: 18),
+            label: Text(isCheckedIn ? 'Sudah Masuk' : 'Masuk'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: isCheckedOut
+                ? null
+                : () => context.push('/attendance-flow?isCheckIn=false'),
+            icon: const Icon(Icons.logout_rounded, size: 18),
+            label: Text(isCheckedOut ? 'Sudah Pulang' : 'Pulang'),
+          ),
+        ),
+      ],
+    );
   }
 }
 

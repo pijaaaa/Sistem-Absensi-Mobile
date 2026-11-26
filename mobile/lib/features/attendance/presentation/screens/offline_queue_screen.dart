@@ -6,6 +6,8 @@ import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
+import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
+import 'package:mobile/features/attendance/presentation/screens/offline_history_screen.dart';
 import 'package:mobile/features/attendance/data/local/offline_database.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:intl/intl.dart';
@@ -35,7 +37,10 @@ class _OfflineQueueScreenState extends ConsumerState<OfflineQueueScreen> {
           ),
         );
         ref.invalidate(offlineQueueProvider);
+        ref.invalidate(offlineHistoryProvider);
         ref.invalidate(pendingCountProvider);
+        ref.invalidate(pendingOfflineTypesProvider);
+        ref.invalidate(monthlySummaryProvider);
       }
     } catch (e) {
       if (mounted) {
@@ -67,8 +72,11 @@ class _OfflineQueueScreenState extends ConsumerState<OfflineQueueScreen> {
           ),
         ],
       ),
-      body: queueAsync.when(
-        data: (items) {
+      body: Column(
+        children: [
+          Expanded(
+            child: queueAsync.when(
+              data: (items) {
           if (items.isEmpty) {
             return Center(
               child: Column(
@@ -110,6 +118,7 @@ class _OfflineQueueScreenState extends ConsumerState<OfflineQueueScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(offlineQueueProvider);
+              ref.invalidate(pendingOfflineTypesProvider);
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -132,10 +141,13 @@ class _OfflineQueueScreenState extends ConsumerState<OfflineQueueScreen> {
             child: SkeletonLoader(height: 100, borderRadius: BorderRadius.circular(16)),
           ),
         ),
-        error: (e, _) => ErrorState(
-          message: 'Gagal memuat antrean offline: $e',
-          onRetry: () => ref.invalidate(offlineQueueProvider),
-        ),
+              error: (e, _) => ErrorState(
+                message: 'Gagal memuat antrean offline: $e',
+                onRetry: () => ref.invalidate(offlineQueueProvider),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -146,7 +158,8 @@ final offlineQueueProvider = FutureProvider<List<OfflineAttendance>>((ref) async
   final authState = ref.watch(authStateProvider);
   final userId = authState.user?.id ?? authState.employee?.id ?? 0;
   return await (db.select(db.offlineAttendances)
-        ..where((tbl) => tbl.userId.equals(userId))
+        ..where((tbl) =>
+            tbl.userId.equals(userId) & tbl.isSynced.equals(false))
         ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]))
       .get();
 });
@@ -162,7 +175,8 @@ class _OfflineItemCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isCheckIn = item.isCheckIn;
     final isSynced = item.isSynced;
-    final hasError = item.syncError != null && item.syncError!.isNotEmpty;
+    final hasError =
+        !isSynced && item.syncError != null && item.syncError!.isNotEmpty;
     
     // Human-readable status
     String statusLabel;

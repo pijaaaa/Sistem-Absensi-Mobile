@@ -9,6 +9,8 @@ import 'package:mobile/core/widgets/app_card.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
 import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
 import 'package:mobile/features/attendance/presentation/screens/camera_face_screen.dart';
+import 'package:mobile/features/attendance/presentation/screens/offline_history_screen.dart';
+import 'package:mobile/features/attendance/presentation/screens/offline_queue_screen.dart';
 import 'package:mobile/features/attendance/data/attendance_flow_service.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:mobile/features/auth/presentation/providers/device_providers.dart';
@@ -208,6 +210,12 @@ class _AttendanceFlowScreenState extends ConsumerState<AttendanceFlowScreen> {
           faceScoreReal: _faceScore ?? 1.0,
           faceImageBytes: _capturedImageBytes,
         );
+
+        ref.invalidate(pendingCountProvider);
+        ref.invalidate(pendingOfflineTypesProvider);
+        ref.invalidate(offlineQueueProvider);
+        ref.invalidate(offlineHistoryProvider);
+        ref.invalidate(monthlySummaryProvider);
 
         if (mounted) {
           setState(() {

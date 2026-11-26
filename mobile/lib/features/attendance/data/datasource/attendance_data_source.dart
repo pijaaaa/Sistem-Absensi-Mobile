@@ -166,6 +166,9 @@ class AttendanceDataSource {
       final serverTime = data['server_time_millis'] ?? data['data']?['server_time'] ?? 0;
       if (serverTime is int) return serverTime;
       if (serverTime is double) return serverTime.toInt();
+      if (serverTime is String) {
+        return DateTime.tryParse(serverTime)?.millisecondsSinceEpoch ?? 0;
+      }
       return 0;
     } on DioException catch (e) {
       throw Exception(_formatError(e));
@@ -198,7 +201,10 @@ class AttendanceDataSource {
       } catch (_) {}
     }
 
-    final anchorServerTime = DateTime.fromMillisecondsSinceEpoch(anchorServerTimeMillis).toIso8601String();
+    final anchorServerTime = DateTime.fromMillisecondsSinceEpoch(
+      anchorServerTimeMillis,
+      isUtc: true,
+    ).toIso8601String();
 
     try {
       final response = await dio.post(

@@ -106,6 +106,7 @@ class WorkManagerService {
     await Workmanager().registerOneOffTask(
       "${syncTaskName}_oneoff",
       syncTaskName,
+      existingWorkPolicy: ExistingWorkPolicy.append,
       constraints: Constraints(
         networkType: NetworkType.connected,
       ),

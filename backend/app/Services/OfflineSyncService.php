@@ -68,8 +68,9 @@ class OfflineSyncService
     ): array {
         $uuid = $item['client_uuid'];
 
-        if (Attendance::where('client_uuid', $uuid)->exists()) {
-            return ['client_uuid' => $uuid, 'status' => 'duplicate'];
+        $duplicate = Attendance::where('client_uuid', $uuid)->first();
+        if ($duplicate) {
+            return $this->result($duplicate, 'duplicate');
         }
 
         $recomputed = $anchorServer->copy()->addMilliseconds(
@@ -78,8 +79,17 @@ class OfflineSyncService
 
         $date = $recomputed->toDateString();
 
-        if (Attendance::where('employee_id', $employee->id)->whereDate('date', $date)->exists()) {
-            return ['client_uuid' => $uuid, 'status' => 'skipped_existing'];
+        $existing = Attendance::where('employee_id', $employee->id)
+            ->whereDate('date', $date)
+            ->first();
+
+        $isUpdate = $existing
+            && $item['type'] === 'out'
+            && $existing->check_in_at !== null
+            && $existing->check_out_at === null;
+
+        if ($existing && ! $isUpdate) {
+            return $this->result($existing, 'skipped_existing');
         }
 
         $device = Device::where('employee_id', $employee->id)
@@ -94,6 +104,10 @@ class OfflineSyncService
         $insideArea = $isDinas || $this->insideArea($employee, (float) $item['lat'], (float) $item['lng']);
 
         $reviewFlag = $bootChanged || ! $insideArea || $device === null;
+
+        if ($isUpdate && $existing->review_flag) {
+            $reviewFlag = true;
+        }
 
         $late = null;
 
@@ -139,17 +153,48 @@ class OfflineSyncService
             ];
         }
 
-        $attendance = $employee->attendances()->create($attributes);
+        if ($isUpdate) {
+            unset(
+                $attributes['date'],
+                $attributes['client_uuid'],
+                $attributes['check_in_at'],
+                $attributes['in_lat'],
+                $attributes['in_lng'],
+                $attributes['location_id'],
+                $attributes['late_minutes'],
+                $attributes['late_level'],
+            );
+            $attributes['time_trust'] = $bootChanged ? 'suspect' : $existing->time_trust;
+            $attributes['review_flag'] = $reviewFlag;
+
+            $existing->fill($attributes)->save();
+            $attendance = $existing->refresh();
+            $status = 'updated';
+        } else {
+            $attendance = $employee->attendances()->create($attributes);
+            $status = 'created';
+        }
 
         if (! empty($item['photo'])) {
             $this->storeCapture($attendance, $item['type'], $item['photo']);
         }
 
+        return $this->result($attendance, $status, $reviewFlag);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function result(Attendance $attendance, string $status, ?bool $reviewFlag = null): array
+    {
         return [
-            'client_uuid' => $uuid,
-            'status' => 'created',
+            'client_uuid' => $attendance->client_uuid,
+            'status' => $status,
             'attendance_id' => $attendance->id,
-            'review_flag' => $reviewFlag,
+            'date' => $attendance->date?->toDateString(),
+            'check_in' => $attendance->check_in_at?->format('H:i'),
+            'check_out' => $attendance->check_out_at?->format('H:i'),
+            'review_flag' => $reviewFlag ?? $attendance->review_flag,
             'time_trust' => $attendance->time_trust,
         ];
     }

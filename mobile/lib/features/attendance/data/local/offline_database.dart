@@ -92,6 +92,7 @@ class OfflineDatabase extends _$OfflineDatabase {
         .write(
       OfflineAttendancesCompanion(
         isSynced: const Value(true),
+        syncError: const Value(null),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import 'package:mobile/features/attendance/data/local/offline_database.dart';
 import 'package:mobile/features/attendance/data/local/elapsed_time_service.dart';
+import 'package:mobile/features/attendance/data/local/workmanager_service.dart';
 import 'package:mobile/features/attendance/data/repository/attendance_repository.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -106,6 +107,19 @@ class OfflineAttendanceService {
     String? deviceUid,
     bool isBackupDevice = false,
   }) async {
+    final pending = await database.getPendingAttendances(userId);
+    final today = DateTime.now();
+    final alreadyQueued = pending.any((row) =>
+        row.isCheckIn == isCheckIn &&
+        row.createdAt.year == today.year &&
+        row.createdAt.month == today.month &&
+        row.createdAt.day == today.day);
+    if (alreadyQueued) {
+      throw Exception(isCheckIn
+          ? 'Absen masuk sudah ada di antrean offline'
+          : 'Absen pulang sudah ada di antrean offline');
+    }
+
     final clientUuid = const Uuid().v4();
 
     // Get anchor
@@ -139,6 +153,8 @@ class OfflineAttendanceService {
         isBackupDevice: Value(isBackupDevice),
       ),
     );
+
+    await WorkManagerService.triggerOneTimeSync();
 
     return clientUuid;
   }
@@ -176,14 +192,7 @@ class OfflineAttendanceService {
         }
 
         try {
-          // Calculate server time from elapsed-realtime
-          final timeResult = await elapsedTimeService.calculateServerTime(
-            anchorServerTimeMillis: attendance.anchorServerTimeMillis,
-            anchorElapsedMillis: attendance.anchorElapsedMillis,
-            anchorBootCount: attendance.bootCount,
-          );
-
-          // Call sync API (backend B7)
+          // Kirim elapsed & boot count sesuai waktu absen dicatat, bukan waktu sync.
           final response = await repository.syncOfflineAttendance(
             clientUuid: attendance.clientUuid,
             isCheckIn: attendance.isCheckIn,
@@ -193,16 +202,23 @@ class OfflineAttendanceService {
             anchorServerTimeMillis: attendance.anchorServerTimeMillis,
             anchorElapsedMillis: attendance.anchorElapsedMillis,
             anchorBootCount: attendance.bootCount,
-            currentElapsedMillis: timeResult.currentElapsedMillis,
-            currentBootCount: timeResult.currentBootCount,
+            currentElapsedMillis: attendance.elapsedRealtimeMillis,
+            currentBootCount: attendance.bootCount,
             deviceUid: attendance.deviceUid,
             photoPath: attendance.faceImagePath,
           );
 
           // 3. Handling response status ('synced', 'needs_review', 'rejected', duplicate)
-          final status = response['status'] ?? 'synced';
+          final status = response['status'] ??
+              (response['success'] == false ? 'rejected' : 'synced');
           final message = response['message']?.toString();
-          if (status == 'synced' || status == 'needs_review' || status == 'duplicate' || status == 'created' || response['success'] == true) {
+          if (status == 'synced' ||
+              status == 'needs_review' ||
+              status == 'duplicate' ||
+              status == 'skipped_existing' ||
+              status == 'created' ||
+              status == 'updated' ||
+              response['success'] == true) {
             await database.markAsSynced(attendance.clientUuid);
             synced++;
 

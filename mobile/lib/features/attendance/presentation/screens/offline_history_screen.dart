@@ -6,6 +6,7 @@ import 'package:mobile/core/widgets/status_chip.dart';
 import 'package:mobile/core/widgets/error_state.dart';
 import 'package:mobile/core/widgets/skeleton_loader.dart';
 import 'package:mobile/features/attendance/presentation/providers/attendance_providers.dart';
+import 'package:mobile/features/attendance/presentation/providers/summary_providers.dart';
 import 'package:mobile/features/attendance/data/local/offline_database.dart';
 import 'package:mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:intl/intl.dart';
@@ -35,6 +36,9 @@ class _OfflineHistoryScreenState extends ConsumerState<OfflineHistoryScreen> {
           ),
         );
         ref.invalidate(offlineHistoryProvider);
+        ref.invalidate(pendingCountProvider);
+        ref.invalidate(pendingOfflineTypesProvider);
+        ref.invalidate(monthlySummaryProvider);
       }
     } catch (e) {
       if (mounted) {
@@ -54,7 +58,7 @@ class _OfflineHistoryScreenState extends ConsumerState<OfflineHistoryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final historyAsync = ref.watch(offlineHistoryProvider);
-//fdrd
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Antrean & Riwayat Offline'),
@@ -76,8 +80,11 @@ class _OfflineHistoryScreenState extends ConsumerState<OfflineHistoryScreen> {
             ),
         ],
       ),
-      body: historyAsync.when(
-        data: (items) {
+      body: Column(
+        children: [
+          Expanded(
+            child: historyAsync.when(
+              data: (items) {
           if (items.isEmpty) {
             return Center(
               child: Column(
@@ -114,6 +121,7 @@ class _OfflineHistoryScreenState extends ConsumerState<OfflineHistoryScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(offlineHistoryProvider);
+              ref.invalidate(pendingOfflineTypesProvider);
             },
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -157,10 +165,13 @@ class _OfflineHistoryScreenState extends ConsumerState<OfflineHistoryScreen> {
             ),
           ),
         ),
-        error: (error, _) => ErrorState(
-          message: 'Gagal memuat riwayat offline: $error',
-          onRetry: () => ref.invalidate(offlineHistoryProvider),
-        ),
+              error: (error, _) => ErrorState(
+                message: 'Gagal memuat riwayat offline: $error',
+                onRetry: () => ref.invalidate(offlineHistoryProvider),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -234,7 +245,8 @@ class _OfflineHistoryItemCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isCheckIn = item.isCheckIn;
     final isSynced = item.isSynced;
-    final hasError = item.syncError != null && item.syncError!.isNotEmpty;
+    final hasError =
+        !isSynced && item.syncError != null && item.syncError!.isNotEmpty;
 
     String statusLabel;
     StatusType statusType;

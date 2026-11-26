@@ -195,6 +195,60 @@ class AttendanceSyncTest extends TestCase
         $this->assertDatabaseCount('attendances', 1);
     }
 
+    public function test_offline_checkout_updates_existing_checkin_row(): void
+    {
+        $this->fakeVerify();
+        $user = $this->employeeWithFace();
+        $inUuid = fake()->uuid();
+        $outUuid = fake()->uuid();
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/attendance/sync', [
+            'anchor' => $this->anchor(),
+            'boot_count' => 1,
+            'items' => [$this->item($inUuid, 1000 + 600000)],
+        ])->assertOk()->assertJsonPath('data.0.status', 'created');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/attendance/sync', [
+            'anchor' => $this->anchor(),
+            'boot_count' => 1,
+            'items' => [$this->item($outUuid, 1000 + 3600000, 'dev-A', 'out')],
+        ])->assertOk();
+
+        $response->assertJsonPath('data.0.status', 'updated');
+        $response->assertJsonPath('data.0.check_in', '08:10');
+        $response->assertJsonPath('data.0.check_out', '09:00');
+
+        $attendance = Attendance::where('client_uuid', $inUuid)->firstOrFail();
+        $this->assertSame('08:10', $attendance->check_in_at->format('H:i'));
+        $this->assertSame('09:00', $attendance->check_out_at->format('H:i'));
+        $this->assertDatabaseCount('attendances', 1);
+        $this->assertDatabaseMissing('attendances', ['client_uuid' => $outUuid]);
+    }
+
+    public function test_anchor_with_z_keeps_wib_wall_clock(): void
+    {
+        $this->fakeVerify();
+        $user = $this->employeeWithFace();
+        $uuid = fake()->uuid();
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/attendance/sync', [
+            'anchor' => [
+                'server_time' => '2026-11-26T01:00:00.000Z',
+                'elapsed_realtime' => 1000,
+                'boot_count' => 1,
+            ],
+            'boot_count' => 1,
+            'items' => [$this->item($uuid, 1000 + 22380000)], // +6j13 -> 14:13 WIB
+        ])->assertOk();
+
+        $response->assertJsonPath('data.0.check_in', '14:13');
+
+        $attendance = Attendance::where('client_uuid', $uuid)->firstOrFail();
+        $this->assertSame('2026-11-26 14:13:00', $attendance->getRawOriginal('check_in_at'));
+        $this->assertSame(373, $attendance->late_minutes);
+        $this->assertSame('red', $attendance->late_level);
+    }
+
     public function test_sync_from_backup_device_is_pending(): void
     {
         $this->fakeVerify();

@@ -128,6 +128,8 @@ void main() async {
     );
     if (isOnline) {
       try {
+        await WorkManagerService.triggerOneTimeSync();
+
         final container = ProviderContainer(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),

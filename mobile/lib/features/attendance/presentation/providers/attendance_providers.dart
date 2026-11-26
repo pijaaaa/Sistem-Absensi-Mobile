@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:drift/drift.dart';
 import 'package:mobile/core/network/providers.dart';
 import 'package:mobile/features/attendance/data/attendance_service.dart';
 import 'package:mobile/features/attendance/data/datasource/attendance_data_source.dart';
@@ -78,6 +78,16 @@ final pendingCountProvider = StreamProvider<int>((ref) async* {
   await for (final _ in connectivity.onConnectivityChanged) {
     yield await offlineService.getPendingCount(userId);
   }
+});
+
+final pendingOfflineTypesProvider = FutureProvider<Set<bool>>((ref) async {
+  final db = ref.watch(offlineDatabaseProvider);
+  final authState = ref.watch(authStateProvider);
+  final userId = authState.user?.id ?? authState.employee?.id ?? 0;
+  final rows = await (db.select(db.offlineAttendances)
+        ..where((tbl) => tbl.userId.equals(userId) & tbl.isSynced.equals(false)))
+      .get();
+  return rows.map((row) => row.isCheckIn).toSet();
 });
 
 class AttendanceState {
