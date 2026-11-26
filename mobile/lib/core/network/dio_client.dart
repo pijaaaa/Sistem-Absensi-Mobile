@@ -18,6 +18,7 @@ class DioClient {
     dio.options.headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     };
 
     dio.interceptors.addAll([

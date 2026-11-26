@@ -50,7 +50,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupPushCallbacks();
-      _refreshData();
     });
   }
 

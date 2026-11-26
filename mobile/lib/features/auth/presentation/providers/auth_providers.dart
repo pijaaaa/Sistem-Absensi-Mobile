@@ -159,19 +159,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
         employee: user.employee,
       );
 
-      try {
-        final menus = await authRepo.getMenus();
-        state = state.copyWith(menus: menus);
-      } catch (e) {
+      final menusFuture = authRepo.getMenus().catchError((Object e) {
         debugPrint('[AUTH] getMenus error: $e');
-      }
-
-      try {
-        final permissions = await authRepo.getPermissions();
-        state = state.copyWith(permissions: permissions);
-      } catch (e) {
+        return <Map<String, dynamic>>[];
+      });
+      final permissionsFuture = authRepo.getPermissions().catchError((Object e) {
         debugPrint('[AUTH] getPermissions error: $e');
-      }
+        return <String>{};
+      });
+      final results = await Future.wait<Object>([menusFuture, permissionsFuture]);
+      state = state.copyWith(
+        menus: results[0] as List<Map<String, dynamic>>,
+        permissions: results[1] as Set<String>,
+      );
 
       Future.microtask(
         ref.read(securityServiceWithDioProvider).reportSecurityFlags,

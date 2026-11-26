@@ -1,6 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:mobile/core/models/user_model.dart';
 import 'package:mobile/features/auth/data/datasource/auth_data_source.dart';
 
@@ -16,29 +14,7 @@ class AuthRepository {
     required String password,
   }) async {
     await dataSource.login(login: login, password: password);
-    final user = await dataSource.fetchMe();
-
-    // Menu & permission dimuat di Home, bukan di login — 
-    // bila gagal, login tetap berhasil
-    try {
-      await dataSource.fetchMenus();
-    } catch (e) {
-      debugPrint('[AUTH] login fetchMenus ignored: $e');
-    }
-    try {
-      await dataSource.fetchPermissions();
-    } catch (e) {
-      debugPrint('[AUTH] login fetchPermissions ignored: $e');
-    }
-
-    // Register FCM token with backend after successful login
-    final fcm = FirebaseMessaging.instance;
-    final token = await fcm.getToken();
-    if (token != null) {
-      await dataSource.updateFcmToken(token);
-    }
-
-    return user;
+    return dataSource.fetchMe();
   }
 
   Future<void> logout() async {

@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/core/network/dio_client.dart';
+import 'package:mobile/core/services/session_manager.dart';
 import 'package:mobile/features/attendance/data/local/offline_database.dart';
 import 'package:mobile/features/attendance/data/local/elapsed_time_service.dart';
 import 'package:mobile/features/attendance/data/local/offline_attendance_service.dart';
@@ -31,10 +34,10 @@ void callbackDispatcher() {
           return true; // Retry later
         }
 
-        // Initialize repository (need token from storage)
-        // For now, skip if no token - real implementation needs secure storage
+        final prefs = await SharedPreferences.getInstance();
+        SessionManager.setPrefs(prefs);
         final dio = Dio();
-        dio.options.baseUrl = 'http://localhost:8000/api'; // Dummy for background task
+        DioClient(dio: dio, prefs: prefs);
         final dataSource = AttendanceDataSource(dio: dio);
         final repository = AttendanceRepository(dataSource: dataSource);
 
